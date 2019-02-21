@@ -1,9 +1,9 @@
 MicroBatchFramework
 ===
-WIP but welcome to try and your impressions.
+WIP but welcome to try and your impressions. NuGet: [MicroBatchFramework](https://www.nuget.org/packages/MicroBatchFramework)
 
 ```
-Install-Package MicroBatchFramework
+Install-Package MicroBatchFramework -Pre
 ```
 
 Single Contained Batch
