@@ -12,7 +12,7 @@ MicroBatchFramework is built on [.NET Generic Host](https://docs.microsoft.com/e
 
 Batch can write by simple method, argument is automaticaly binded to parameter.
 
-```
+```csharp
 using MicroBatchFramework;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -67,8 +67,7 @@ Multi Contained Batch
 ---
 MicroBatchFramework allows the multi contained batch. You can write many class, methods and select by first-argument.
 
-
-```
+```csharp
 using MicroBatchFramework;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
