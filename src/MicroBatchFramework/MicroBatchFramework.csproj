@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>release.snk</AssemblyOriginatorKeyFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Version, hand-writen:) -->
+    <Version>0.1.0-beta1</Version>
+
+    <Summary>Single and Multiple contianed batch to write easy type.method style like make Web API, hosted on generic host.</Summary>
+    <Description>$(Summary)</Description>
+    <Company>Cysharp</Company>
+    <Authors>Yoshifumi Kawai</Authors>
+    <PackageProjectUrl>https://github.com/Cysharp/MicroBatchFramework</PackageProjectUrl>
+    <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>batch</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>1701;1702;1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="2.2.0" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.2" />
+    <PackageReference Include="Utf8Json" Version="1.3.7" />
+  </ItemGroup>
+</Project>
