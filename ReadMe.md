@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-// Entrypoint.
+// Entrypoint, create from the .NET Core Console App.
 class Program
 {
     static async Task Main(string[] args)
