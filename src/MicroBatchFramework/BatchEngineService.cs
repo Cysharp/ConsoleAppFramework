@@ -78,7 +78,7 @@ namespace MicroBatchFramework
                 logger.LogTrace("Batch cancel completed.");
             }
 
-            await interceptor.OnBatchEngineBegin();
+            await interceptor.OnBatchEngineEnd();
         }
     }
 }

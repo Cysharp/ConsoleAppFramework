@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 public class MyFirstBatch : BatchBase
@@ -39,6 +40,7 @@ public class Bar : BatchBase
 }
 
 
+
 namespace SingleContainedApp
 {
     class Program
@@ -47,21 +49,23 @@ namespace SingleContainedApp
         {
             await new HostBuilder()
                 .ConfigureLogging(x => x.AddConsole())
-                .RunBatchEngine(args); // don't pass <T>.
+                .RunBatchEngine(args, new batchInterceptor()); // don't pass <T>.
         }
     }
 
     public class batchInterceptor : IBatchInterceptor
     {
+        Stopwatch start;
+
         public ValueTask OnBatchEngineBegin()
         {
-            Console.WriteLine("Yeah1");
+            start = Stopwatch.StartNew();
             return default(ValueTask);
         }
 
         public ValueTask OnBatchEngineEnd()
         {
-            Console.WriteLine("Yeah2");
+            Console.WriteLine(start.Elapsed.TotalMilliseconds + "ms");
             return default(ValueTask);
         }
 
