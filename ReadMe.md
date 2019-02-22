@@ -13,6 +13,7 @@ MicroBatchFramework is built on [.NET Generic Host](https://docs.microsoft.com/e
 Batch can write by simple method, argument is automaticaly binded to parameter.
 
 ```csharp
+requires additional package `Microsoft.Extensions.Logging.Console` to log Console
 using MicroBatchFramework;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ using System.Threading.Tasks;
 // Entrypoint, create from the .NET Core Console App.
 class Program
 {
+    // C# 7.1(update lang version)
     static async Task Main(string[] args)
     {
         await new HostBuilder()
@@ -34,7 +36,7 @@ class Program
 public class MyFirstBatch : BatchBase // inherit BatchBase
 {
     // allows void/Task return type, parameter allows all types(deserialized by Utf8Json and can pass by JSON string)
-    public void Hello(string name, int no = 99)
+    public void Hello(string name, int repeat = 3)
     { 
         for (int i = 0; i < repeat; i++)
         {
@@ -44,7 +46,7 @@ public class MyFirstBatch : BatchBase // inherit BatchBase
 }
 ```
 
-You can execute command like `SampleApp.exe -name "foo" -no 3`.
+You can execute command like `SampleApp.exe -name "foo" -repeat 5`.
 
 The Option parser is no longer needed. You can also use the `OptionAttribute` to describe the parameter.
 
