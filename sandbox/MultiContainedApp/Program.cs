@@ -44,7 +44,7 @@ public class Bar : BatchBase
     }
 }
 
-namespace SingleContainedApp
+namespace MultiContainedApp
 {
     class Program
     {
