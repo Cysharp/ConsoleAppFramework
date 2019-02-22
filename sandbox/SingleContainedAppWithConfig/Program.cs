@@ -12,14 +12,16 @@ using System.Threading.Tasks;
 
 public class Baz : BatchBase
 {
-    private readonly IOptions<SingleContainedApp.AppConfig> config;
-    public Baz(IOptions<SingleContainedApp.AppConfig> config)
+    private readonly IOptions<SingleContainedAppWithConfig.AppConfig> config;
+    // Batche inject Config on constructor.
+    public Baz(IOptions<SingleContainedAppWithConfig.AppConfig> config)
     {
         this.config = config;
     }
+
     public void Hello3()
     {
-        this.Context.Logger.LogInformation(config.Value.MyValue);
+        this.Context.Logger.LogInformation($"GlobalValue: {config.Value.GlobalValue}, EnvValue: {config.Value.EnvValue}");
     }
 }
 
@@ -41,6 +43,7 @@ namespace SingleContainedAppWithConfig
                 })
                 .ConfigureServices((hostContext, services) => {
                     services.AddOptions();
+                    // mapping json element to class
                     services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
                 })
                 .ConfigureLogging(x => x.AddConsole())
@@ -77,8 +80,10 @@ namespace SingleContainedAppWithConfig
         }
     }
 
+    // config mapping class
     public class AppConfig
     {
-        public string MyValue { get; set; }
+        public string GlobalValue { get; set; }
+        public string EnvValue { get; set; }
     }
 }
