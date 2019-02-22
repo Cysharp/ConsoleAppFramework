@@ -134,6 +134,113 @@ also use with `help`
 -msg: String
 ```
 
+Single Contained Batch with Config loading
+---
+MicroBatchFramework is just a infrastructure. You can add appsettings.json or other configs as .NET Core offers.
+You can add `appsettings.json` and `appsettings.<env>.json` and typesafe load via map config to Class w/IOption.
+
+```csharp
+using MicroBatchFramework;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Threading.Tasks;
+
+// Entrypoint.
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        await new HostBuilder()
+            .ConfigureAppConfiguration((hostContext, config) =>
+            {
+                // Set Environment variable "NETCORE_ENVIRONMENT" as Production | Staging | Development
+                hostContext.HostingEnvironment.EnvironmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT") ?? "production";
+                config.SetBasePath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
+                    .AddJsonFile($"appsettings.json", optional: true, reloadOnChange: true)
+                    .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional:true, reloadOnChange:true);
+            })
+            .ConfigureServices((hostContext, services) => {
+                services.AddOptions();
+                // mapping json element to class
+                services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
+            })
+            .ConfigureLogging(x => x.AddConsole())
+            .RunBatchEngine<Baz>(args);
+    }
+}
+
+// config mapping class
+public class AppConfig
+{
+    public string MyValue { get; set; }
+}
+
+// Batche inject Config on constructor.
+public class Baz : BatchBase
+{
+    private readonly IOptions<SingleContainedAppWithConfig.AppConfig> config;
+    public Baz(IOptions<SingleContainedAppWithConfig.AppConfig> config)
+    {
+        this.config = config;
+    }
+    public void Hello3()
+    {
+        this.Context.Logger.LogInformation(config.Value.MyValue);
+    }
+}
+```
+
+You can add appsettings.json.
+
+```json
+{
+  "AppConfig": {
+    "GlobalValue": "GLOBAL VALUE!!!!",
+    "EnvValue": "ENV VALUE!!!!"
+  }
+}
+```
+
+Also add appsettings.Production.json and appsettings.Development.json to override appsettings.json value.
+
+```json
+{
+  "AppConfig": {
+    "EnvValue": "ENV VALUE!!!!(PRODUCTION)"
+  }
+}
+```
+
+```json
+{
+  "AppConfig": {
+    "EnvValue": "ENV VALUE!!!!(DEVELOPMENT)"
+  }
+}
+```
+
+You can call like `SampleApp.exe Baz.Hello3`.
+
+When you don't set environment variable `NETCORE_ENVIRONMENT` or set it as `Production`, appsettings.json will override via appsettings.Production.json.
+Output will be.
+
+```
+GlobalValue: GLOBAL VALUE!!!!, EnvValue: ENV VALUE!!!!(PRODUCTION)
+```
+
+If you set `NETCORE_ENVIRONMENT` as `Development`, EnvValue will be override to Dev.
+
+```
+GlobalValue: GLOBAL VALUE!!!!, EnvValue: ENV VALUE!!!!(DEVELOPMENT)
+```
+
 Daemon
 ---
 WIP
