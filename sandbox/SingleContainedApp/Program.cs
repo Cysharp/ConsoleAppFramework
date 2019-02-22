@@ -18,29 +18,6 @@ public class MyFirstBatch : BatchBase
     }
 }
 
-public class Foo : BatchBase
-{
-    public void Echo(string msg)
-    {
-        this.Context.Logger.LogInformation(msg);
-    }
-
-    public void Sum(int x, int y)
-    {
-        this.Context.Logger.LogInformation((x + y).ToString());
-    }
-}
-
-public class Bar : BatchBase
-{
-    public void Hello2()
-    {
-        this.Context.Logger.LogInformation("H E L L O");
-    }
-}
-
-
-
 namespace SingleContainedApp
 {
     class Program
@@ -49,7 +26,7 @@ namespace SingleContainedApp
         {
             await new HostBuilder()
                 .ConfigureLogging(x => x.AddConsole())
-                .RunBatchEngine(args, new batchInterceptor()); // don't pass <T>.
+                .RunBatchEngine<MyFirstBatch>(args);
         }
     }
 
