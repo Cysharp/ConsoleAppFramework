@@ -76,7 +76,7 @@ namespace MicroBatchFramework.Logging
 
     public class SimpleConsoleLoggerOption
     {
-        public LogLevel MinLogLevel { get; set; } = LogLevel.Debug; // default is debug. 
+        public LogLevel MinLogLevel { get; set; } = LogLevel.Trace; // default is trace(should use another filter). 
     }
 
     public static class SimpleConsoleLoggerExtensions
