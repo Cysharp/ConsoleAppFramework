@@ -22,8 +22,6 @@ namespace SingleContainedApp
     {
         static async Task Main(string[] args)
         {
-            args = new[] { "-n", "foo", "-r", "10" };
-
             await new HostBuilder().RunBatchEngineAsync<MyFirstBatch>(args);
         }
     }

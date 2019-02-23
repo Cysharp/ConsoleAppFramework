@@ -20,7 +20,11 @@ namespace MicroBatchFramework
             if (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
             {
                 ShowMethodList();
-                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                hostBuilder.ConfigureServices(services =>
+                {
+                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                    services.AddSingleton<IHostedService, EmptyHostedService>();
+                });
                 return hostBuilder;
             }
             if (args.Length == 2 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
@@ -34,7 +38,11 @@ namespace MicroBatchFramework
                 {
                     Console.WriteLine("Method not found , please check \"list\" command.");
                 }
-                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                hostBuilder.ConfigureServices(services =>
+                {
+                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                    services.AddSingleton<IHostedService, EmptyHostedService>();
+                });
                 return hostBuilder;
             }
 
@@ -87,14 +95,22 @@ namespace MicroBatchFramework
             if (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
             {
                 ShowMethodList();
-                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                hostBuilder.ConfigureServices(services =>
+                {
+                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                    services.AddSingleton<IHostedService, EmptyHostedService>();
+                });
                 return hostBuilder;
             }
             if (args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
                 var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).First();
                 Console.WriteLine(BuildHelpParameter(method));
-                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                hostBuilder.ConfigureServices(services =>
+                {
+                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                    services.AddSingleton<IHostedService, EmptyHostedService>();
+                });
                 return hostBuilder;
             }
 
