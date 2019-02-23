@@ -118,6 +118,7 @@ namespace MicroBatchFramework
                 else
                 {
                     await SetFailAsync(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, ex);
+                    return;
                 }
             }
 
