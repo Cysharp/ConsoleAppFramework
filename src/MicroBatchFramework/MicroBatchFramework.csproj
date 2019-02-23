@@ -6,7 +6,7 @@
     <AssemblyOriginatorKeyFile>release.snk</AssemblyOriginatorKeyFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Version, hand-writen:) -->
-    <Version>0.2.1-beta2</Version>
+    <Version>0.2.2-beta2</Version>
 
     <Summary>Single and Multiple contianed batch to write easy type.method style like make Web API, hosted on generic host.</Summary>
     <Description>$(Summary)</Description>

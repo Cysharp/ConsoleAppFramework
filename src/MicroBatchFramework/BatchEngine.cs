@@ -110,8 +110,15 @@ namespace MicroBatchFramework
                     return; // do nothing
                 }
 
-                SetFail(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, ex);
-                return;
+                if (ex is TargetInvocationException tex)
+                {
+                    SetFail(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
+                    return;
+                }
+                else
+                {
+                    SetFail(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, ex);
+                }
             }
 
             await interceptor.OnBatchRunCompleteAsync(ctx, null, null);
