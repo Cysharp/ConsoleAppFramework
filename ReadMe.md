@@ -140,7 +140,7 @@ WIP
 Configure Configuration
 ---
 
-MicroBatchFramework is just a infrastructure. You can add appsettings.json or other configs as .NET Core offers.
+MicroBatchFramework is just a infrastructure. You can add appsettings.json or other configs as .NET Core offers via `ConfigureAppConfiguration`.
 You can add `appsettings.json` and `appsettings.<env>.json` and typesafe load via map config to Class w/IOption.
 
 Here's single contained batch with Config loading sample.
