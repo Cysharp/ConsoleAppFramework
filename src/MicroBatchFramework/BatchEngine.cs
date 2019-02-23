@@ -43,21 +43,21 @@ namespace MicroBatchFramework
 
                 if (type == typeof(void))
                 {
-                    SetFail(ctx, "Type or method does not found on this Program. args: " + string.Join(" ", args));
+                    await SetFailAsync(ctx, "Type or method does not found on this Program. args: " + string.Join(" ", args));
                     return;
                 }
 
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 if (methods.Length != 1)
                 {
-                    SetFail(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method. Type:" + type.FullName);
+                    await SetFailAsync(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method. Type:" + type.FullName);
                     return;
                 }
                 method = methods[0];
             }
             catch (Exception ex)
             {
-                SetFail(ctx, "Fail to get method. Type:" + type.FullName, ex);
+                await SetFailAsync(ctx, "Fail to get method. Type:" + type.FullName, ex);
                 return;
             }
 
@@ -74,13 +74,13 @@ namespace MicroBatchFramework
                 var argumentDictionary = ParseArgument(args, argsOffset);
                 if (!TryGetInvokeArguments(methodInfo.GetParameters(), argumentDictionary, out invokeArgs, out var errorMessage))
                 {
-                    SetFail(ctx, errorMessage + " args: " + string.Join(" ", args));
+                    await SetFailAsync(ctx, errorMessage + " args: " + string.Join(" ", args));
                     return;
                 }
             }
             catch (Exception ex)
             {
-                SetFail(ctx, "Fail to match method parameter on " + type.Name + "." + methodInfo.Name + ". args: " + string.Join(" ", args), ex);
+                await SetFailAsync(ctx, "Fail to match method parameter on " + type.Name + "." + methodInfo.Name + ". args: " + string.Join(" ", args), ex);
                 return;
             }
 
@@ -91,7 +91,7 @@ namespace MicroBatchFramework
             }
             catch (Exception ex)
             {
-                SetFail(ctx, "Fail to create BatchBase instance. Type:" + type.FullName, ex);
+                await SetFailAsync(ctx, "Fail to create BatchBase instance. Type:" + type.FullName, ex);
                 return;
             }
 
@@ -112,12 +112,12 @@ namespace MicroBatchFramework
 
                 if (ex is TargetInvocationException tex)
                 {
-                    SetFail(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
+                    await SetFailAsync(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
                     return;
                 }
                 else
                 {
-                    SetFail(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, ex);
+                    await SetFailAsync(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, ex);
                 }
             }
 
@@ -125,18 +125,18 @@ namespace MicroBatchFramework
             logger.LogTrace("BatchEngine.Run Complete Successfully");
         }
 
-        void SetFail(BatchContext context, string message)
+        async ValueTask SetFailAsync(BatchContext context, string message)
         {
             Environment.ExitCode = 1;
             logger.LogError(message);
-            interceptor.OnBatchRunCompleteAsync(context, message, null);
+            await interceptor.OnBatchRunCompleteAsync(context, message, null);
         }
 
-        void SetFail(BatchContext context, string message, Exception ex)
+        async ValueTask SetFailAsync(BatchContext context, string message, Exception ex)
         {
             Environment.ExitCode = 1;
             logger.LogError(ex, message);
-            interceptor.OnBatchRunCompleteAsync(context, message, ex);
+            await interceptor.OnBatchRunCompleteAsync(context, message, ex);
         }
 
         static bool TryGetInvokeArguments(ParameterInfo[] parameters, ReadOnlyDictionary<string, string> argumentDictionary, out object[] invokeArgs, out string errorMessageIfNotFound)
