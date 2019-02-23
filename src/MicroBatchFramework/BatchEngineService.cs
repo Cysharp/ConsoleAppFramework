@@ -38,7 +38,7 @@ namespace MicroBatchFramework
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await interceptor.OnBatchEngineBeginAsync();
+            await interceptor.OnBatchEngineBeginAsync(provider, logger);
 
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
