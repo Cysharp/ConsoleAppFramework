@@ -36,7 +36,7 @@ namespace SingleContainedAppWithConfig
                 .ConfigureAppConfiguration((hostContext, config) =>
                 {
                     // Set Environment variable "NETCORE_ENVIRONMENT" as Production | Staging | Development
-                    hostContext.HostingEnvironment.EnvironmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT") ?? "production";
+                    hostContext.HostingEnvironment.EnvironmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT") ?? "Production";
                     config.SetBasePath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
                         .AddJsonFile($"appsettings.json", optional: true, reloadOnChange: true)
                         .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
