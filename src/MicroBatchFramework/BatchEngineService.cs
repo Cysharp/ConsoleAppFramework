@@ -68,17 +68,22 @@ namespace MicroBatchFramework
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            cancellationTokenSource?.Cancel();
-
-            var task = runningTask;
-            if (task != null)
+            try
             {
-                logger.LogTrace("Detect Cancel signal, wait for running batch task canceled.");
-                await task;
-                logger.LogTrace("Batch cancel completed.");
-            }
+                cancellationTokenSource?.Cancel();
 
-            await interceptor.OnBatchEngineEndAsync();
+                var task = runningTask;
+                if (task != null)
+                {
+                    logger.LogTrace("Detect Cancel signal, wait for running batch task canceled.");
+                    await task;
+                    logger.LogTrace("Batch cancel completed.");
+                }
+            }
+            finally
+            {
+                await interceptor.OnBatchEngineEndAsync();
+            }
         }
     }
 }
