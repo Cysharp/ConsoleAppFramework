@@ -129,10 +129,21 @@ also use with `help`
 -msg: String
 ```
 
-Single Contained Batch with Config loading
+Daemon
 ---
+WIP
+
+Interceptor
+---
+WIP
+
+Configure Configuration
+---
+
 MicroBatchFramework is just a infrastructure. You can add appsettings.json or other configs as .NET Core offers.
 You can add `appsettings.json` and `appsettings.<env>.json` and typesafe load via map config to Class w/IOption.
+
+Here's single contained batch with Config loading sample.
 
 ```csharp
 using MicroBatchFramework;
@@ -238,17 +249,6 @@ If you set `NETCORE_ENVIRONMENT` as `Development`, EnvValue will be override to 
 ```
 GlobalValue: GLOBAL VALUE!!!!, EnvValue: ENV VALUE!!!!(DEVELOPMENT)
 ```
-
-Daemon
----
-WIP
-
-Interceptor
----
-WIP
-
-Configure Configuration
----
 
 DI
 ---
