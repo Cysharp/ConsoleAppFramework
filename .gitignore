@@ -282,4 +282,4 @@ nuget/unity*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-sandbox/SingleContainedApp/Properties/launchSettings.json
+sandbox/**/Properties/launchSettings.json
