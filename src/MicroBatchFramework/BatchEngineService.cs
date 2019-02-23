@@ -38,7 +38,7 @@ namespace MicroBatchFramework
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await interceptor.OnBatchEngineBegin();
+            await interceptor.OnBatchEngineBeginAsync();
 
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
@@ -78,7 +78,7 @@ namespace MicroBatchFramework
                 logger.LogTrace("Batch cancel completed.");
             }
 
-            await interceptor.OnBatchEngineEnd();
+            await interceptor.OnBatchEngineEndAsync();
         }
     }
 }

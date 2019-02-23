@@ -15,6 +15,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MultiContainedApp", "sandbo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SingleContainedAppWithConfig", "sandbox\SingleContainedAppWithConfig\SingleContainedAppWithConfig.csproj", "{0B3BE82E-753A-415D-AD4E-90350C6E5C3D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{BA26D320-BB59-4210-9FE8-720F23983F10}"
+	ProjectSection(SolutionItems) = preProject
+		nuget\MicroBatchFramework.nuspec = nuget\MicroBatchFramework.nuspec
+		nuget\pack.bat = nuget\pack.bat
+		nuget\push.bat = nuget\push.bat
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -13,7 +13,6 @@ MicroBatchFramework is built on [.NET Generic Host](https://docs.microsoft.com/e
 Batch can write by simple method, argument is automaticaly binded to parameter.
 
 ```csharp
-requires additional package `Microsoft.Extensions.Logging.Console` to log Console
 using MicroBatchFramework;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -26,9 +25,7 @@ class Program
     // C# 7.1(update lang version)
     static async Task Main(string[] args)
     {
-        await new HostBuilder()
-            .ConfigureLogging(x => x.AddConsole())
-            .RunBatchEngine<MyFirstBatch>(args);
+        await new HostBuilder().RunBatchEngineAsync<MyFirstBatch>(args);
     }
 }
 
@@ -81,9 +78,7 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        await new HostBuilder()
-            .ConfigureLogging(x => x.AddConsole())
-            .RunBatchEngine(args); // don't pass <T>.
+        await new HostBuilder().RunBatchEngineAsync(args); // don't pass <T>.
     }
 }
 
@@ -171,8 +166,11 @@ class Program
                 // mapping json element to class
                 services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
             })
-            .ConfigureLogging(x => x.AddConsole())
-            .RunBatchEngine<Baz>(args);
+            .ConfigureLogging(x => {
+                // using MicroBatchFramework.Logging;
+                x.AddSimpleConsole();
+            })
+            .RunBatchEngineAsync<Baz>(args);
     }
 }
 

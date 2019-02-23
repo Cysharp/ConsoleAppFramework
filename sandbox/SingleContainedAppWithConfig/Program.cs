@@ -1,11 +1,11 @@
 ﻿using MicroBatchFramework;
+using MicroBatchFramework.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -39,44 +39,20 @@ namespace SingleContainedAppWithConfig
                     hostContext.HostingEnvironment.EnvironmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT") ?? "production";
                     config.SetBasePath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
                         .AddJsonFile($"appsettings.json", optional: true, reloadOnChange: true)
-                        .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional:true, reloadOnChange:true);
+                        .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
                 })
-                .ConfigureServices((hostContext, services) => {
+                .ConfigureServices((hostContext, services) =>
+                {
                     services.AddOptions();
                     // mapping json element to class
                     services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
                 })
-                .ConfigureLogging(x => x.AddConsole())
-                .RunBatchEngine<Baz>(args);
-        }
-    }
-
-    public class batchInterceptor : IBatchInterceptor
-    {
-        Stopwatch start;
-
-        public ValueTask OnBatchEngineBegin()
-        {
-            start = Stopwatch.StartNew();
-            return default(ValueTask);
-        }
-
-        public ValueTask OnBatchEngineEnd()
-        {
-            Console.WriteLine(start.Elapsed.TotalMilliseconds + "ms");
-            return default(ValueTask);
-        }
-
-        public ValueTask OnBatchRunBegin(BatchContext context)
-        {
-            Console.WriteLine("Yeah3");
-            return default(ValueTask);
-        }
-
-        public ValueTask OnBatchRunComplete(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists)
-        {
-            Console.WriteLine("Yeah4");
-            return default(ValueTask);
+                .ConfigureLogging(x =>
+                {
+                    // using MicroBatchFramework.Logging;
+                    x.AddSimpleConsole();
+                })
+                .RunBatchEngineAsync<Baz>(args);
         }
     }
 

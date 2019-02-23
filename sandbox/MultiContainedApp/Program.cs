@@ -1,48 +1,7 @@
 ﻿using MicroBatchFramework;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
-
-public class MyFirstBatch : BatchBase
-{
-    public void Hello(
-        [Option("n", "name of send user.")]string name,
-        [Option("r", "repeat count.")]int repeat = 3)
-    {
-        for (int i = 0; i < repeat; i++)
-        {
-            this.Context.Logger.LogInformation($"Hello My Batch from {name}");
-        }
-    }
-}
-
-public class Foo : BatchBase
-{
-    public void Echo(string msg)
-    {
-        this.Context.Logger.LogInformation(msg);
-    }
-
-    public void Sum(int x, int y)
-    {
-        this.Context.Logger.LogInformation((x + y).ToString());
-    }
-}
-
-public class Bar : BatchBase
-{
-    public void Hello2()
-    {
-        this.Context.Logger.LogInformation("H E L L O");
-    }
-}
 
 namespace MultiContainedApp
 {
@@ -50,38 +9,28 @@ namespace MultiContainedApp
     {
         static async Task Main(string[] args)
         {
-            await new HostBuilder()
-                .ConfigureLogging(x => x.AddConsole())
-                .RunBatchEngine(args, new batchInterceptor()); // don't pass <T>.
+            await new HostBuilder().RunBatchEngineAsync(args);
         }
     }
 
-    public class batchInterceptor : IBatchInterceptor
+    public class Foo : BatchBase
     {
-        Stopwatch start;
-
-        public ValueTask OnBatchEngineBegin()
+        public void Echo(string msg)
         {
-            start = Stopwatch.StartNew();
-            return default(ValueTask);
+            this.Context.Logger.LogInformation(msg);
         }
 
-        public ValueTask OnBatchEngineEnd()
+        public void Sum(int x, int y)
         {
-            Console.WriteLine(start.Elapsed.TotalMilliseconds + "ms");
-            return default(ValueTask);
+            this.Context.Logger.LogInformation((x + y).ToString());
         }
+    }
 
-        public ValueTask OnBatchRunBegin(BatchContext context)
+    public class Bar : BatchBase
+    {
+        public void Hello2()
         {
-            Console.WriteLine("Yeah3");
-            return default(ValueTask);
-        }
-
-        public ValueTask OnBatchRunComplete(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists)
-        {
-            Console.WriteLine("Yeah4");
-            return default(ValueTask);
+            this.Context.Logger.LogInformation("H E L L O");
         }
     }
 }

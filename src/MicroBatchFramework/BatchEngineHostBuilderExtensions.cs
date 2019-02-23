@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using MicroBatchFramework.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
@@ -14,12 +15,13 @@ namespace MicroBatchFramework
         const string ListCommand = "list";
         const string HelpCommand = "help";
 
-        public static Task RunBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
+        public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
         {
             if (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
             {
                 ShowMethodList();
-                return Task.CompletedTask;
+                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                return hostBuilder;
             }
             if (args.Length == 2 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
@@ -32,7 +34,8 @@ namespace MicroBatchFramework
                 {
                     Console.WriteLine("Method not found , please check \"list\" command.");
                 }
-                return Task.CompletedTask;
+                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                return hostBuilder;
             }
 
             Type type = null;
@@ -42,46 +45,60 @@ namespace MicroBatchFramework
                 (type, methodInfo) = GetTypeFromAssemblies(args[0]);
             }
 
-            return hostBuilder.ConfigureServices(services =>
-            {
-                services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                services.AddSingleton<string[]>(args);
-                services.AddSingleton<IHostedService, BatchEngineService>();
-                services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInerceptor.Default);
-                if (type != null)
+            hostBuilder = hostBuilder
+                .ConfigureServices(services =>
                 {
-                    services.AddSingleton<Type>(type);
-                    services.AddTransient(type);
-                }
-                else
-                {
-                    services.AddSingleton<Type>(typeof(void));
-                }
+                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                    services.AddSingleton<string[]>(args);
+                    services.AddSingleton<IHostedService, BatchEngineService>();
+                    services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInerceptor.Default);
+                    if (type != null)
+                    {
+                        services.AddSingleton<Type>(type);
+                        services.AddTransient(type);
+                    }
+                    else
+                    {
+                        services.AddSingleton<Type>(typeof(void));
+                    }
 
-                if (methodInfo != null)
-                {
-                    services.AddSingleton<MethodInfo>(methodInfo);
-                }
-            })
-            .RunConsoleAsync();
+                    if (methodInfo != null)
+                    {
+                        services.AddSingleton<MethodInfo>(methodInfo);
+                    }
+                });
+
+            if (useSimpleConosoleLogger)
+            {
+                hostBuilder = hostBuilder.ConfigureLogging(x => x.AddSimpleConsole());
+            }
+
+            return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
+        public static Task RunBatchEngineAsync(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
+        {
+            return UseBatchEngine(hostBuilder, args, interceptor, useSimpleConosoleLogger).Build().RunAsync();
+        }
+
+        public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
             where T : BatchBase
         {
             if (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
             {
                 ShowMethodList();
-                return Task.CompletedTask;
+                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                return hostBuilder;
             }
             if (args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
                 var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).First();
                 Console.WriteLine(BuildHelpParameter(method));
-                return Task.CompletedTask;
+                hostBuilder.ConfigureServices(services => services.AddSingleton<IHostedService, EmptyHostedService>());
+                return hostBuilder;
             }
 
-            return hostBuilder.ConfigureServices(services =>
+            hostBuilder = hostBuilder.ConfigureServices(services =>
             {
                 services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
                 services.AddSingleton<string[]>(args);
@@ -89,8 +106,20 @@ namespace MicroBatchFramework
                 services.AddSingleton<IHostedService, BatchEngineService>();
                 services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInerceptor.Default);
                 services.AddTransient<T>();
-            })
-            .RunConsoleAsync();
+            });
+
+            if (useSimpleConosoleLogger)
+            {
+                hostBuilder = hostBuilder.ConfigureLogging(x => x.AddSimpleConsole());
+            }
+
+            return hostBuilder.UseConsoleLifetime();
+        }
+
+        public static Task RunBatchEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
+            where T : BatchBase
+        {
+            return UseBatchEngine<T>(hostBuilder, args, interceptor, useSimpleConosoleLogger).Build().RunAsync();
         }
 
         static void ShowMethodList()
@@ -124,9 +153,9 @@ namespace MicroBatchFramework
 
                 if (item.HasDefaultValue)
                 {
-                    sb.Append("[default=" + item.DefaultValue.ToString() + "]");
+                    sb.Append("[default=" + (item.DefaultValue?.ToString() ?? "null") + "]");
                 }
-                
+
                 if (option != null && !string.IsNullOrEmpty(option.Description))
                 {
                     sb.Append(option.Description);
@@ -141,7 +170,6 @@ namespace MicroBatchFramework
 
             return sb.ToString();
         }
-
 
         static List<Type> GetBatchTypes()
         {

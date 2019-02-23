@@ -39,7 +39,7 @@ namespace MicroBatchFramework
             var ctx = new BatchContext(args, DateTime.UtcNow, cancellationToken, logger);
             try
             {
-                await interceptor.OnBatchRunBegin(ctx);
+                await interceptor.OnBatchRunBeginAsync(ctx);
 
                 if (type == typeof(void))
                 {
@@ -72,7 +72,11 @@ namespace MicroBatchFramework
             try
             {
                 var argumentDictionary = ParseArgument(args, argsOffset);
-                invokeArgs = GetInvokeArguments(methodInfo.GetParameters(), argumentDictionary);
+                if (!TryGetInvokeArguments(methodInfo.GetParameters(), argumentDictionary, out invokeArgs, out var errorMessage))
+                {
+                    SetFail(ctx, errorMessage + " args: " + string.Join(" ", args));
+                    return;
+                }
             }
             catch (Exception ex)
             {
@@ -110,7 +114,7 @@ namespace MicroBatchFramework
                 return;
             }
 
-            await interceptor.OnBatchRunComplete(ctx, null, null);
+            await interceptor.OnBatchRunCompleteAsync(ctx, null, null);
             logger.LogTrace("BatchEngine.Run Complete Successfully");
         }
 
@@ -118,19 +122,19 @@ namespace MicroBatchFramework
         {
             Environment.ExitCode = 1;
             logger.LogError(message);
-            interceptor.OnBatchRunComplete(context, message, null);
+            interceptor.OnBatchRunCompleteAsync(context, message, null);
         }
 
         void SetFail(BatchContext context, string message, Exception ex)
         {
             Environment.ExitCode = 1;
             logger.LogError(ex, message);
-            interceptor.OnBatchRunComplete(context, message, ex);
+            interceptor.OnBatchRunCompleteAsync(context, message, ex);
         }
 
-        static object[] GetInvokeArguments(ParameterInfo[] parameters, ReadOnlyDictionary<string, string> argumentDictionary)
+        static bool TryGetInvokeArguments(ParameterInfo[] parameters, ReadOnlyDictionary<string, string> argumentDictionary, out object[] invokeArgs, out string errorMessageIfNotFound)
         {
-            var invokeArgs = new object[parameters.Length];
+            invokeArgs = new object[parameters.Length];
 
             for (int i = 0; i < parameters.Length; i++)
             {
@@ -157,12 +161,14 @@ namespace MicroBatchFramework
                     }
                     else
                     {
-                        throw new ArgumentException("\"" + item.Name + "\"" + " not found in argument.");
+                        errorMessageIfNotFound = "Required parameter \"" + item.Name + "\"" + " not found in argument.";
+                        return false;
                     }
                 }
             }
 
-            return invokeArgs;
+            errorMessageIfNotFound = null;
+            return true;
         }
 
         static ReadOnlyDictionary<string, string> ParseArgument(string[] args, int argsOffset)
