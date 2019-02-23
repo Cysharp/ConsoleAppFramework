@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
 
 namespace MicroBatchFramework
@@ -8,7 +9,7 @@ namespace MicroBatchFramework
         /// <summary>
         /// Called once when BatchEngineService is stareted.
         /// </summary>
-        ValueTask OnBatchEngineBeginAsync();
+        ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger);
 
         /// <summary>
         /// Called once when BatchEngineService is finished.
@@ -31,7 +32,7 @@ namespace MicroBatchFramework
         public static readonly IBatchInterceptor Default = new NullBatchInerceptor();
         readonly ValueTask Empty = default(ValueTask);
 
-        public ValueTask OnBatchEngineBeginAsync()
+        public ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger)
         {
             return Empty;
         }
