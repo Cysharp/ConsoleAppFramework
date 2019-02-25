@@ -1,11 +1,12 @@
 ﻿using MicroBatchFramework.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Reflection;
 
-namespace MicroBatchFramework
+namespace MicroBatchFramework.Configuration
 {
     // ref: https://github.com/aspnet/AspNetCore/blob/4e44025a52e4b73aa17e09a8041b0e166e0c5ce0/src/DefaultBuilder/src/WebHost.cs
     /// <summary>
@@ -26,7 +27,7 @@ namespace MicroBatchFramework
         /// </remarks>
         /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
         public static IHostBuilder CreateDefaultBuilder() =>
-            CreateDefaultBuilder(args: null, hostEnvironmentVariable: "");
+            CreateDefaultBuilder(args: null);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HostBuilder"/> class with pre-configured defaults.
@@ -43,7 +44,25 @@ namespace MicroBatchFramework
         /// <param name="args"></param>
         /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
         public static IHostBuilder CreateDefaultBuilder(string[] args) =>
-            CreateDefaultBuilder(args, "");
+            CreateDefaultBuilder(args, new SimpleConsoleLoggerOption().MinLogLevel);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HostBuilder"/> class with pre-configured defaults.
+        /// </summary>
+        /// <remarks>
+        ///   The following defaults are applied to the returned <see cref="HostBuilder"/>:
+        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the NETCORE_ENVIRONMENT,
+        ///     load <see cref="IConfiguration"/> from 'appsettings.json' and 'appsettings.[<see cref="IHostingEnvironment.EnvironmentName"/>].json',
+        ///     load <see cref="IConfiguration"/> from User Secrets when <see cref="IHostingEnvironment.EnvironmentName"/> is 'Development' using the entry assembly,
+        ///     load <see cref="IConfiguration"/> from environment variables,
+        ///     load <see cref="IConfiguration"/> from supplied command line args,
+        ///     and configure the <see cref="SimpleConsoleLogger"/> to log to the console,
+        /// </remarks>
+        /// <param name="args"></param>
+        /// <param name="minLogLevel"></param>
+        /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
+        public static IHostBuilder CreateDefaultBuilder(string[] args, LogLevel minLogLevel) =>
+            CreateDefaultBuilder(args, minLogLevel, "");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HostBuilder"/> class with pre-configured defaults.
@@ -58,16 +77,22 @@ namespace MicroBatchFramework
         ///     and configure the <see cref="SimpleConsoleLogger"/> to log to the console,
         /// </remarks>
         /// <param name="args"></param>
+        /// <param name="minLogLevel"></param>
         /// <param name="hostEnvironmentVariable"></param>
         /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
-        public static IHostBuilder CreateDefaultBuilder(string[] args, string hostEnvironmentVariable)
+        public static IHostBuilder CreateDefaultBuilder(string[] args, LogLevel minLogLevel, string hostEnvironmentVariable)
         {
             var builder = new HostBuilder();
 
             builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
             ConfigureContextDefault(builder, hostEnvironmentVariable);
             ConfigureConfigDefault(builder, args);
-            return builder.ConfigureLogging(x => x.AddSimpleConsole());
+            return builder.ConfigureLogging(logging =>
+            {
+                logging.AddSimpleConsole();
+                // Set ILogger<MicroBatchFramework.BatchEngine> Minimum log level filter.
+                logging.AddFilter<SimpleConsoleLoggerProvider>($"MicroBatchFramework.{nameof(BatchEngine)}", minLogLevel);
+            });
         }
 
         internal static void ConfigureContextDefault(IHostBuilder builder, string contextEnvironmentVariable)

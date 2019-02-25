@@ -1,6 +1,6 @@
 ﻿using MicroBatchFramework;
+using MicroBatchFramework.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading.Tasks;
@@ -16,11 +16,12 @@ public class Baz : BatchBase
 
     public void Hello3()
     {
-        this.Context.Logger.LogTrace("Trace");
-        this.Context.Logger.LogDebug("Debug");
-        this.Context.Logger.LogInformation("Info");
-        this.Context.Logger.LogWarning("Warning");
-        this.Context.Logger.LogError("Error");
+        // https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.loglevel?view=aspnetcore-2.2
+        this.Context.Logger.LogTrace("Trace"); // 0
+        this.Context.Logger.LogDebug("Debug"); // 1
+        this.Context.Logger.LogInformation("Info"); // 2
+        this.Context.Logger.LogWarning("Warning"); // 3
+        this.Context.Logger.LogError("Error"); // 4
         this.Context.Logger.LogInformation($"GlobalValue: {config.Value.GlobalValue}, EnvValue: {config.Value.EnvValue}");
     }
 }
@@ -32,14 +33,14 @@ namespace SingleContainedAppWithConfig
     {
         static async Task Main(string[] args)
         {
-            await MicroBatchHost.CreateDefaultBuilder()
+            // using MicroBatchFramework.Configuration;
+            await MicroBatchHost.CreateDefaultBuilder(args, LogLevel.Debug)
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
                     // mapping json element to class
                     services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
                 })
-                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug)) // Default is Info. You can change Log Level at here
                 .RunBatchEngineAsync<Baz>(args);
         }
     }
