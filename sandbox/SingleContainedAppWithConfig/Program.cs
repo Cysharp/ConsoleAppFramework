@@ -1,5 +1,6 @@
 ﻿using MicroBatchFramework;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading.Tasks;
@@ -15,6 +16,11 @@ public class Baz : BatchBase
 
     public void Hello3()
     {
+        this.Context.Logger.LogTrace("Trace");
+        this.Context.Logger.LogDebug("Debug");
+        this.Context.Logger.LogInformation("Info");
+        this.Context.Logger.LogWarning("Warning");
+        this.Context.Logger.LogError("Error");
         this.Context.Logger.LogInformation($"GlobalValue: {config.Value.GlobalValue}, EnvValue: {config.Value.EnvValue}");
     }
 }
@@ -33,6 +39,7 @@ namespace SingleContainedAppWithConfig
                     // mapping json element to class
                     services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
                 })
+                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug)) // Default is Info. You can change Log Level at here
                 .RunBatchEngineAsync<Baz>(args);
         }
     }
