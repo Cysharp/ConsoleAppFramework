@@ -1,13 +1,7 @@
 ﻿using MicroBatchFramework;
-using MicroBatchFramework.Logging;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 
 public class Baz : BatchBase
@@ -32,25 +26,12 @@ namespace SingleContainedAppWithConfig
     {
         static async Task Main(string[] args)
         {
-            await new HostBuilder()
-                .ConfigureAppConfiguration((hostContext, config) =>
-                {
-                    // Set Environment variable "NETCORE_ENVIRONMENT" as Production | Staging | Development
-                    hostContext.HostingEnvironment.EnvironmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT") ?? "Production";
-                    config.SetBasePath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
-                        .AddJsonFile($"appsettings.json", optional: true, reloadOnChange: true)
-                        .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
-                })
+            await MicroBatchHost.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
                     // mapping json element to class
                     services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
-                })
-                .ConfigureLogging(x =>
-                {
-                    // using MicroBatchFramework.Logging;
-                    x.AddSimpleConsole();
                 })
                 .RunBatchEngineAsync<Baz>(args);
         }
