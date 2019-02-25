@@ -87,12 +87,8 @@ namespace MicroBatchFramework.Configuration
             builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
             ConfigureContextDefault(builder, hostEnvironmentVariable);
             ConfigureConfigDefault(builder, args);
-            return builder.ConfigureLogging(logging =>
-            {
-                logging.AddSimpleConsole();
-                // Set ILogger<MicroBatchFramework.BatchEngine> Minimum log level filter.
-                logging.AddFilter<SimpleConsoleLoggerProvider>($"MicroBatchFramework.{nameof(BatchEngine)}", minLogLevel);
-            });
+            ConfigureLoggingDefault(builder, minLogLevel);
+            return builder;
         }
 
         internal static void ConfigureContextDefault(IHostBuilder builder, string contextEnvironmentVariable)
@@ -134,6 +130,16 @@ namespace MicroBatchFramework.Configuration
                 {
                     config.AddCommandLine(args);
                 }
+            });
+        }
+
+        internal static void ConfigureLoggingDefault(IHostBuilder builder, LogLevel minLogLevel)
+        {
+            builder.ConfigureLogging(logging =>
+            {
+                logging.AddSimpleConsole();
+                // Set ILogger<MicroBatchFramework.BatchEngine> Minimum log level filter.
+                logging.AddFilter<SimpleConsoleLoggerProvider>("MicroBatchFramework.BatchEngine", minLogLevel);
             });
         }
     }
