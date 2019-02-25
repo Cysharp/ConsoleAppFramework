@@ -1,1 +1,1 @@
-nuget push MicroBatchFramework.0.3.0-beta3.nupkg -Source https://www.nuget.org/api/v2/package
+nuget push MicroBatchFramework.0.3.1-beta3.nupkg -Source https://www.nuget.org/api/v2/package

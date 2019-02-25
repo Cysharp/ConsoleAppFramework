@@ -140,7 +140,7 @@ namespace MicroBatchFramework
             await interceptor.OnBatchRunCompleteAsync(context, message, ex);
         }
 
-        static bool TryGetInvokeArguments(ParameterInfo[] parameters, ReadOnlyDictionary<string, string> argumentDictionary, out object[] invokeArgs, out string errorMessageIfNotFound)
+        static bool TryGetInvokeArguments(ParameterInfo[] parameters, ReadOnlyDictionary<string, string> argumentDictionary, out object[] invokeArgs, out string errorMessage)
         {
             invokeArgs = new object[parameters.Length];
 
@@ -152,14 +152,22 @@ namespace MicroBatchFramework
                 {
                     if (parameters[i].ParameterType == typeof(string))
                     {
-                        if (!value.StartsWith("\"") && !value.EndsWith("\""))
+                        // when string, invoke directly(avoid JSON escape)
+                        invokeArgs[i] = value;
+                    }
+                    else
+                    {
+                        // decouple dependency?
+                        try
                         {
-                            value = "\"" + value + "\"";
+                            invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, value);
+                        }
+                        catch
+                        {
+                            errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape.";
+                            return false;
                         }
                     }
-
-                    // decouple dependency?
-                    invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, value);
                 }
                 else
                 {
@@ -169,13 +177,13 @@ namespace MicroBatchFramework
                     }
                     else
                     {
-                        errorMessageIfNotFound = "Required parameter \"" + item.Name + "\"" + " not found in argument.";
+                        errorMessage = "Required parameter \"" + item.Name + "\"" + " not found in argument.";
                         return false;
                     }
                 }
             }
 
-            errorMessageIfNotFound = null;
+            errorMessage = null;
             return true;
         }
 
