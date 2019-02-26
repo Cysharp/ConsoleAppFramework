@@ -1,13 +1,8 @@
 ﻿using MicroBatchFramework;
-using MicroBatchFramework.Logging;
-using Microsoft.Extensions.Configuration;
+using MicroBatchFramework.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 
 public class Baz : BatchBase
@@ -21,6 +16,12 @@ public class Baz : BatchBase
 
     public void Hello3()
     {
+        // https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.loglevel?view=aspnetcore-2.2
+        this.Context.Logger.LogTrace("Trace"); // 0
+        this.Context.Logger.LogDebug("Debug"); // 1
+        this.Context.Logger.LogInformation("Info"); // 2
+        this.Context.Logger.LogWarning("Warning"); // 3
+        this.Context.Logger.LogError("Error"); // 4
         this.Context.Logger.LogInformation($"GlobalValue: {config.Value.GlobalValue}, EnvValue: {config.Value.EnvValue}");
     }
 }
@@ -32,25 +33,13 @@ namespace SingleContainedAppWithConfig
     {
         static async Task Main(string[] args)
         {
-            await new HostBuilder()
-                .ConfigureAppConfiguration((hostContext, config) =>
-                {
-                    // Set Environment variable "NETCORE_ENVIRONMENT" as Production | Staging | Development
-                    hostContext.HostingEnvironment.EnvironmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT") ?? "Production";
-                    config.SetBasePath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
-                        .AddJsonFile($"appsettings.json", optional: true, reloadOnChange: true)
-                        .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
-                })
+            // using MicroBatchFramework.Configuration;
+            await MicroBatchHost.CreateDefaultBuilder(args, LogLevel.Debug)
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
                     // mapping json element to class
                     services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
-                })
-                .ConfigureLogging(x =>
-                {
-                    // using MicroBatchFramework.Logging;
-                    x.AddSimpleConsole();
                 })
                 .RunBatchEngineAsync<Baz>(args);
         }
