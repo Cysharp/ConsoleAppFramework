@@ -10,7 +10,7 @@ Single Contained Batch
 ---
 MicroBatchFramework is built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) so you can configure Configuration, Logging, DI, etc can load by standard way.
 
-Batch can write by simple method, argument is automaticaly binded to parameter.
+Batch can write by simple method, argument is automatically binded to parameter.
 
 ```csharp
 using MicroBatchFramework;
