@@ -20,7 +20,7 @@ namespace SingleContainedApp
             }
         }
 
-        [Command("version")]
+        [Command("version", "yeah, go!")]
         public void ShowVersion()
         {
             var version = Assembly.GetExecutingAssembly()

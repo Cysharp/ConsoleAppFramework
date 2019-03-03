@@ -95,7 +95,8 @@ namespace MicroBatchFramework
             if (args.Length == 0)
             {
                 var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                if (method.First(x => x.GetCustomAttribute<CommandAttribute>() == null).GetParameters().Length != 0)
+                var defaultMethod = method.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
+                if (defaultMethod == null || defaultMethod.GetParameters().Length != 0)
                 {
                     Console.WriteLine(BuildHelpParameter(method));
                     hostBuilder.ConfigureServices(services =>
