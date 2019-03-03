@@ -20,7 +20,7 @@ namespace MultiContainedApp
             this.Context.Logger.LogInformation(msg);
         }
 
-        public void Sum(int x, int y)
+        public void Sum([Option(0)]int x, [Option(1)]int y)
         {
             this.Context.Logger.LogInformation((x + y).ToString());
         }

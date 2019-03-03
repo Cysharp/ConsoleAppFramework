@@ -62,6 +62,62 @@ public void Hello(
 -r, -repeat: [default=3]repeat count.
 ```
 
+You can use `CommandAttribute` to create multi command program.
+
+``csharp
+public class MyFirstBatch : BatchBase
+{
+    public void Hello(
+        [Option("n", "name of send user.")]string name,
+        [Option("r", "repeat count.")]int repeat = 3)
+    {
+        for (int i = 0; i < repeat; i++)
+        {
+            this.Context.Logger.LogInformation($"Hello My Batch from {name}");
+        }
+    }
+
+    [Command("version")]
+    public void ShowVersion()
+    {
+        var version = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyFileVersionAttribute>()
+            .Version;
+        Console.WriteLine(version);
+    }
+
+    // [Option(int)] describes that parameter is passed by index
+    [Command("escape")]
+    public void UrlEscape([Option(0)]string input)
+    {
+        Console.WriteLine(Uri.EscapeDataString(input));
+    }
+
+    [Command("timer")]
+    public async Task Timer([Option(0)]uint waitSeconds)
+    {
+        Console.WriteLine(waitSeconds + " seconds");
+        while (waitSeconds != 0)
+        {
+            // MicroBatchFramework does not stop immediately on terminate command(Ctrl+C)
+            // so you have to pass Context.CancellationToken to async method.
+            await Task.Delay(TimeSpan.FromSeconds(1), Context.CancellationToken);
+            waitSeconds--;
+            Console.WriteLine(waitSeconds + " seconds");
+        }
+    }
+}
+```
+
+You can call like
+
+```
+SampleApp.exe -n "foo" -r 3
+SampleApp.exe version
+SampleApp.exe escape http://foo.bar/
+SampleApp.exe timer 10
+```
+
 Multi Contained Batch
 ---
 MicroBatchFramework allows the multi contained batch. You can write many class, methods and select by first-argument.

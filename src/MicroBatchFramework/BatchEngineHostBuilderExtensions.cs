@@ -17,7 +17,7 @@ namespace MicroBatchFramework
 
         public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
         {
-            if (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
+            if (args.Length == 0 || (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase)))
             {
                 ShowMethodList();
                 hostBuilder.ConfigureServices(services =>
@@ -32,7 +32,7 @@ namespace MicroBatchFramework
                 var (t, mi) = GetTypeFromAssemblies(args[1]);
                 if (mi != null)
                 {
-                    Console.WriteLine(BuildHelpParameter(mi));
+                    Console.WriteLine(BuildHelpParameter(new[] { mi }));
                 }
                 else
                 {
@@ -92,6 +92,21 @@ namespace MicroBatchFramework
         public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
             where T : BatchBase
         {
+            if (args.Length == 0)
+            {
+                var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                if (method.First(x => x.GetCustomAttribute<CommandAttribute>() == null).GetParameters().Length != 0)
+                {
+                    Console.WriteLine(BuildHelpParameter(method));
+                    hostBuilder.ConfigureServices(services =>
+                    {
+                        services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                        services.AddSingleton<IHostedService, EmptyHostedService>();
+                    });
+                    return hostBuilder;
+                }
+            }
+
             if (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
             {
                 ShowMethodList();
@@ -104,7 +119,7 @@ namespace MicroBatchFramework
             }
             if (args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
-                var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).First();
+                var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 Console.WriteLine(BuildHelpParameter(method));
                 hostBuilder.ConfigureServices(services =>
                 {
@@ -140,6 +155,7 @@ namespace MicroBatchFramework
 
         static void ShowMethodList()
         {
+            Console.WriteLine("list of methods:");
             var list = GetBatchTypes();
             foreach (var item in list)
             {
@@ -150,35 +166,62 @@ namespace MicroBatchFramework
             }
         }
 
-        static string BuildHelpParameter(MethodInfo method)
+        static string BuildHelpParameter(MethodInfo[] methods)
         {
             var sb = new StringBuilder();
-            foreach (var item in method.GetParameters())
+            foreach (var method in methods.OrderBy(x => x, new CustomSorter()))
             {
-                // -i, -input | [default=foo]...
-
-                var option = item.GetCustomAttribute<OptionAttribute>();
-
-                if (option != null)
+                var command = method.GetCustomAttribute<CommandAttribute>();
+                if (command != null)
                 {
-                    sb.Append("-" + option.ShortName.Trim('-') + ", ");
-                }
-
-                sb.Append("-" + item.Name);
-                sb.Append(": ");
-
-                if (item.HasDefaultValue)
-                {
-                    sb.Append("[default=" + (item.DefaultValue?.ToString() ?? "null") + "]");
-                }
-
-                if (option != null && !string.IsNullOrEmpty(option.Description))
-                {
-                    sb.Append(option.Description);
+                    sb.AppendLine(command.CommandName + ": " + command.Description);
                 }
                 else
                 {
-                    sb.Append(item.ParameterType.Name);
+                    sb.AppendLine("argument list:");
+                }
+
+                var parameters = method.GetParameters();
+                if (parameters.Length == 0)
+                {
+                    sb.AppendLine("()");
+                }
+
+                foreach (var item in parameters)
+                {
+                    // -i, -input | [default=foo]...
+
+                    var option = item.GetCustomAttribute<OptionAttribute>();
+
+                    if (option != null)
+                    {
+                        if (option.Index != -1)
+                        {
+                            sb.Append("[" + option.Index + "], ");
+                        }
+                        else
+                        {
+                            sb.Append("-" + option.ShortName.Trim('-') + ", ");
+                        }
+                    }
+
+                    sb.Append("-" + item.Name);
+                    sb.Append(": ");
+
+                    if (item.HasDefaultValue)
+                    {
+                        sb.Append("[default=" + (item.DefaultValue?.ToString() ?? "null") + "]");
+                    }
+
+                    if (option != null && !string.IsNullOrEmpty(option.Description))
+                    {
+                        sb.Append(option.Description);
+                    }
+                    else
+                    {
+                        sb.Append(item.ParameterType.Name);
+                    }
+                    sb.AppendLine();
                 }
 
                 sb.AppendLine();
@@ -256,6 +299,26 @@ namespace MicroBatchFramework
             }
 
             return (null, null);
+        }
+
+        class CustomSorter : IComparer<MethodInfo>
+        {
+            public int Compare(MethodInfo x, MethodInfo y)
+            {
+                var xc = x.GetCustomAttribute<CommandAttribute>();
+                var yc = y.GetCustomAttribute<CommandAttribute>();
+
+                if (xc != null)
+                {
+                    return 1;
+                }
+                if (yc != null)
+                {
+                    return -1;
+                }
+
+                return x.Name.CompareTo(y.Name);
+            }
         }
     }
 }

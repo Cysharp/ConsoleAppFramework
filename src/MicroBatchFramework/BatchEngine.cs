@@ -35,6 +35,7 @@ namespace MicroBatchFramework
         {
             logger.LogTrace("BatchEngine.Run Start");
 
+            int argsOffset = 0;
             MethodInfo method = null;
             var ctx = new BatchContext(args, DateTime.UtcNow, cancellationToken, logger);
             try
@@ -48,12 +49,36 @@ namespace MicroBatchFramework
                 }
 
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                if (methods.Length != 1)
+                foreach (var item in methods)
                 {
-                    await SetFailAsync(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method. Type:" + type.FullName);
-                    return;
+                    var command = item.GetCustomAttribute<CommandAttribute>();
+                    if (command != null)
+                    {
+                        if (args.Length > 0 && command.CommandName.Equals(args[0], StringComparison.OrdinalIgnoreCase))
+                        {
+                            method = item;
+                            argsOffset = 1;
+                            goto RUN;
+                        }
+                    }
+                    else
+                    {
+                        if (method != null)
+                        {
+                            goto FAIL;
+                        }
+                        method = item;
+                    }
                 }
-                method = methods[0];
+
+                if (method != null)
+                {
+                    goto RUN;
+                }
+
+                FAIL:
+                await SetFailAsync(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method or command. Type:" + type.FullName);
+                return;
             }
             catch (Exception ex)
             {
@@ -61,7 +86,8 @@ namespace MicroBatchFramework
                 return;
             }
 
-            await RunCore(ctx, type, method, args, 0);
+            RUN:
+            await RunCore(ctx, type, method, args, argsOffset);
         }
 
         async Task RunCore(BatchContext ctx, Type type, MethodInfo methodInfo, string[] args, int argsOffset)
@@ -71,8 +97,7 @@ namespace MicroBatchFramework
 
             try
             {
-                var argumentDictionary = ParseArgument(args, argsOffset);
-                if (!TryGetInvokeArguments(methodInfo.GetParameters(), argumentDictionary, out invokeArgs, out var errorMessage))
+                if (!TryGetInvokeArguments(methodInfo.GetParameters(), args, argsOffset, out invokeArgs, out var errorMessage))
                 {
                     await SetFailAsync(ctx, errorMessage + " args: " + string.Join(" ", args));
                     return;
@@ -140,15 +165,23 @@ namespace MicroBatchFramework
             await interceptor.OnBatchRunCompleteAsync(context, message, ex);
         }
 
-        static bool TryGetInvokeArguments(ParameterInfo[] parameters, ReadOnlyDictionary<string, string> argumentDictionary, out object[] invokeArgs, out string errorMessage)
+        static bool TryGetInvokeArguments(ParameterInfo[] parameters, string[] args, int argsOffset, out object[] invokeArgs, out string errorMessage)
         {
+            var argumentDictionary = ParseArgument(args, argsOffset);
             invokeArgs = new object[parameters.Length];
 
             for (int i = 0; i < parameters.Length; i++)
             {
                 var item = parameters[i];
                 var option = item.GetCustomAttribute<OptionAttribute>();
-                if (argumentDictionary.TryGetValue(item.Name, out var value) || argumentDictionary.TryGetValue(option?.ShortName?.TrimStart('-') ?? "", out value))
+
+                string value = null;
+                if (option.Index != -1)
+                {
+                    value = args[argsOffset + i];
+                }
+
+                if (value != null || argumentDictionary.TryGetValue(item.Name, out value) || argumentDictionary.TryGetValue(option?.ShortName?.TrimStart('-') ?? "", out value))
                 {
                     if (parameters[i].ParameterType == typeof(string))
                     {
