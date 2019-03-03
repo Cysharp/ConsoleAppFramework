@@ -64,7 +64,7 @@ public void Hello(
 
 You can use `CommandAttribute` to create multi command program.
 
-``csharp
+```csharp
 public class MyFirstBatch : BatchBase
 {
     public void Hello(
