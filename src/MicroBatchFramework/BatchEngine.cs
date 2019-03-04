@@ -176,7 +176,7 @@ namespace MicroBatchFramework
                 var option = item.GetCustomAttribute<OptionAttribute>();
 
                 string value = null;
-                if (option.Index != -1)
+                if (option != null && option.Index != -1)
                 {
                     value = args[argsOffset + i];
                 }
