@@ -198,7 +198,8 @@ namespace MicroBatchFramework
                     {
                         if (option.Index != -1)
                         {
-                            sb.Append("[" + option.Index + "], ");
+                            sb.Append("[" + option.Index + "]");
+                            goto WRITE_DESCRIPTION;
                         }
                         else
                         {
@@ -207,6 +208,8 @@ namespace MicroBatchFramework
                     }
 
                     sb.Append("-" + item.Name);
+
+                WRITE_DESCRIPTION:
                     sb.Append(": ");
 
                     if (item.HasDefaultValue)
