@@ -54,7 +54,7 @@ namespace MicroBatchFramework
                     var command = item.GetCustomAttribute<CommandAttribute>();
                     if (command != null)
                     {
-                        if (args.Length > 0 && command.CommandName.Equals(args[0], StringComparison.OrdinalIgnoreCase))
+                        if (args.Length > 0 && command.EqualsAny(args[0]))
                         {
                             method = item;
                             argsOffset = 1;
