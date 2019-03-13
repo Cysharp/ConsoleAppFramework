@@ -14,7 +14,7 @@ jobs:
           fi
       - run: dotnet build -c Release -p:Version=${CIRCLE_TAG}
       - run: dotnet test -c Release --no-build
-      - run: dotnet pack -c Release --no-build -p:Version=${CIRCLE_TAG}
+      - run: dotnet pack ./src/MicroBatchFramework/MicroBatchFramework.csproj -c Release --no-build -p:Version=${CIRCLE_TAG}
       - store_artifacts:
           path: ./src/MicroBatchFramework/bin/Release/MicroBatchFramework.${CIRCLE_TAG}.nupkg
           destination: MicroBatchFramework.${CIRCLE_TAG}.nupkg
@@ -36,3 +36,5 @@ workflows:
           filters:
             tags:
               only: /^\d\.\d\.\d\.*/
+          branches:
+            ignore: /.*/
