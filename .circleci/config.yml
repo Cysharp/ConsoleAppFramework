@@ -17,11 +17,17 @@ jobs:
           path: ./src/MicroBatchFramework/bin/Release/$(NUPKG)
           destination: $(NUPKG)
   push:
-    requires:
-      - build
-    filters:
-      tags:
-        only: /.*/
     executor: dotnet
     steps:
       - run: dotnet push $(NUPKG)
+workflows:
+  version: 2
+  build-and-push
+    jobs:
+      - build
+      - push
+          requires:
+            - build
+          filters:
+            tags:
+              only: /.*/
