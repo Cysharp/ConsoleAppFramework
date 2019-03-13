@@ -283,3 +283,4 @@ nuget/unity*
 !.vscode/launch.json
 !.vscode/extensions.json
 sandbox/**/Properties/launchSettings.json
+circleci.exe
