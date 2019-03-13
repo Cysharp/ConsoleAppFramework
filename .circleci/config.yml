@@ -23,7 +23,8 @@ jobs:
           destination: ~/
       - persist_to_workspace:
           root: ~/
-          paths: ./src/MicroBatchFramework/bin/Release
+          paths:
+            - ./src/MicroBatchFramework/bin/Release
   push:
     executor: dotnet
     steps:
