@@ -18,7 +18,6 @@ jobs:
       - run: dotnet build -c Release -p:Version=${CIRCLE_TAG}
       - run: dotnet test -c Release --no-build
       - run: dotnet pack ./src/MicroBatchFramework/MicroBatchFramework.csproj -c Release --no-build -p:Version=${CIRCLE_TAG}
-      - run: 
       - store_artifacts:
           path: ./src/MicroBatchFramework/bin/Release
           destination: nugetpackages
