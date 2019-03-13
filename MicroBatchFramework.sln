@@ -24,7 +24,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{BA26D320
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AAD2D900-C305-4449-A9FC-6C7696FFEDFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroBatchFramework.Tests", "tests\MicroBatchFramework.Tests\MicroBatchFramework.Tests.csproj", "{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroBatchFramework.Tests", "tests\MicroBatchFramework.Tests\MicroBatchFramework.Tests.csproj", "{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".circleci", ".circleci", "{E98E6C20-D6CD-4C6D-9FC4-1070BFFB70F9}"
+	ProjectSection(SolutionItems) = preProject
+		.circleci\config.yml = .circleci\config.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

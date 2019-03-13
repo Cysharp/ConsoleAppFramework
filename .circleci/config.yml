@@ -23,4 +23,5 @@ jobs:
         tags:
           only: /.*/
       executor: dotnet
+      steps:
         - run: dotnet push << parameters.nupkg >>
