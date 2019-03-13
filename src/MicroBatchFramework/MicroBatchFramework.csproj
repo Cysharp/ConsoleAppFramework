@@ -5,13 +5,16 @@
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>release.snk</AssemblyOriginatorKeyFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Version, hand-writen:) -->
-    <Version>0.4.1-beta5</Version>
-
-    <Summary>Single and Multiple contianed batch to write easy type.method style like make Web API, hosted on generic host.</Summary>
-    <Description>$(Summary)</Description>
     <Company>Cysharp</Company>
-    <Authors>Yoshifumi Kawai</Authors>
+    <!-- Version, hand-writen:) -->
+    <Version>0.5.1-beta6</Version>
+
+    <!-- NuGet -->
+    <PackageId>MicroBatchFramework</PackageId>
+    <PackageVersion>$(Version)</PackageVersion>
+    <Authors>Cysharp</Authors>
+    <Copyright>Cysharp</Copyright>
+    <Description>Cloud Native Batch Framework.</Description>
     <PackageProjectUrl>https://github.com/Cysharp/MicroBatchFramework</PackageProjectUrl>
     <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

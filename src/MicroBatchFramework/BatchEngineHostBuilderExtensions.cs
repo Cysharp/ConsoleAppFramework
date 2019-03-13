@@ -96,7 +96,7 @@ namespace MicroBatchFramework
             {
                 var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 var defaultMethod = method.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
-                if (defaultMethod == null || defaultMethod.GetParameters().Length != 0)
+                if (defaultMethod == null || (defaultMethod.GetParameters().Length != 0 && !defaultMethod.GetParameters().All(x => x.HasDefaultValue)))
                 {
                     Console.WriteLine(BuildHelpParameter(method));
                     hostBuilder.ConfigureServices(services =>
@@ -209,7 +209,7 @@ namespace MicroBatchFramework
 
                     sb.Append("-" + item.Name);
 
-                WRITE_DESCRIPTION:
+                    WRITE_DESCRIPTION:
                     sb.Append(": ");
 
                     if (item.HasDefaultValue)

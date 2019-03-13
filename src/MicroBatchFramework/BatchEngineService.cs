@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -59,6 +60,7 @@ namespace MicroBatchFramework
                     await self.runningTask;
                     self.runningTask = null;
                 }
+                catch { } // don't do anything.
                 finally
                 {
                     self.appLifetime.StopApplication();
