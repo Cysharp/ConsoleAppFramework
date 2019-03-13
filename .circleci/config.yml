@@ -3,8 +3,6 @@ executors:
   dotnet:
     docker:
       - image: mcr.microsoft.com/dotnet/core/sdk:2.2
-    environment:
-      NUPKG: MicroBatchFramework.${CIRCLE_TAG}.nupkg
 jobs:
   build:
     executor: dotnet
@@ -18,12 +16,12 @@ jobs:
       - run: dotnet test -c Release --no-build
       - run: dotnet pack -c Release --no-build -p:Version=${CIRCLE_TAG}
       - store_artifacts:
-          path: ./src/MicroBatchFramework/bin/Release/$(NUPKG)
-          destination: $(NUPKG)
+          path: ./src/MicroBatchFramework/bin/Release/MicroBatchFramework.${CIRCLE_TAG}.nupkg
+          destination: MicroBatchFramework.${CIRCLE_TAG}.nupkg
   push:
     executor: dotnet
     steps:
-      - run: dotnet push $(NUPKG)
+      - run: dotnet push MicroBatchFramework.${CIRCLE_TAG}.nupkg
 workflows:
   version: 2
   build-and-push:
@@ -34,4 +32,4 @@ workflows:
             - build
           filters:
             tags:
-              only: /.*/
+              only: /.+/
