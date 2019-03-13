@@ -12,7 +12,7 @@ jobs:
       - checkout
       - run: |
           if [ "${CIRCLE_TAG}" == "" ]; then
-            'export CIRCLE_TAG="1.0.0"' >> $BASH_ENV
+            echo 'export CIRCLE_TAG="1.0.0"' >> $BASH_ENV
           fi
       - run: dotnet build -c Release -p:Version=${CIRCLE_TAG}
       - run: dotnet test -c Release --no-build
