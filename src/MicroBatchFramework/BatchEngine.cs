@@ -175,44 +175,53 @@ namespace MicroBatchFramework
                 var item = parameters[i];
                 var option = item.GetCustomAttribute<OptionAttribute>();
 
-                string value = null;
+                var value = default(OptionParameter);
                 if (option != null && option.Index != -1)
                 {
-                    value = args[argsOffset + i];
+                    value = new OptionParameter { Value = args[argsOffset + i] };
                 }
 
-                if (value != null || argumentDictionary.TryGetValue(item.Name, out value) || argumentDictionary.TryGetValue(option?.ShortName?.TrimStart('-') ?? "", out value))
+                if (value.Value != null || argumentDictionary.TryGetValue(item.Name, out value) || argumentDictionary.TryGetValue(option?.ShortName?.TrimStart('-') ?? "", out value))
                 {
-                    if (parameters[i].ParameterType == typeof(string))
+                    if (parameters[i].ParameterType == typeof(bool) && value.Value == null)
                     {
-                        // when string, invoke directly(avoid JSON escape)
-                        invokeArgs[i] = value;
+                        invokeArgs[i] = value.BooleanSwitch;
+                        continue;
                     }
-                    else
+
+                    if (value.Value != null)
                     {
-                        // decouple dependency?
-                        try
+                        if (parameters[i].ParameterType == typeof(string))
                         {
-                            invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, value);
+                            // when string, invoke directly(avoid JSON escape)
+                            invokeArgs[i] = value.Value;
+                            continue;
                         }
-                        catch
+                        else
                         {
-                            errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape.";
-                            return false;
+                            // decouple dependency?
+                            try
+                            {
+                                invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, value.Value);
+                                continue;
+                            }
+                            catch
+                            {
+                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape.";
+                                return false;
+                            }
                         }
                     }
+                }
+
+                if (item.HasDefaultValue)
+                {
+                    invokeArgs[i] = item.DefaultValue;
                 }
                 else
                 {
-                    if (item.HasDefaultValue)
-                    {
-                        invokeArgs[i] = item.DefaultValue;
-                    }
-                    else
-                    {
-                        errorMessage = "Required parameter \"" + item.Name + "\"" + " not found in argument.";
-                        return false;
-                    }
+                    errorMessage = "Required parameter \"" + item.Name + "\"" + " not found in argument.";
+                    return false;
                 }
             }
 
@@ -220,24 +229,30 @@ namespace MicroBatchFramework
             return true;
         }
 
-        static ReadOnlyDictionary<string, string> ParseArgument(string[] args, int argsOffset)
+        static ReadOnlyDictionary<string, OptionParameter> ParseArgument(string[] args, int argsOffset)
         {
-            var dict = new Dictionary<string, string>(args.Length, StringComparer.OrdinalIgnoreCase);
+            var dict = new Dictionary<string, OptionParameter>(args.Length, StringComparer.OrdinalIgnoreCase);
             for (int i = argsOffset; i < args.Length;)
             {
                 var key = args[i++].TrimStart('-');
                 if (i < args.Length && !args[i].StartsWith("-"))
                 {
                     var value = args[i++];
-                    dict.Add(key, value);
+                    dict.Add(key, new OptionParameter { Value = value });
                 }
                 else
                 {
-                    dict.Add(key, "true"); // boolean switch
+                    dict.Add(key, new OptionParameter { BooleanSwitch = true });
                 }
             }
 
-            return new ReadOnlyDictionary<string, string>(dict);
+            return new ReadOnlyDictionary<string, OptionParameter>(dict);
+        }
+
+        struct OptionParameter
+        {
+            public string Value;
+            public bool BooleanSwitch;
         }
     }
 }

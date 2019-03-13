@@ -22,6 +22,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{BA26D320
 		nuget\push.bat = nuget\push.bat
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AAD2D900-C305-4449-A9FC-6C7696FFEDFA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroBatchFramework.Tests", "tests\MicroBatchFramework.Tests\MicroBatchFramework.Tests.csproj", "{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +48,10 @@ Global
 		{0B3BE82E-753A-415D-AD4E-90350C6E5C3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0B3BE82E-753A-415D-AD4E-90350C6E5C3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0B3BE82E-753A-415D-AD4E-90350C6E5C3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +61,7 @@ Global
 		{017F402E-36EA-46B3-A5AF-1773EEB7B755} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
 		{5E16EBD8-3396-4952-9B2D-DD2E2E3C883B} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
 		{0B3BE82E-753A-415D-AD4E-90350C6E5C3D} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
+		{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629} = {AAD2D900-C305-4449-A9FC-6C7696FFEDFA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7F3E353A-C125-4020-8481-11DC6496358C}

@@ -1,0 +1,12 @@
+version: 2.0
+jobs:
+  build:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:2.2
+    steps:
+      - checkout
+      - run: dotnet build -c Release
+      - run: dotnet test -c Release --no-build
+      - run: dotnet pack -c Release --no-build
+      - store_artifacts:
+          path: ./src/MicroBatchFramework/bin/Release/MicroBatchFramework.0.5.1-beta6.nupkg
