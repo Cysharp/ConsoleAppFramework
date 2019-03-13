@@ -3,6 +3,8 @@ executors:
   dotnet:
     docker:
       - image: mcr.microsoft.com/dotnet/core/sdk:2.2
+    working_directory:
+      - ~/workspace
     environment:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
       NUGET_XMLDOC_MODE: skip
@@ -29,7 +31,7 @@ jobs:
     executor: dotnet
     steps:
       - attach_workspace:
-          at: ./nugetpackages
+          at: nugetpackages
       - run: dotnet nuget push ./nugetpackages/MicroBatchFramework.${CIRCLE_TAG}.nupkg -s https://www.nuget.org/api/v2/package -k ${NUGET_KEY}
 workflows:
   version: 2
