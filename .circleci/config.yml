@@ -9,4 +9,4 @@ jobs:
       - run: dotnet test -c Release --no-build
       - run: dotnet pack -c Release --no-build
       - store_artifacts:
-        path: ./src/MicroBatchFramework/bin/Release/MicroBatchFramework.0.5.1-beta6.nupkg
+          path: ./src/MicroBatchFramework/bin/Release/MicroBatchFramework.0.5.1-beta6.nupkg
