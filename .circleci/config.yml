@@ -27,9 +27,12 @@ workflows:
   build-and-push:
     jobs:
       - build
+          filters:
+            tags:
+              only: /.*/
       - push:
           requires:
             - build
           filters:
             tags:
-              only: /.+/
+              only: /^.+/
