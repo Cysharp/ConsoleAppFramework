@@ -20,17 +20,17 @@ jobs:
       - run: dotnet pack ./src/MicroBatchFramework/MicroBatchFramework.csproj -c Release --no-build -p:Version=${CIRCLE_TAG}
       - store_artifacts:
           path: ./src/MicroBatchFramework/bin/Release
-          destination: ~/
+          destination: .
       - persist_to_workspace:
-          root: /nugetpackage
+          root: .
           paths:
-            - ./src/MicroBatchFramework/bin/Release/*
+            - ./src/MicroBatchFramework/bin/Release
   push:
     executor: dotnet
     steps:
       - attach_workspace:
-          at: ~/
-      - run: dotnet nuget push ./nugetpackage/MicroBatchFramework/bin/Release/MicroBatchFramework.${CIRCLE_TAG}.nupkg -s https://www.nuget.org/api/v2/package -k ${NUGET_KEY}
+          at: ~/nugetpackage
+      - run: dotnet nuget push ./nugetpackage/MicroBatchFramework.${CIRCLE_TAG}.nupkg -s https://www.nuget.org/api/v2/package -k ${NUGET_KEY}
 workflows:
   version: 2
   build-and-push:
