@@ -3,6 +3,9 @@ executors:
   dotnet:
     docker:
       - image: mcr.microsoft.com/dotnet/core/sdk:2.2
+    environment:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      NUGET_XMLDOC_MODE: skip
 jobs:
   build:
     executor: dotnet
@@ -15,13 +18,14 @@ jobs:
       - run: dotnet build -c Release -p:Version=${CIRCLE_TAG}
       - run: dotnet test -c Release --no-build
       - run: dotnet pack ./src/MicroBatchFramework/MicroBatchFramework.csproj -c Release --no-build -p:Version=${CIRCLE_TAG}
+      - run: 
       - store_artifacts:
-          path: ./src/MicroBatchFramework/bin/Release/MicroBatchFramework.${CIRCLE_TAG}.nupkg
-          destination: MicroBatchFramework.${CIRCLE_TAG}.nupkg
+          path: ./src/MicroBatchFramework/bin/Release
+          destination: nugetpackages
   push:
     executor: dotnet
     steps:
-      - run: dotnet nuget push MicroBatchFramework.${CIRCLE_TAG}.nupkg -s https://www.nuget.org/api/v2/package -k ${NUGET_KEY}
+      - run: dotnet nuget push nugetpackages/MicroBatchFramework.${CIRCLE_TAG}.nupkg -s https://www.nuget.org/api/v2/package -k ${NUGET_KEY}
 workflows:
   version: 2
   build-and-push:
