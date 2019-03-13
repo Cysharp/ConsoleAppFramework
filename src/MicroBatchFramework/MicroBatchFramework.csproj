@@ -6,8 +6,8 @@
     <AssemblyOriginatorKeyFile>release.snk</AssemblyOriginatorKeyFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Company>Cysharp</Company>
-    <!-- Version, hand-writen:) -->
-    <Version>0.5.1-beta6</Version>
+    <!-- Version is passed from CircleCI -->
+    <!--<Version>1</Version>-->
 
     <!-- NuGet -->
     <PackageId>MicroBatchFramework</PackageId>

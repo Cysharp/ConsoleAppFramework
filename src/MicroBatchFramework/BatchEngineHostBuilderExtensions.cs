@@ -175,7 +175,7 @@ namespace MicroBatchFramework
                 var command = method.GetCustomAttribute<CommandAttribute>();
                 if (command != null)
                 {
-                    sb.AppendLine(command.CommandName + ": " + command.Description);
+                    sb.AppendLine(string.Join(", ", command.CommandNames) + ": " + command.Description);
                 }
                 else
                 {

@@ -1,12 +1,26 @@
-version: 2.0
-jobs:
-  build:
+version: 2.1
+executors:
+  dotnet:
     docker:
       - image: mcr.microsoft.com/dotnet/core/sdk:2.2
+    parameters:
+      nupkg: MicroBatchFramework.${CIRCLE_TAG}.nupkg
+jobs:
+  build:
+    executor: dotnet
     steps:
       - checkout
-      - run: dotnet build -c Release
+      - run: dotnet build -c Release -p:Version=${CIRCLE_TAG}
       - run: dotnet test -c Release --no-build
-      - run: dotnet pack -c Release --no-build
+      - run: dotnet pack -c Release --no-build -p:Version=${CIRCLE_TAG}
       - store_artifacts:
-          path: ./src/MicroBatchFramework/bin/Release/MicroBatchFramework.0.5.1-beta6.nupkg
+          path: ./src/MicroBatchFramework/bin/Release/<< parameters.nupkg >>
+          destination: << parameters.nupkg >>
+    push:
+      requires:
+        - build
+      filters:
+        tags:
+          only: /.*/
+      executor: dotnet
+        - run: dotnet push << parameters.nupkg >>
