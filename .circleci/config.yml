@@ -21,7 +21,7 @@ jobs:
   push:
     executor: dotnet
     steps:
-      - run: dotnet push MicroBatchFramework.${CIRCLE_TAG}.nupkg
+      - run: dotnet nuget push MicroBatchFramework.${CIRCLE_TAG}.nupkg -s https://www.nuget.org/api/v2/package -k ${NUGET_KEY}
 workflows:
   version: 2
   build-and-push:
@@ -36,5 +36,5 @@ workflows:
           filters:
             tags:
               only: /^\d\.\d\.\d\.*/
-          branches:
-            ignore: /.*/
+            branches:
+              ignore: /.*/
