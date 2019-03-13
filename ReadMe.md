@@ -1,5 +1,7 @@
 MicroBatchFramework
 ===
+[![CircleCI](https://circleci.com/gh/Cysharp/MicroBatchFramework.svg?style=svg)](https://circleci.com/gh/Cysharp/MicroBatchFramework)
+
 WIP but welcome to try and your impressions. NuGet: [MicroBatchFramework](https://www.nuget.org/packages/MicroBatchFramework)
 
 ```
