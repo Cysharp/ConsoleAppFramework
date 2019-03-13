@@ -5,6 +5,10 @@ executors:
       - image: mcr.microsoft.com/dotnet/core/sdk:2.2
     environment:
       NUPKG: MicroBatchFramework.${CIRCLE_TAG}.nupkg
+    shell: |
+      if [ "${CIRCLE_TAG}" == "" ]; then
+        CIRCLE_TAG = "1.0.0"
+      fi
 jobs:
   build:
     executor: dotnet
