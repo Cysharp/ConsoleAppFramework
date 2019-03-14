@@ -24,14 +24,14 @@ namespace MicroBatchFramework
             this.cancellationToken = cancellationToken;
         }
 
-        internal async Task RunAsync(Type type, MethodInfo method, string[] args)
+        public async Task RunAsync(Type type, MethodInfo method, string[] args)
         {
             logger.LogTrace("BatchEngine.Run Start");
             var ctx = new BatchContext(args, DateTime.UtcNow, cancellationToken, logger);
             await RunCore(ctx, type, method, args, 1); // 0 is type selector
         }
 
-        internal async Task RunAsync(Type type, string[] args)
+        public async Task RunAsync(Type type, string[] args)
         {
             logger.LogTrace("BatchEngine.Run Start");
 
