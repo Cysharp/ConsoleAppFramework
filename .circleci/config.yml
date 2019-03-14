@@ -32,7 +32,9 @@ workflows:
           filters:
             tags:
               only: /.*/
-      #- build-push:
-      #    filters:
-      #      tags:
-      #        only: /^\d\.\d\.\d.*/
+      - build-push:
+          filters:
+            tags:
+              only: /^\d\.\d\.\d.*/
+          branches:
+            ignore: /.*/
