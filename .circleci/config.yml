@@ -11,7 +11,7 @@ jobs:
     executor: dotnet
     steps:
       - checkout
-      - run: dotnet build -c Debug -p:Version=1.0.0
+      - run: dotnet build -c Debug
       - run: dotnet test -c Debug --no-build
   build-push:
     executor: dotnet

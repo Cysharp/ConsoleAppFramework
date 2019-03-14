@@ -89,6 +89,60 @@ namespace MicroBatchFramework.Tests
             }
         }
 
+        public class AliasCommand : BatchBase
+        {
+            [Command(new[] { "run", "r" })]
+            public void Run(string path, string pfx)
+            {
+                Context.Logger.LogInformation($"path:{path}");
+                Context.Logger.LogInformation($"pfx:{pfx}");
+            }
+
+            [Command(new[] { "su", "summmm" })]
+            public void Sum([Option(0)]int x, [Option(1)]int y)
+            {
+                Context.Logger.LogInformation($"{x + y}");
+            }
+        }
+
+        [Fact]
+        public async Task AliasCommandTest()
+        {
+            {
+                var collection = new[]{
+                    "r -path foo -pfx bar".Split(' '),
+                    "run -path foo -pfx bar".Split(' '),
+                };
+                foreach (var args in collection)
+                {
+                    var log = new LogStack();
+                    await new HostBuilder()
+                        .ConfigureTestLogging(testOutput, log, true)
+                        .RunBatchEngineAsync<AliasCommand>(args);
+                    log.InfoLogShouldBe(0, "path:foo");
+                    log.InfoLogShouldBe(1, "pfx:bar");
+                }
+            }
+            {
+                {
+                    var args = "su 10 20".Split(' ');
+                    var log = new LogStack();
+                    await new HostBuilder()
+                        .ConfigureTestLogging(testOutput, log, true)
+                        .RunBatchEngineAsync<AliasCommand>(args);
+                    log.InfoLogShouldBe(0, "30");
+                }
+                {
+                    var args = "summmm 99 100".Split(' ');
+                    var log = new LogStack();
+                    await new HostBuilder()
+                        .ConfigureTestLogging(testOutput, log, true)
+                        .RunBatchEngineAsync<AliasCommand>(args);
+                    log.InfoLogShouldBe(0, "199");
+                }
+            }
+        }
+
         public class NotFoundPath : BatchBase
         {
             [Command("run")]
