@@ -92,10 +92,13 @@ namespace MicroBatchFramework
         public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
             where T : BatchBase
         {
+            var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var defaultMethod = method.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
+            var hasList = method.Any(x => x.GetCustomAttribute<CommandAttribute>()?.EqualsAny(ListCommand) ?? false);
+            var hasHelp = method.Any(x => x.GetCustomAttribute<CommandAttribute>()?.EqualsAny(HelpCommand) ?? false);
+
             if (args.Length == 0)
             {
-                var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                var defaultMethod = method.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
                 if (defaultMethod == null || (defaultMethod.GetParameters().Length != 0 && !defaultMethod.GetParameters().All(x => x.HasDefaultValue)))
                 {
                     Console.WriteLine(BuildHelpParameter(method));
@@ -108,7 +111,7 @@ namespace MicroBatchFramework
                 }
             }
 
-            if (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
+            if (!hasList && args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
             {
                 ShowMethodList();
                 hostBuilder.ConfigureServices(services =>
@@ -118,9 +121,9 @@ namespace MicroBatchFramework
                 });
                 return hostBuilder;
             }
-            if (args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
+
+            if (!hasHelp && args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
-                var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 Console.WriteLine(BuildHelpParameter(method));
                 hostBuilder.ConfigureServices(services =>
                 {

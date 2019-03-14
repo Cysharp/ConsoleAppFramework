@@ -143,6 +143,50 @@ namespace MicroBatchFramework.Tests
             }
         }
 
+        public class OverrideDefaultCommand : BatchBase
+        {
+            [Command("list")]
+            public void List()
+            {
+                Context.Logger.LogInformation($"lst");
+            }
+
+            [Command(new[] { "help", "h" })]
+            public void Help()
+            {
+                Context.Logger.LogInformation($"hlp");
+            }
+        }
+
+        [Fact]
+        public async Task OverrideDefaultCommandTest()
+        {
+            {
+                var args = "list".Split(' ');
+                var log = new LogStack();
+                await new HostBuilder()
+                    .ConfigureTestLogging(testOutput, log, true)
+                    .RunBatchEngineAsync<OverrideDefaultCommand>(args);
+                log.InfoLogShouldBe(0, "lst");
+            }
+            {
+                var args = "help".Split(' ');
+                var log = new LogStack();
+                await new HostBuilder()
+                    .ConfigureTestLogging(testOutput, log, true)
+                    .RunBatchEngineAsync<OverrideDefaultCommand>(args);
+                log.InfoLogShouldBe(0, "hlp");
+            }
+            {
+                var args = "h".Split(' ');
+                var log = new LogStack();
+                await new HostBuilder()
+                    .ConfigureTestLogging(testOutput, log, true)
+                    .RunBatchEngineAsync<OverrideDefaultCommand>(args);
+                log.InfoLogShouldBe(0, "hlp");
+            }
+        }
+
         public class NotFoundPath : BatchBase
         {
             [Command("run")]

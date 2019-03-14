@@ -24,15 +24,6 @@ namespace MicroBatchFramework
 
         public CommandAttribute(string[] commandNames, string description)
         {
-            foreach (var item in commandNames)
-            {
-                if (item.Equals("list", StringComparison.OrdinalIgnoreCase)
-                 || item.Equals("help", StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new ArgumentException("`list` or `help` is system reserved commandName, can not use.");
-                }
-            }
-
             this.CommandNames = commandNames;
             this.Description = description;
         }

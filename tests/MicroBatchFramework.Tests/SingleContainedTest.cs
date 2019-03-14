@@ -77,7 +77,7 @@ namespace MicroBatchFramework.Tests
                 {
                     var args = new string[0];
                     await new HostBuilder().RunBatchEngineAsync<SimpleTwoArgs>(args);
-                    log.ToStringInfo().Should().StartWith("argument list:"); // ok to show help
+                    log.ToStringInfo().Should().Contain("argument list:"); // ok to show help
                 }
             }
         }
