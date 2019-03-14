@@ -76,7 +76,7 @@ namespace MicroBatchFramework
                     goto RUN;
                 }
 
-                FAIL:
+            FAIL:
                 await SetFailAsync(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method or command. Type:" + type.FullName);
                 return;
             }
@@ -86,7 +86,7 @@ namespace MicroBatchFramework
                 return;
             }
 
-            RUN:
+        RUN:
             await RunCore(ctx, type, method, args, argsOffset);
         }
 
@@ -234,6 +234,12 @@ namespace MicroBatchFramework
             var dict = new Dictionary<string, OptionParameter>(args.Length, StringComparer.OrdinalIgnoreCase);
             for (int i = argsOffset; i < args.Length;)
             {
+                if (!args[i].StartsWith("-"))
+                {
+                    i++;
+                    continue; // not key
+                }
+
                 var key = args[i++].TrimStart('-');
                 if (i < args.Length && !args[i].StartsWith("-"))
                 {

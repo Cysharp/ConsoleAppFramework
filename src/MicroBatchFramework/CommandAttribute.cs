@@ -24,7 +24,7 @@ namespace MicroBatchFramework
 
         public CommandAttribute(string[] commandNames, string description)
         {
-            foreach (var item in CommandNames)
+            foreach (var item in commandNames)
             {
                 if (item.Equals("list", StringComparison.OrdinalIgnoreCase)
                  || item.Equals("help", StringComparison.OrdinalIgnoreCase))
