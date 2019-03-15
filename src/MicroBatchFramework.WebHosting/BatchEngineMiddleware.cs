@@ -118,19 +118,27 @@ namespace MicroBatchFramework.WebHosting
             string[] args = null;
             try
             {
-                args = new string[(httpContext.Request.Form.Count * 2) + 1];
+                if (httpContext.Request.HasFormContentType)
                 {
-                    var i = 0;
-                    args[i++] = methodInfo.DeclaringType.Name + "." + methodInfo.Name;
-                    foreach (var item in httpContext.Request.Form)
+                    args = new string[(httpContext.Request.Form.Count * 2) + 1];
                     {
-                        args[i++] = "-" + item.Key;
-                        args[i++] = (item.Value.Count == 0) ? null : item.Value[0];
+                        var i = 0;
+                        args[i++] = methodInfo.DeclaringType.Name + "." + methodInfo.Name;
+                        foreach (var item in httpContext.Request.Form)
+                        {
+                            args[i++] = "-" + item.Key;
+                            args[i++] = (item.Value.Count == 0) ? null : item.Value[0];
+                        }
                     }
+                }
+                else
+                {
+                    args = new[] { methodInfo.DeclaringType.Name + "." + methodInfo.Name };
                 }
             }
             catch (Exception ex)
             {
+                httpContext.Response.ContentType = "text/plain";
                 httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 await httpContext.Response.WriteAsync(ex.ToString());
                 return;
@@ -146,6 +154,7 @@ namespace MicroBatchFramework.WebHosting
             // out result
             if (hostingInterceptor.CompleteSuccessfully)
             {
+                httpContext.Response.ContentType = "text/plain";
                 httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
                 await httpContext.Response.WriteAsync(collectLogger.ToString());
             }
@@ -153,6 +162,7 @@ namespace MicroBatchFramework.WebHosting
             {
                 var errorMsg = ((hostingInterceptor.ErrorMessage != null) ? hostingInterceptor.ErrorMessage + Environment.NewLine : "")
                              + ((hostingInterceptor.Exception != null) ? hostingInterceptor.Exception.ToString() : "");
+                httpContext.Response.ContentType = "text/plain";
                 httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 await httpContext.Response.WriteAsync(errorMsg);
             }

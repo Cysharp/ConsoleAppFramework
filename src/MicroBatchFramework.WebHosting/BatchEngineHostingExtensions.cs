@@ -7,6 +7,8 @@ using System;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Collections.Generic;
+using MicroBatchFramework.WebHosting.Swagger;
+using System.IO;
 
 namespace MicroBatchFramework // .WebHosting
 {
@@ -29,10 +31,21 @@ namespace MicroBatchFramework // .WebHosting
                 });
         }
 
-        public static Task RunBatchEngineWebHosting(this IWebHostBuilder builder, string urls, IBatchInterceptor interceptor = null)
+        public static Task RunBatchEngineWebHosting(this IWebHostBuilder builder, string urls, SwaggerOptions swaggerOptions = null, IBatchInterceptor interceptor = null)
         {
             return builder
                 .PrepareBatchEngineMiddleware(interceptor)
+                .ConfigureServices(services =>
+                {
+                    if (swaggerOptions == null)
+                    {
+                        var entryAsm = Assembly.GetEntryAssembly();
+                        var xmlName = entryAsm.GetName().Name + ".xml";
+                        var xmlPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), xmlName);
+                        swaggerOptions = new SwaggerOptions(entryAsm.GetName().Name, "", "/") { XmlDocumentPath = xmlPath };
+                    }
+                    services.AddSingleton<SwaggerOptions>(swaggerOptions);
+                })
                 .UseKestrel()
                 .UseUrls(urls)
                 .UseStartup<DefaultStartup>()
@@ -43,6 +56,11 @@ namespace MicroBatchFramework // .WebHosting
         public static IApplicationBuilder UseBatchEngineMiddleware(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<BatchEngineMiddleware>();
+        }
+
+        public static IApplicationBuilder UseBatchEngineSwaggerMiddleware(this IApplicationBuilder builder, SwaggerOptions options)
+        {
+            return builder.UseMiddleware<BatchEngineSwaggerMiddleware>(options);
         }
 
         public class DefaultStartup
@@ -71,6 +89,8 @@ namespace MicroBatchFramework // .WebHosting
                     catch { }
                 });
 
+                var swaggerOption = app.ApplicationServices.GetService<SwaggerOptions>() ?? new SwaggerOptions("MicroBatchFramework", "", "/");
+                app.UseBatchEngineSwaggerMiddleware(swaggerOption);
                 app.UseBatchEngineMiddleware();
             }
         }

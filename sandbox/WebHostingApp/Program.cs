@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Hosting;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using MicroBatchFramework;
 using System;
@@ -25,6 +26,14 @@ namespace WebHostingApp
         {
             Context.Logger.LogInformation((x + y).ToString());
         }
+        public void SimpleString(string input)
+        {
+            Context.Logger.LogInformation("In: " + input);
+        }
+        public void SimpleObject(Person person)
+        {
+            Context.Logger.LogInformation(person.Name + ":" + person.Age);
+        }
 
         public void InOut(string input, Person person)
         {
@@ -32,10 +41,29 @@ namespace WebHostingApp
             Context.Logger.LogInformation("In: " + input);
         }
 
+        public void SimpleArray(int[] simpleArray)
+        {
+            Context.Logger.LogInformation(string.Join(", ", simpleArray));
+        }
+
+
+        public void Array(int[] intArray, string[] stringArray, Person[] objectArray, MyFruit[] fruits)
+        {
+            Context.Logger.LogInformation(string.Join(", ", intArray));
+            Context.Logger.LogInformation(string.Join(", ", stringArray));
+            Context.Logger.LogInformation(string.Join(", ", objectArray.Select(x => x.Age + ":" + x.Name)));
+            Context.Logger.LogInformation(string.Join(", ", fruits.Select(x => x.ToString())));
+        }
+
         public void ErrorMan()
         {
             throw new Exception("foo bar baz");
         }
+    }
+
+    public enum MyFruit
+    {
+        Apple, Orange, Grape
     }
 
     public class Person
