@@ -127,7 +127,9 @@ namespace MicroBatchFramework.WebHosting
                         foreach (var item in httpContext.Request.Form)
                         {
                             args[i++] = "-" + item.Key;
-                            args[i++] = (item.Value.Count == 0) ? null : item.Value[0];
+                            args[i++] = (item.Value.Count == 0) ? null
+                                      : (item.Value.Count == 1) ? item.Value[0]
+                                      : "[" + string.Join(", ", item.Value) + "]";
                         }
                     }
                 }

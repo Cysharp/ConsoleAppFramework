@@ -140,7 +140,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
 
                     var collectionType = GetCollectionType(x.ParameterType);
                     var items = collectionType != null
-                        ? new PartialSchema { type = ToSwaggerDataType(collectionType), }
+                        ? new PartialSchema { type = ToSwaggerDataType(collectionType) }
                         : null;
 
                     string defaultObjectExample = null;
@@ -169,31 +169,22 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     {
                         BuildSchema(definitions, x.ParameterType);
                         refSchema = new Schema { @ref = BuildSchema(definitions, x.ParameterType) };
-                        if (parameterInfos.Length != 1)
-                        {
-                            var unknownObj = System.Runtime.Serialization.FormatterServices.GetUninitializedObject(x.ParameterType);
-                            if (collectionType != null)
-                            {
-                                defaultObjectExample = JsonConvert.SerializeObject(new[] { unknownObj }, new[] { new Newtonsoft.Json.Converters.StringEnumConverter() });
-                            }
-                            else
-                            {
-                                defaultObjectExample = JsonConvert.SerializeObject(unknownObj, new[] { new Newtonsoft.Json.Converters.StringEnumConverter() });
-                            }
-                        }
+                        var unknownObj = System.Runtime.Serialization.FormatterServices.GetUninitializedObject(x.ParameterType);
+                        defaultObjectExample = JsonConvert.SerializeObject(unknownObj, new[] { new Newtonsoft.Json.Converters.StringEnumConverter() });
+                        swaggerDataType = "string"; // object can not attach formData.
                     }
 
                     return new Schemas.Parameter
                     {
                         name = x.Name,
-                        @in = parameterInfos.Length == 1 ? "body" : "formData",
+                        @in = "formData",
                         type = swaggerDataType,
                         description = parameterXmlComment,
                         required = !x.IsOptional,
                         @default = defaultObjectExample ?? ((x.IsOptional) ? defaultValue : null),
                         items = items,
                         @enum = enums,
-                        collectionFormat = "multi",
+                        collectionFormat = "multi", // csv or multi
                         schema = refSchema
                     };
                 })
@@ -286,7 +277,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
             schema = new Schema
             {
                 type = "object",
-                properties = props
+                properties = props,
             };
 
             definitions.Add(fullName, schema);

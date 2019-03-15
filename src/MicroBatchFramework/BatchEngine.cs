@@ -197,6 +197,37 @@ namespace MicroBatchFramework
                             invokeArgs[i] = value.Value;
                             continue;
                         }
+                        else if (parameters[i].ParameterType.IsEnum)
+                        {
+                            try
+                            {
+                                invokeArgs[i] = Enum.Parse(parameters[i].ParameterType, value.Value, true);
+                                continue;
+                            }
+                            catch
+                            {
+                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on Enum parsing.";
+                                return false;
+                            }
+                        }
+                        else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(parameters[i].ParameterType))
+                        {
+                            var v = value.Value;
+                            if (!(v.StartsWith("[") && v.EndsWith("]")))
+                            {
+                                v = "[" + v + "]";
+                            }
+                            try
+                            {
+                                invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, v);
+                                continue;
+                            }
+                            catch
+                            {
+                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape or add double-quotation.";
+                                return false;
+                            }
+                        }
                         else
                         {
                             // decouple dependency?
@@ -207,7 +238,7 @@ namespace MicroBatchFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape.";
+                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape or add double-quotation.";
                                 return false;
                             }
                         }

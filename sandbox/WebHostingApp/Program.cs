@@ -26,13 +26,23 @@ namespace WebHostingApp
         {
             Context.Logger.LogInformation((x + y).ToString());
         }
+        public void SimpleInt(int input)
+        {
+            Context.Logger.LogInformation("In: " + input);
+        }
         public void SimpleString(string input)
         {
+            Context.Logger.LogInformation("in is null?: " + (input == null));
             Context.Logger.LogInformation("In: " + input);
         }
         public void SimpleObject(Person person)
         {
             Context.Logger.LogInformation(person.Name + ":" + person.Age);
+        }
+
+        public void SimpleEnum(MyFruit fruit)
+        {
+            Context.Logger.LogInformation(fruit.ToString());
         }
 
         public void InOut(string input, Person person)
@@ -46,6 +56,21 @@ namespace WebHostingApp
             Context.Logger.LogInformation(string.Join(", ", simpleArray));
         }
 
+        public void StringArray(string[] simpleArray)
+        {
+            Context.Logger.LogInformation(string.Join(", ", simpleArray));
+        }
+        public void OjectArray(Person[] objectArray)
+        {
+            Context.Logger.LogInformation(string.Join(", ", objectArray.Select(x =>(x==null) ? "nul" : x.Age + ":" + x.Name)));
+        }
+
+        public void DefaultV(int x = 100, int y = 200, string foo = null)
+        {
+            Context.Logger.LogInformation("X: " + x);
+            Context.Logger.LogInformation("Y: " + y);
+            Context.Logger.LogInformation("Foo: " + foo);
+        }
 
         public void Array(int[] intArray, string[] stringArray, Person[] objectArray, MyFruit[] fruits)
         {
