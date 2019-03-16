@@ -50,6 +50,18 @@ namespace SingleContainedApp
 
     public class OverrideCheck : BatchBase
     {
+        [Command("encode", "encode input string to base64url")]
+        public void Encode([Option(0)]string input) => Console.WriteLine((input));
+
+        [Command("decode", "decode input base64url to string")]
+        public void Decode([Option(0)]string input) => Console.WriteLine((input));
+
+        [Command("escape", "escape base64 to base64url")]
+        public void Escape([Option(0)]string input) => Console.WriteLine((input));
+
+        [Command(new[] { "unescape", "-h" }, "unescape base64url to base64")]
+        public void Unescape([Option(0)]string input) => Console.WriteLine((input));
+
         [Command(new[] { "help", "-h", "-help", "--help" }, "show help")]
         public void Help()
         {
@@ -65,7 +77,6 @@ namespace SingleContainedApp
     {
         static async Task Main(string[] args)
         {
-            args = new string[] { };
             await new HostBuilder().RunBatchEngineAsync<OverrideCheck>(args);
         }
     }
