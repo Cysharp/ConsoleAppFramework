@@ -65,10 +65,10 @@ namespace MicroBatchFramework
                     {
                         if (args.Length > 0 && command.EqualsAny(args[0]))
                         {
-                            // command alias is first priority(if duplicate with MethodName([Command("run")]Run()), okay to execute.
+                            // command's priority is first
                             method = item;
                             argsOffset = 1;
-                            continue;
+                            goto RUN;
                         }
                         else
                         {
@@ -82,10 +82,10 @@ namespace MicroBatchFramework
                     {
                         if (method != null)
                         {
-                            await SetFailAsync(ctx, "Found duplicate method/command name, name or alias only allows unique name. Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
+                            await SetFailAsync(ctx, "Found two public methods(wihtout command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
                             return;
                         }
-                        method = item;
+                        method = item; // found single public(non-command) method.
                     }
                 }
 
