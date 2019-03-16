@@ -101,13 +101,21 @@ namespace MicroBatchFramework
             {
                 if (defaultMethod == null || (defaultMethod.GetParameters().Length != 0 && !defaultMethod.GetParameters().All(x => x.HasDefaultValue)))
                 {
-                    Console.WriteLine(BuildHelpParameter(method));
-                    hostBuilder.ConfigureServices(services =>
+                    if (!hasHelp)
                     {
-                        services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                        services.AddSingleton<IHostedService, EmptyHostedService>();
-                    });
-                    return hostBuilder;
+                        Console.WriteLine(BuildHelpParameter(method));
+                        hostBuilder.ConfigureServices(services =>
+                        {
+                            services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                            services.AddSingleton<IHostedService, EmptyHostedService>();
+                        });
+                        return hostBuilder;
+                    }
+                    else
+                    {
+                        // override default Help
+                        args = new string[] { "help" };
+                    }
                 }
             }
 
