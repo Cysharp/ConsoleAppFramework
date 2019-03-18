@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Utf8Json;
@@ -49,6 +51,13 @@ namespace MicroBatchFramework
                 }
 
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                if (methods.Length == 0)
+                {
+                    await SetFailAsync(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method or command. Type:" + type.FullName);
+                    return;
+                }
+
+                MethodInfo helpMethod = null;
                 foreach (var item in methods)
                 {
                     var command = item.GetCustomAttribute<CommandAttribute>();
@@ -56,18 +65,27 @@ namespace MicroBatchFramework
                     {
                         if (args.Length > 0 && command.EqualsAny(args[0]))
                         {
+                            // command's priority is first
                             method = item;
                             argsOffset = 1;
                             goto RUN;
+                        }
+                        else
+                        {
+                            if (command.EqualsAny("help"))
+                            {
+                                helpMethod = item;
+                            }
                         }
                     }
                     else
                     {
                         if (method != null)
                         {
-                            goto FAIL;
+                            await SetFailAsync(ctx, "Found two public methods(wihtout command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
+                            return;
                         }
-                        method = item;
+                        method = item; // found single public(non-command) method.
                     }
                 }
 
@@ -76,9 +94,17 @@ namespace MicroBatchFramework
                     goto RUN;
                 }
 
-            FAIL:
-                await SetFailAsync(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method or command. Type:" + type.FullName);
-                return;
+                // completely not found, invalid command name show help.
+                if (helpMethod != null)
+                {
+                    method = helpMethod;
+                    goto RUN;
+                }
+                else
+                {
+                    Console.WriteLine(BatchEngine.BuildHelpParameter(methods));
+                    return;
+                }
             }
             catch (Exception ex)
             {
@@ -86,7 +112,7 @@ namespace MicroBatchFramework
                 return;
             }
 
-        RUN:
+            RUN:
             await RunCore(ctx, type, method, args, argsOffset);
         }
 
@@ -290,6 +316,93 @@ namespace MicroBatchFramework
         {
             public string Value;
             public bool BooleanSwitch;
+        }
+
+        internal static string BuildHelpParameter(MethodInfo[] methods)
+        {
+            var sb = new StringBuilder();
+            foreach (var method in methods.OrderBy(x => x, new CustomSorter()))
+            {
+                var command = method.GetCustomAttribute<CommandAttribute>();
+                if (command != null)
+                {
+                    sb.AppendLine(string.Join(", ", command.CommandNames) + ": " + command.Description);
+                }
+                else
+                {
+                    sb.AppendLine("argument list:");
+                }
+
+                var parameters = method.GetParameters();
+                if (parameters.Length == 0)
+                {
+                    sb.AppendLine("()");
+                }
+
+                foreach (var item in parameters)
+                {
+                    // -i, -input | [default=foo]...
+
+                    var option = item.GetCustomAttribute<OptionAttribute>();
+
+                    if (option != null)
+                    {
+                        if (option.Index != -1)
+                        {
+                            sb.Append("[" + option.Index + "]");
+                            goto WRITE_DESCRIPTION;
+                        }
+                        else
+                        {
+                            sb.Append("-" + option.ShortName.Trim('-') + ", ");
+                        }
+                    }
+
+                    sb.Append("-" + item.Name);
+
+                    WRITE_DESCRIPTION:
+                    sb.Append(": ");
+
+                    if (item.HasDefaultValue)
+                    {
+                        sb.Append("[default=" + (item.DefaultValue?.ToString() ?? "null") + "]");
+                    }
+
+                    if (option != null && !string.IsNullOrEmpty(option.Description))
+                    {
+                        sb.Append(option.Description);
+                    }
+                    else
+                    {
+                        sb.Append(item.ParameterType.Name);
+                    }
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
+        }
+
+        class CustomSorter : IComparer<MethodInfo>
+        {
+            public int Compare(MethodInfo x, MethodInfo y)
+            {
+                var xc = x.GetCustomAttribute<CommandAttribute>();
+                var yc = y.GetCustomAttribute<CommandAttribute>();
+
+                if (xc != null)
+                {
+                    return 1;
+                }
+                if (yc != null)
+                {
+                    return -1;
+                }
+
+                return x.Name.CompareTo(y.Name);
+            }
         }
     }
 }

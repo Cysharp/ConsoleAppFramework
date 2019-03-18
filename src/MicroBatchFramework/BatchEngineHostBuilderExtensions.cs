@@ -32,7 +32,7 @@ namespace MicroBatchFramework
                 var (t, mi) = GetTypeFromAssemblies(args[1]);
                 if (mi != null)
                 {
-                    Console.WriteLine(BuildHelpParameter(new[] { mi }));
+                    Console.WriteLine(BatchEngine.BuildHelpParameter(new[] { mi }));
                 }
                 else
                 {
@@ -101,13 +101,21 @@ namespace MicroBatchFramework
             {
                 if (defaultMethod == null || (defaultMethod.GetParameters().Length != 0 && !defaultMethod.GetParameters().All(x => x.HasDefaultValue)))
                 {
-                    Console.WriteLine(BuildHelpParameter(method));
-                    hostBuilder.ConfigureServices(services =>
+                    if (!hasHelp)
                     {
-                        services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                        services.AddSingleton<IHostedService, EmptyHostedService>();
-                    });
-                    return hostBuilder;
+                        Console.WriteLine(BatchEngine.BuildHelpParameter(method));
+                        hostBuilder.ConfigureServices(services =>
+                        {
+                            services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                            services.AddSingleton<IHostedService, EmptyHostedService>();
+                        });
+                        return hostBuilder;
+                    }
+                    else
+                    {
+                        // override default Help
+                        args = new string[] { "help" };
+                    }
                 }
             }
 
@@ -124,7 +132,7 @@ namespace MicroBatchFramework
 
             if (!hasHelp && args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine(BuildHelpParameter(method));
+                Console.WriteLine(BatchEngine.BuildHelpParameter(method));
                 hostBuilder.ConfigureServices(services =>
                 {
                     services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
@@ -168,73 +176,6 @@ namespace MicroBatchFramework
                     Console.WriteLine(item.Name + "." + item2.Name);
                 }
             }
-        }
-
-        static string BuildHelpParameter(MethodInfo[] methods)
-        {
-            var sb = new StringBuilder();
-            foreach (var method in methods.OrderBy(x => x, new CustomSorter()))
-            {
-                var command = method.GetCustomAttribute<CommandAttribute>();
-                if (command != null)
-                {
-                    sb.AppendLine(string.Join(", ", command.CommandNames) + ": " + command.Description);
-                }
-                else
-                {
-                    sb.AppendLine("argument list:");
-                }
-
-                var parameters = method.GetParameters();
-                if (parameters.Length == 0)
-                {
-                    sb.AppendLine("()");
-                }
-
-                foreach (var item in parameters)
-                {
-                    // -i, -input | [default=foo]...
-
-                    var option = item.GetCustomAttribute<OptionAttribute>();
-
-                    if (option != null)
-                    {
-                        if (option.Index != -1)
-                        {
-                            sb.Append("[" + option.Index + "]");
-                            goto WRITE_DESCRIPTION;
-                        }
-                        else
-                        {
-                            sb.Append("-" + option.ShortName.Trim('-') + ", ");
-                        }
-                    }
-
-                    sb.Append("-" + item.Name);
-
-                    WRITE_DESCRIPTION:
-                    sb.Append(": ");
-
-                    if (item.HasDefaultValue)
-                    {
-                        sb.Append("[default=" + (item.DefaultValue?.ToString() ?? "null") + "]");
-                    }
-
-                    if (option != null && !string.IsNullOrEmpty(option.Description))
-                    {
-                        sb.Append(option.Description);
-                    }
-                    else
-                    {
-                        sb.Append(item.ParameterType.Name);
-                    }
-                    sb.AppendLine();
-                }
-
-                sb.AppendLine();
-            }
-
-            return sb.ToString();
         }
 
         static List<Type> GetBatchTypes()
@@ -306,26 +247,6 @@ namespace MicroBatchFramework
             }
 
             return (null, null);
-        }
-
-        class CustomSorter : IComparer<MethodInfo>
-        {
-            public int Compare(MethodInfo x, MethodInfo y)
-            {
-                var xc = x.GetCustomAttribute<CommandAttribute>();
-                var yc = y.GetCustomAttribute<CommandAttribute>();
-
-                if (xc != null)
-                {
-                    return 1;
-                }
-                if (yc != null)
-                {
-                    return -1;
-                }
-
-                return x.Name.CompareTo(y.Name);
-            }
         }
     }
 }
