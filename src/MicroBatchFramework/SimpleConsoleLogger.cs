@@ -10,9 +10,9 @@ namespace MicroBatchFramework.Logging
     {
         readonly SimpleConsoleLogger logger;
 
-        public SimpleConsoleLoggerProvider(IOptions<SimpleConsoleLoggerOption> option)
+        public SimpleConsoleLoggerProvider()
         {
-            logger = new SimpleConsoleLogger(option.Value.MinLogLevel);
+            logger = new SimpleConsoleLogger();
         }
 
         public ILogger CreateLogger(string categoryName)
@@ -27,11 +27,8 @@ namespace MicroBatchFramework.Logging
 
     public class SimpleConsoleLogger : ILogger
     {
-        readonly LogLevel minLogLevel;
-
-        public SimpleConsoleLogger(LogLevel minLogLevel)
+        public SimpleConsoleLogger()
         {
-            this.minLogLevel = minLogLevel;
         }
 
         public IDisposable BeginScope<TState>(TState state)
@@ -41,13 +38,11 @@ namespace MicroBatchFramework.Logging
 
         public bool IsEnabled(LogLevel logLevel)
         {
-            if (logLevel == LogLevel.None) return false;
-            return (int)logLevel >= (int)this.minLogLevel;
+            return true;
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            if (!IsEnabled(logLevel)) return;
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
 
             var msg = formatter(state, exception);
@@ -72,11 +67,6 @@ namespace MicroBatchFramework.Logging
             {
             }
         }
-    }
-
-    public class SimpleConsoleLoggerOption
-    {
-        public LogLevel MinLogLevel { get; set; } = LogLevel.Trace; // default is trace(should use another filter). 
     }
 
     public static class SimpleConsoleLoggerExtensions

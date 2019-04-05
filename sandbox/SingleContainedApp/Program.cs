@@ -1,7 +1,12 @@
 ﻿using MicroBatchFramework;
+using MicroBatchFramework.Logging;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
+using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,6 +24,34 @@ namespace SingleContainedApp
                 this.Context.Logger.LogInformation($"Hello My Batch from {name}");
             }
         }
+
+        IOptions<MyConfig> config;
+        ILogger<MyFirstBatch> logger;
+
+        public MyFirstBatch(IOptions<MyConfig> config, ILogger<MyFirstBatch> logger)
+        {
+            this.config = config;
+            this.logger = logger;
+        }
+
+        [Command("log")]
+        public void LogWrite()
+        {
+            Context.Logger.LogTrace("t r a c e");
+            Context.Logger.LogDebug("d e b u g");
+            Context.Logger.LogInformation("i n f o");
+            Context.Logger.LogCritical("c r i t i c a l");
+            Context.Logger.LogWarning("w a r n");
+            Context.Logger.LogError("e r r o r");
+        }
+
+        [Command("opt")]
+        public void ShowOption()
+        {
+            Console.WriteLine(config.Value.Bar);
+            Console.WriteLine(config.Value.Foo);
+        }
+
 
         [Command("version", "yeah, go!")]
         public void ShowVersion()
@@ -46,6 +79,12 @@ namespace SingleContainedApp
                 Console.WriteLine(waitSeconds + " seconds");
             }
         }
+    }
+
+    public class MyConfig
+    {
+        public int Foo { get; set; }
+        public bool Bar { get; set; }
     }
 
     public class OverrideCheck : BatchBase
@@ -77,7 +116,13 @@ namespace SingleContainedApp
     {
         static async Task Main(string[] args)
         {
-            await new HostBuilder().RunBatchEngineAsync<OverrideCheck>(args);
+            await BatchHost.CreateDefaultBuilder()
+                .ConfigureServices((hostContext, services) =>
+                {
+                    // mapping config json to IOption<MyConfig>
+                    services.Configure<MyConfig>(hostContext.Configuration);
+                })
+                .RunBatchEngineAsync<MyFirstBatch>(args);
         }
     }
 }

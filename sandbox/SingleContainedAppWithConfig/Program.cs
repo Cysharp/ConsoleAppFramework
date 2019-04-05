@@ -1,5 +1,4 @@
 ﻿using MicroBatchFramework;
-using MicroBatchFramework.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -34,7 +33,7 @@ namespace SingleContainedAppWithConfig
         static async Task Main(string[] args)
         {
             // using MicroBatchFramework.Configuration;
-            await MicroBatchHost.CreateDefaultBuilder(args, LogLevel.Debug)
+            await MicroBatchFramework.BatchHost.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
