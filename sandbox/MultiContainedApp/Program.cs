@@ -10,7 +10,7 @@ namespace MultiContainedApp
     {
         static async Task Main(string[] args)
         {
-            await new HostBuilder().RunBatchEngineAsync(args);
+            await BatchHost.CreateDefaultBuilder().RunBatchEngineAsync(args);
         }
     }
 
