@@ -343,7 +343,7 @@ You can add `appsettings.json` and `appsettings.<env>.json` and typesafe load vi
 Here's single contained batch with Config loading sample.
 
 ```json
-# appconfig.json(Content, Copy to Output Directory)
+// appconfig.json(Content, Copy to Output Directory)
 {
   "Foo": 42,
   "Bar": true
