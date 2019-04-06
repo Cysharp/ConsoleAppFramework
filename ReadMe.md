@@ -515,8 +515,8 @@ jobs:
     steps:
       - checkout
       - run: dotnet publish -c Release --self-contained -r win-x64 -o ./bin/win-x64
-      - run: dotnet publish -c Release --self-contained -r win-x64 -o ./bin/linux-x64
-      - run: dotnet publish -c Release --self-contained -r win-x64 -o ./bin/osx-x64
+      - run: dotnet publish -c Release --self-contained -r linux-x64 -o ./bin/linux-x64
+      - run: dotnet publish -c Release --self-contained -r osx-x64 -o ./bin/osx-x64
       - store_artifacts:
           path: ./bin/
           destination: ./bin/
