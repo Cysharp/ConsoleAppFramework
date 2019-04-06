@@ -498,7 +498,7 @@ Publish to executable file
 ---
 [dotnet publish](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish) to create executable file.
 
-Here is the sample `.config.yml` of [Circle CI](http://circleci.com).
+Here is the sample `.config.yml` of [CircleCI](http://circleci.com).
 
 ```yml
 version: 2.1
@@ -544,7 +544,7 @@ COPY --from=sdk /app .
 ENTRYPOINT ["dotnet", "MicroBatchFrameworkSample.dll"]
 ```
 
-And docker build, send to any container registory. Here is the sample of deploy AWS ECR by Circle CI.
+And docker build, send to any container registory. Here is the sample of deploy AWS ECR by CircleCI.
 
 ```yml
 version: 2.1
@@ -558,7 +558,7 @@ workflows:
           repo: "microbatchsample"
 ```
 
-and set the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ECR_ACCOUNT_URL, AWS_REGION` environment variables on Circle CI.
+and set the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ECR_ACCOUNT_URL, AWS_REGION` environment variables on CircleCI.
 
 for example, run by [AWS Batch](https://aws.amazon.com/jp/batch/), you can host easily and log can view on CloudWatch.
 
