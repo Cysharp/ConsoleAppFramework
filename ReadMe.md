@@ -2,7 +2,7 @@ MicroBatchFramework
 ===
 [![CircleCI](https://circleci.com/gh/Cysharp/MicroBatchFramework.svg?style=svg)](https://circleci.com/gh/Cysharp/MicroBatchFramework)
 
-MicroBatchFramework is infrastructure of create CLI(Command-line interface) tools, daemon and multiple contained batch program. Easy to bind argument to simple method definition. It built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) so you can configure Configuration, Logging, DI, etc can load by standard way.
+MicroBatchFramework is an infrastructure of creating CLI(Command-line interface) tools, daemon, and multiple contained batch program. Easy to bind argument to the simple method definition. It built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) so you can configure Configuration, Logging, DI, etc can load by the standard way.
 
 NuGet: [MicroBatchFramework](https://www.nuget.org/packages/MicroBatchFramework)
 
