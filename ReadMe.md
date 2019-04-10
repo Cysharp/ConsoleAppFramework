@@ -10,10 +10,10 @@ NuGet: [MicroBatchFramework](https://www.nuget.org/packages/MicroBatchFramework)
 Install-Package MicroBatchFramework
 ```
 
-Single Contained Batch
+CLI Tools
 ---
 
-Batch can write by simple method, argument is automatically binded to parameter.
+CLI Tools can write by simple method, argument is automatically binded to parameter.
 
 ```csharp
 using MicroBatchFramework;
@@ -165,7 +165,7 @@ public class Bar : BatchBase
 }
 ```
 
-You can call like
+You can call `{TypeName}.{MethodName}` like
 
 ```
 SampleApp.exe Foo.Echo -msg "aaaaa"
