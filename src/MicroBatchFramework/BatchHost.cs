@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace MicroBatchFramework
 {
@@ -64,24 +65,34 @@ namespace MicroBatchFramework
         {
             var builder = new HostBuilder();
 
-            builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            ConfigureAppConfigurationDefault(builder, hostEnvironmentVariable);
+            ConfigureHostConfigurationDefault(builder, hostEnvironmentVariable);
+            ConfigureAppConfigurationDefault(builder);
             ConfigureLoggingDefault(builder, useSimpleConosoleLogger, minSimpleConsoleLoggerLogLevel);
 
             return builder;
         }
 
-        internal static void ConfigureAppConfigurationDefault(IHostBuilder builder, string hostEnvironmentVariable)
+        internal static void ConfigureHostConfigurationDefault(IHostBuilder builder, string hostEnvironmentVariable)
+        {
+            builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+
+            builder.ConfigureHostConfiguration(config =>
+            {
+                config.AddEnvironmentVariables(prefix: "NETCORE_");
+                config.AddInMemoryCollection(new[] { new KeyValuePair<string, string>(HostDefaults.ApplicationKey, Assembly.GetExecutingAssembly().GetName().Name) });
+            });
+
+            if (!string.IsNullOrWhiteSpace(hostEnvironmentVariable))
+            {
+                builder.UseEnvironment(System.Environment.GetEnvironmentVariable(hostEnvironmentVariable) ?? "Production");
+            }
+        }
+
+        internal static void ConfigureAppConfigurationDefault(IHostBuilder builder)
         {
             builder.ConfigureAppConfiguration((hostingContext, config) =>
             {
                 var env = hostingContext.HostingEnvironment;
-                env.ApplicationName = Assembly.GetExecutingAssembly().GetName().Name;
-                if (string.IsNullOrWhiteSpace(hostEnvironmentVariable))
-                {
-                    hostEnvironmentVariable = "NETCORE_ENVIRONMENT";
-                }
-                env.EnvironmentName = System.Environment.GetEnvironmentVariable(hostEnvironmentVariable) ?? "Production";
 
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
                 config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
