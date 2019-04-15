@@ -390,17 +390,22 @@ var builder = new HostBuilder();
 
 // set the content root to executing assembly's location.
 builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+
+// set the host configuration
+builder.ConfigureHostConfiguration(config =>
+{
+    config.AddEnvironmentVariables(prefix: "NETCORE_");
+    config.AddInMemoryCollection(new[] { new KeyValuePair<string, string>(HostDefaults.ApplicationKey, Assembly.GetExecutingAssembly().GetName().Name) });
+});
+
+if (!string.IsNullOrWhiteSpace(hostEnvironmentVariable))
+{
+    builder.UseEnvironment(System.Environment.GetEnvironmentVariable(hostEnvironmentVariable) ?? "Production");
+}
+
 builder.ConfigureAppConfiguration((hostingContext, config) =>
 {
     var env = hostingContext.HostingEnvironment;
-
-    // Get/Set Environement Name.
-    env.ApplicationName = Assembly.GetExecutingAssembly().GetName().Name;
-    if (string.IsNullOrWhiteSpace(contextEnvironmentVariable))
-    {
-        contextEnvironmentVariable = "NETCORE_ENVIRONMENT";
-    }
-    env.EnvironmentName = System.Environment.GetEnvironmentVariable(contextEnvironmentVariable) ?? "Production";
 
     // Load settings from JSON file.
     config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
@@ -419,6 +424,7 @@ builder.ConfigureAppConfiguration((hostingContext, config) =>
     // Load settings from Environment variables.
     config.AddEnvironmentVariables();
 });
+
 builder.ConfigureLogging(logging =>
 {
     // if embeded SimpleConsoleLogger(default is true), setup logging(MinLogLevel's default is Debug).
