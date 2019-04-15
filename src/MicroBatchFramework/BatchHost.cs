@@ -28,7 +28,7 @@ namespace MicroBatchFramework
         ///     and configure the <see cref="SimpleConsoleLogger"/> to log to the console,
         /// </remarks>
         /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
-        public static IHostBuilder CreateDefaultBuilder(bool useSimpleConosoleLogger = true) => CreateDefaultBuilder(useSimpleConosoleLogger, LogLevel.Debug);
+        public static IHostBuilder CreateDefaultBuilder(bool useSimpleConsoleLogger = true) => CreateDefaultBuilder(useSimpleConsoleLogger, LogLevel.Debug);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HostBuilder"/> class with pre-configured defaults.
@@ -41,10 +41,10 @@ namespace MicroBatchFramework
         ///     load <see cref="IConfiguration"/> from environment variables,
         ///     and configure the <see cref="SimpleConsoleLogger"/> to log to the console,
         /// </remarks>
-        /// <param name="useSimpleConosoleLogger"></param>
+        /// <param name="useSimpleConsoleLogger"></param>
         /// <param name="minSimpleConsoleLoggerLogLevel"></param>
         /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
-        public static IHostBuilder CreateDefaultBuilder(bool useSimpleConosoleLogger, LogLevel minSimpleConsoleLoggerLogLevel) => CreateDefaultBuilder(useSimpleConosoleLogger, minSimpleConsoleLoggerLogLevel, "");
+        public static IHostBuilder CreateDefaultBuilder(bool useSimpleConsoleLogger, LogLevel minSimpleConsoleLoggerLogLevel) => CreateDefaultBuilder(useSimpleConsoleLogger, minSimpleConsoleLoggerLogLevel, "");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HostBuilder"/> class with pre-configured defaults.
@@ -57,17 +57,17 @@ namespace MicroBatchFramework
         ///     load <see cref="IConfiguration"/> from environment variables,
         ///     and configure the <see cref="SimpleConsoleLogger"/> to log to the console,
         /// </remarks>
-        /// <param name="useSimpleConosoleLogger"></param>
+        /// <param name="useSimpleConsoleLogger"></param>
         /// <param name="minSimpleConsoleLoggerLogLevel"></param>
         /// <param name="hostEnvironmentVariable"></param>
         /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
-        public static IHostBuilder CreateDefaultBuilder(bool useSimpleConosoleLogger, LogLevel minSimpleConsoleLoggerLogLevel, string hostEnvironmentVariable)
+        public static IHostBuilder CreateDefaultBuilder(bool useSimpleConsoleLogger, LogLevel minSimpleConsoleLoggerLogLevel, string hostEnvironmentVariable)
         {
             var builder = new HostBuilder();
 
             ConfigureHostConfigurationDefault(builder, hostEnvironmentVariable);
             ConfigureAppConfigurationDefault(builder);
-            ConfigureLoggingDefault(builder, useSimpleConosoleLogger, minSimpleConsoleLoggerLogLevel);
+            ConfigureLoggingDefault(builder, useSimpleConsoleLogger, minSimpleConsoleLoggerLogLevel);
 
             return builder;
         }
@@ -111,9 +111,9 @@ namespace MicroBatchFramework
             });
         }
 
-        internal static void ConfigureLoggingDefault(IHostBuilder builder, bool useSimpleConosoleLogger, LogLevel minSimpleConsoleLoggerLogLevel)
+        internal static void ConfigureLoggingDefault(IHostBuilder builder, bool useSimpleConsoleLogger, LogLevel minSimpleConsoleLoggerLogLevel)
         {
-            if (useSimpleConosoleLogger)
+            if (useSimpleConsoleLogger)
             {
                 builder.ConfigureLogging(logging =>
                 {

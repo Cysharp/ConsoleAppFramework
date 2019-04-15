@@ -15,7 +15,7 @@ namespace MicroBatchFramework
         const string ListCommand = "list";
         const string HelpCommand = "help";
 
-        public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
+        public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
         {
             if (args.Length == 0 || (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase)))
             {
@@ -76,20 +76,15 @@ namespace MicroBatchFramework
                     }
                 });
 
-            if (useSimpleConosoleLogger)
-            {
-                hostBuilder = hostBuilder.ConfigureLogging(x => x.AddSimpleConsole());
-            }
-
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunBatchEngineAsync(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
+        public static Task RunBatchEngineAsync(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
         {
-            return UseBatchEngine(hostBuilder, args, interceptor, useSimpleConosoleLogger).Build().RunAsync();
+            return UseBatchEngine(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
-        public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
+        public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
             where T : BatchBase
         {
             var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
@@ -151,18 +146,13 @@ namespace MicroBatchFramework
                 services.AddTransient<T>();
             });
 
-            if (useSimpleConosoleLogger)
-            {
-                hostBuilder = hostBuilder.ConfigureLogging(x => x.AddSimpleConsole());
-            }
-
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunBatchEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null, bool useSimpleConosoleLogger = true)
+        public static Task RunBatchEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
             where T : BatchBase
         {
-            return UseBatchEngine<T>(hostBuilder, args, interceptor, useSimpleConosoleLogger).Build().RunAsync();
+            return UseBatchEngine<T>(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
         static void ShowMethodList()
