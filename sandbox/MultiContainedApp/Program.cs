@@ -10,7 +10,7 @@ namespace MultiContainedApp
     {
         static async Task Main(string[] args)
         {
-            await BatchHost.CreateDefaultBuilder(useSimpleConosoleLogger:true)
+            await BatchHost.CreateDefaultBuilder()
                 .RunBatchEngineAsync(args);
         }
     }
