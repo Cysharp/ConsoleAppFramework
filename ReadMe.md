@@ -359,6 +359,7 @@ class Program
             .ConfigureServices((hostContext, services) =>
             {
                 // mapping config json to IOption<MyConfig>
+                // requires "Microsoft.Extensions.Options.ConfigurationExtensions" package
                 services.Configure<MyConfig>(hostContext.Configuration);
             })
             .RunBatchEngineAsync<MyFirstBatch>(args);
