@@ -200,43 +200,48 @@ namespace MicroBatchFramework
 
         static (Type, MethodInfo) GetTypeFromAssemblies(string arg0)
         {
-            var split = arg0.Split('.');
-            if (split.Length != 2)
-            {
-                return (null, null);
-            }
-            var typeName = split[0];
-            var methodName = split[1];
-
             var batchBaseTypes = GetBatchTypes();
             if (batchBaseTypes == null)
             {
                 return (null, null);
             }
 
+            var split = arg0.Split('.');
             Type foundType = null;
-            foreach (var item in batchBaseTypes)
+            MethodInfo foundMethod = null;
+            foreach (var baseType in batchBaseTypes)
             {
-                if (item.Name == typeName)
+                if (split.Length == 2)
                 {
-                    if (foundType != null)
+                    if (baseType.Name.Equals(split[0], StringComparison.OrdinalIgnoreCase))
                     {
-                        throw new InvalidOperationException("Duplicate BatchBase TypeName is not allowed, " + foundType.FullName + " and " + item.FullName);
+                        if (foundType != null)
+                        {
+                            throw new InvalidOperationException("Duplicate BatchBase TypeName is not allowed, " + foundType.FullName + " and " + baseType.FullName);
+                        }
+                        foundType = baseType;
+                        foundMethod = baseType.GetMethod(split[1]);
                     }
-                    foundType = item;
                 }
-            }
-
-            if (foundType != null)
-            {
-                var method = foundType.GetMethod(methodName);
-                if (method != null)
+                else
                 {
-                    return (foundType, method);
+                    foreach (var (method, cmdattr) in baseType.GetMethods().
+                        Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
+                    {
+                        if (cmdattr.CommandNames.Any(x => arg0.Equals(x, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            foundType = baseType;
+                            foundMethod = method;
+                        }
+                    }
                 }
             }
-
+            if(foundType != null && foundMethod != null)
+            {
+                return (foundType, foundMethod);
+            }
             return (null, null);
+
         }
     }
 }
