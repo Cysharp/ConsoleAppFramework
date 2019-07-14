@@ -31,12 +31,16 @@ namespace MicroBatchFramework.Tests
         [Fact]
         public async Task TestCommandName()
         {
-            var hostBuilder = BatchHost.CreateDefaultBuilder()
+            var host = BatchHost.CreateDefaultBuilder()
                 .ConfigureServices((c, services) =>
                 {
                     services.AddSingleton<ResultContainer>();
-                });
-            await hostBuilder.RunBatchEngineAsync(new string[]{ "test", "-value", "1" });
+                })
+                .UseBatchEngine<CommandAttributeTestCommand>(new string[]{ "test", "-value", "1" })
+                .Build();
+            var result = host.Services.GetService<ResultContainer>();
+            await host.RunAsync();
+            result.X.Should().Be(1);
         }
 
     }

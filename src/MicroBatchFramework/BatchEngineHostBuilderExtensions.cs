@@ -211,7 +211,18 @@ namespace MicroBatchFramework
             MethodInfo foundMethod = null;
             foreach (var baseType in batchBaseTypes)
             {
-                if (split.Length == 2)
+                bool isFound = false;
+                foreach (var (method, cmdattr) in baseType.GetMethods().
+                    Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
+                {
+                    if (cmdattr.CommandNames.Any(x => arg0.Equals(x, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        foundType = baseType;
+                        foundMethod = method;
+                        isFound = true;
+                    }
+                }
+                if (!isFound && split.Length == 2)
                 {
                     if (baseType.Name.Equals(split[0], StringComparison.OrdinalIgnoreCase))
                     {
@@ -221,18 +232,6 @@ namespace MicroBatchFramework
                         }
                         foundType = baseType;
                         foundMethod = baseType.GetMethod(split[1]);
-                    }
-                }
-                else
-                {
-                    foreach (var (method, cmdattr) in baseType.GetMethods().
-                        Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
-                    {
-                        if (cmdattr.CommandNames.Any(x => arg0.Equals(x, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            foundType = baseType;
-                            foundMethod = method;
-                        }
                     }
                 }
             }
