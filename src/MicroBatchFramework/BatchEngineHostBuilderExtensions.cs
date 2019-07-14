@@ -217,6 +217,10 @@ namespace MicroBatchFramework
                 {
                     if (cmdattr.CommandNames.Any(x => arg0.Equals(x, StringComparison.OrdinalIgnoreCase)))
                     {
+                        if(foundType != null && foundMethod != null)
+                        {
+                            throw new InvalidOperationException($"Duplicate BatchBase Command name is not allowed, {foundType.FullName}.{foundMethod.Name} and {baseType.FullName}.{method.Name}");
+                        }
                         foundType = baseType;
                         foundMethod = method;
                         isFound = true;
