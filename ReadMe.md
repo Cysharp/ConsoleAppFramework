@@ -189,6 +189,33 @@ also use with `help`
 -msg: String
 ```
 
+Complex Argument
+---
+If the argument is not primitive, you can pass JSON string.
+
+```csharp
+public class ComplexArgTest : BatchBase
+{
+    public void Foo(int[] array, Person person)
+    {
+        Console.WriteLine(string.Join(", ", array));
+        Console.WriteLine(person.Age + ":" + person.Name);
+    }
+}
+
+public class Person
+{
+    public int Age { get; set; }
+    public string Name { get; set; }
+}
+```
+
+You can call like here.
+
+```
+> SampleApp.exe -array [10,20,30] -person {"Age":10,"Name":"foo"}
+```
+
 Daemon
 ---
 

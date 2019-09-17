@@ -112,17 +112,34 @@ namespace SingleContainedApp
         }
     }
 
+    public class ComplexArgTest : BatchBase
+    {
+        public void Foo(int[] array, Person person)
+        {
+            Console.WriteLine(string.Join(", ", array));
+            Console.WriteLine(person.Age + ":" + person.Name);
+        }
+    }
+
+    public class Person
+    {
+        public int Age { get; set; }
+        public string Name { get; set; }
+    }
+
     class Program
     {
         static async Task Main(string[] args)
         {
+            args =  @"-array [10,20,30] -person {""Age"":10,""Name"":""foo""}".Split(' ');
+
             await BatchHost.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     // mapping config json to IOption<MyConfig>
                     services.Configure<MyConfig>(hostContext.Configuration);
                 })
-                .RunBatchEngineAsync<MyFirstBatch>(args);
+                .RunBatchEngineAsync<ComplexArgTest>(args);
         }
     }
 }
