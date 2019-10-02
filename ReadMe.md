@@ -422,7 +422,7 @@ builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Loc
 // set the host configuration
 builder.ConfigureHostConfiguration(config =>
 {
-    config.AddEnvironmentVariables(prefix: "NETCORE_");
+    config.AddEnvironmentVariables(prefix: "DOTNET_");
     config.AddInMemoryCollection(new[] { new KeyValuePair<string, string>(HostDefaults.ApplicationKey, Assembly.GetExecutingAssembly().GetName().Name) });
 });
 

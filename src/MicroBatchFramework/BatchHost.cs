@@ -22,7 +22,7 @@ namespace MicroBatchFramework
         /// </summary>
         /// <remarks>
         ///   The following defaults are applied to the returned <see cref="HostBuilder"/>:
-        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the NETCORE_ENVIRONMENT,
+        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the DOTNET_ENVIRONMENT,
         ///     load <see cref="IConfiguration"/> from 'appsettings.json' and 'appsettings.[<see cref="IHostingEnvironment.EnvironmentName"/>].json',
         ///     load <see cref="IConfiguration"/> from User Secrets when <see cref="IHostingEnvironment.EnvironmentName"/> is 'Development' using the entry assembly,
         ///     load <see cref="IConfiguration"/> from environment variables,
@@ -36,7 +36,7 @@ namespace MicroBatchFramework
         /// </summary>
         /// <remarks>
         ///   The following defaults are applied to the returned <see cref="HostBuilder"/>:
-        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the NETCORE_ENVIRONMENT,
+        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the DOTNET_ENVIRONMENT,
         ///     load <see cref="IConfiguration"/> from 'appsettings.json' and 'appsettings.[<see cref="IHostingEnvironment.EnvironmentName"/>].json',
         ///     load <see cref="IConfiguration"/> from User Secrets when <see cref="IHostingEnvironment.EnvironmentName"/> is 'Development' using the entry assembly,
         ///     load <see cref="IConfiguration"/> from environment variables,
