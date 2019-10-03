@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MicroBatchFramework
 {
@@ -21,7 +22,7 @@ namespace MicroBatchFramework
         /// </summary>
         /// <remarks>
         ///   The following defaults are applied to the returned <see cref="HostBuilder"/>:
-        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the NETCORE_ENVIRONMENT,
+        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the DOTNET_ENVIRONMENT,
         ///     load <see cref="IConfiguration"/> from 'appsettings.json' and 'appsettings.[<see cref="IHostingEnvironment.EnvironmentName"/>].json',
         ///     load <see cref="IConfiguration"/> from User Secrets when <see cref="IHostingEnvironment.EnvironmentName"/> is 'Development' using the entry assembly,
         ///     load <see cref="IConfiguration"/> from environment variables,
@@ -35,7 +36,7 @@ namespace MicroBatchFramework
         /// </summary>
         /// <remarks>
         ///   The following defaults are applied to the returned <see cref="HostBuilder"/>:
-        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the NETCORE_ENVIRONMENT,
+        ///     set the <see cref="IHostingEnvironment.EnvironmentName"/> to the DOTNET_ENVIRONMENT,
         ///     load <see cref="IConfiguration"/> from 'appsettings.json' and 'appsettings.[<see cref="IHostingEnvironment.EnvironmentName"/>].json',
         ///     load <see cref="IConfiguration"/> from User Secrets when <see cref="IHostingEnvironment.EnvironmentName"/> is 'Development' using the entry assembly,
         ///     load <see cref="IConfiguration"/> from environment variables,
@@ -63,10 +64,9 @@ namespace MicroBatchFramework
         /// <returns>The initialized <see cref="IHostBuilder"/>.</returns>
         public static IHostBuilder CreateDefaultBuilder(bool useSimpleConsoleLogger, LogLevel minSimpleConsoleLoggerLogLevel, string hostEnvironmentVariable)
         {
-            var builder = new HostBuilder();
+            var builder = Host.CreateDefaultBuilder();
 
             ConfigureHostConfigurationDefault(builder, hostEnvironmentVariable);
-            ConfigureAppConfigurationDefault(builder);
             ConfigureLoggingDefault(builder, useSimpleConsoleLogger, minSimpleConsoleLoggerLogLevel);
 
             return builder;
@@ -74,11 +74,12 @@ namespace MicroBatchFramework
 
         internal static void ConfigureHostConfigurationDefault(IHostBuilder builder, string hostEnvironmentVariable)
         {
-            builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-
             builder.ConfigureHostConfiguration(config =>
             {
+                // NOTE: This is backward compatibility for v1.3.0 or before.
+                // It's strongly recommended to use "DOTNET_" prefix expected by GenericHost. (e.g. DOTNET_ENVIRONMENT)
                 config.AddEnvironmentVariables(prefix: "NETCORE_");
+
                 config.AddInMemoryCollection(new[] { new KeyValuePair<string, string>(HostDefaults.ApplicationKey, Assembly.GetExecutingAssembly().GetName().Name) });
             });
 
@@ -88,35 +89,19 @@ namespace MicroBatchFramework
             }
         }
 
-        internal static void ConfigureAppConfigurationDefault(IHostBuilder builder)
-        {
-            builder.ConfigureAppConfiguration((hostingContext, config) =>
-            {
-                var env = hostingContext.HostingEnvironment;
-
-                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-                config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
-
-                if (env.IsDevelopment())
-                {
-                    var appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
-                    if (appAssembly != null)
-                    {
-                        // use https://marketplace.visualstudio.com/items?itemName=guitarrapc.OpenUserSecrets to easily manage UserSecrets with GenericHost.
-                        config.AddUserSecrets(appAssembly, optional: true);
-                    }
-                }
-
-                config.AddEnvironmentVariables();
-            });
-        }
-
         internal static void ConfigureLoggingDefault(IHostBuilder builder, bool useSimpleConsoleLogger, LogLevel minSimpleConsoleLoggerLogLevel)
         {
             if (useSimpleConsoleLogger)
             {
                 builder.ConfigureLogging(logging =>
                 {
+                    // Use SimpleConsoleLogger instead of the default ConsoleLogger.
+                    var consoleLogger = logging.Services.FirstOrDefault(x => x.ImplementationType?.FullName == "Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider");
+                    if (consoleLogger != null)
+                    {
+                        logging.Services.Remove(consoleLogger);
+                    }
+
                     logging.AddSimpleConsole();
                     logging.AddFilter<SimpleConsoleLoggerProvider>((category, level) =>
                     {

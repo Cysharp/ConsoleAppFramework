@@ -26,7 +26,7 @@ namespace MicroBatchFramework.WebHosting
             this.options = options;
         }
 
-        public Task Invoke(HttpContext httpContext)
+        public async Task Invoke(HttpContext httpContext)
         {
             // reference embedded resouces
             const string prefix = "MicroBatchFramework.WebHosting.Swagger.SwaggerUI.";
@@ -42,8 +42,8 @@ namespace MicroBatchFramework.WebHosting
                 var bytes = builder.BuildSwaggerJson();
                 httpContext.Response.Headers["Content-Type"] = new[] { "application/json" };
                 httpContext.Response.StatusCode = 200;
-                httpContext.Response.Body.Write(bytes, 0, bytes.Length);
-                return EmptyTask;
+                await httpContext.Response.Body.WriteAsync(bytes, 0, bytes.Length);
+                return;
             }
 
             var myAssembly = typeof(BatchEngineSwaggerMiddleware).GetTypeInfo().Assembly;
@@ -55,13 +55,14 @@ namespace MicroBatchFramework.WebHosting
                     if (stream == null)
                     {
                         // not found, standard request.
-                        return next(httpContext);
+                        await next(httpContext);
+                        return;
                     }
 
                     httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
                     httpContext.Response.StatusCode = 200;
                     var response = httpContext.Response.Body;
-                    stream.CopyTo(response);
+                    await stream.CopyToAsync(response);
                 }
                 else
                 {
@@ -74,7 +75,7 @@ namespace MicroBatchFramework.WebHosting
                     {
                         using (var ms = new MemoryStream())
                         {
-                            stream.CopyTo(ms);
+                            await stream.CopyToAsync(ms);
                             bytes = options.ResolveCustomResource(path, ms.ToArray());
                         }
                     }
@@ -82,18 +83,16 @@ namespace MicroBatchFramework.WebHosting
                     if (bytes == null)
                     {
                         // not found, standard request.
-                        return next(httpContext);
+                        await next(httpContext);
+                        return;
                     }
 
                     httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
                     httpContext.Response.StatusCode = 200;
                     var response = httpContext.Response.Body;
-                    response.Write(bytes, 0, bytes.Length);
+                    await response.WriteAsync(bytes, 0, bytes.Length);
                 }
             }
-
-
-            return EmptyTask;
         }
 
         static string GetMediaType(string path)
