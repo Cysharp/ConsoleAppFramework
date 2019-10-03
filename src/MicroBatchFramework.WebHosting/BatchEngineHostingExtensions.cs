@@ -22,7 +22,7 @@ namespace MicroBatchFramework // .WebHosting
             return builder
                 .ConfigureServices(services =>
                 {
-                    services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInerceptor.Default);
+                    services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInterceptor.Default);
                     services.AddSingleton<TargetBatchTypeCollection>(target);
                     foreach (var item in target)
                     {

@@ -33,7 +33,7 @@ namespace MicroBatchFramework
             this.appLifetime = appLifetime;
             this.provider = provider;
             this.logger = logger;
-            this.interceptor = (provider.GetService(typeof(IBatchInterceptor)) as IBatchInterceptor) ?? NullBatchInerceptor.Default;
+            this.interceptor = (provider.GetService(typeof(IBatchInterceptor)) as IBatchInterceptor) ?? NullBatchInterceptor.Default;
             this.cancellationTokenSource = new CancellationTokenSource();
         }
 
