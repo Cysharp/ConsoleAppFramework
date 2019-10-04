@@ -216,6 +216,30 @@ You can call like here.
 > SampleApp.exe -array [10,20,30] -person {"Age":10,"Name":"foo"}
 ```
 
+Exit Code
+---
+If the batch method returns `int` or `Task<int>` value, BatchEngine will set the return value to the exit code.
+
+```csharp
+public class ExampleBatch : BatchBase
+{
+    [Command(nameof(ExitCodeWithTask))]
+    public async Task<int> ExitCodeWithTask()
+    {
+        return 54321;
+    }
+
+    [Command(nameof(ExitCode))]
+    public int ExitCode()
+    {
+        return 12345;
+    }
+}
+```
+
+> **NOTE**: If the method throws an unhandled exception, BatchEngine always set `1` to the exit code.
+
+
 Daemon
 ---
 

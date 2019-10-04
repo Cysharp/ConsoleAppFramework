@@ -149,9 +149,17 @@ namespace MicroBatchFramework
             try
             {
                 var result = methodInfo.Invoke(instance, invokeArgs);
-                if (result is Task t)
+                switch (result)
                 {
-                    await t;
+                    case int exitCode:
+                        Environment.ExitCode = exitCode;
+                        break;
+                    case Task<int> taskWithExitCode:
+                        Environment.ExitCode = await taskWithExitCode;
+                        break;
+                    case Task task:
+                        await task;
+                        break;
                 }
             }
             catch (Exception ex)
