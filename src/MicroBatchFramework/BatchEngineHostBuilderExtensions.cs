@@ -59,7 +59,7 @@ namespace MicroBatchFramework
                     services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
                     services.AddSingleton<string[]>(args);
                     services.AddSingleton<IHostedService, BatchEngineService>();
-                    services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInerceptor.Default);
+                    services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInterceptor.Default);
                     if (type != null)
                     {
                         services.AddSingleton<Type>(type);
@@ -142,7 +142,7 @@ namespace MicroBatchFramework
                 services.AddSingleton<string[]>(args);
                 services.AddSingleton<Type>(typeof(T));
                 services.AddSingleton<IHostedService, BatchEngineService>();
-                services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInerceptor.Default);
+                services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInterceptor.Default);
                 services.AddTransient<T>();
             });
 

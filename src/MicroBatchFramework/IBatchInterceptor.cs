@@ -27,9 +27,9 @@ namespace MicroBatchFramework
         ValueTask OnBatchRunCompleteAsync(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists);
     }
 
-    public class NullBatchInerceptor : IBatchInterceptor
+    public class NullBatchInterceptor : IBatchInterceptor
     {
-        public static readonly IBatchInterceptor Default = new NullBatchInerceptor();
+        public static readonly IBatchInterceptor Default = new NullBatchInterceptor();
         readonly ValueTask Empty = default(ValueTask);
 
         public ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger)
