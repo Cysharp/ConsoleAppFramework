@@ -42,86 +42,69 @@ namespace MicroBatchFramework.WebHosting
 
             var myAssembly = typeof(BatchEngineSwaggerMiddleware).GetTypeInfo().Assembly;
 
-            using (var stream = myAssembly.GetManifestResourceStream(filePath))
+            using var stream = myAssembly.GetManifestResourceStream(filePath);
+            if (options.ResolveCustomResource == null)
             {
-                if (options.ResolveCustomResource == null)
+                if (stream == null)
                 {
-                    if (stream == null)
-                    {
-                        // not found, standard request.
-                        await next(httpContext);
-                        return;
-                    }
+                    // not found, standard request.
+                    await next(httpContext);
+                    return;
+                }
 
-                    httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
-                    httpContext.Response.StatusCode = 200;
-                    var response = httpContext.Response.Body;
-                    await stream.CopyToAsync(response);
+                httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
+                httpContext.Response.StatusCode = 200;
+                var response = httpContext.Response.Body;
+                await stream.CopyToAsync(response);
+            }
+            else
+            {
+                byte[] bytes;
+                if (stream == null)
+                {
+                    bytes = options.ResolveCustomResource(path, null);
                 }
                 else
                 {
-                    byte[] bytes;
-                    if (stream == null)
-                    {
-                        bytes = options.ResolveCustomResource(path, null);
-                    }
-                    else
-                    {
-                        using (var ms = new MemoryStream())
-                        {
-                            await stream.CopyToAsync(ms);
-                            bytes = options.ResolveCustomResource(path, ms.ToArray());
-                        }
-                    }
-
-                    if (bytes == null)
-                    {
-                        // not found, standard request.
-                        await next(httpContext);
-                        return;
-                    }
-
-                    httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
-                    httpContext.Response.StatusCode = 200;
-                    var response = httpContext.Response.Body;
-                    await response.WriteAsync(bytes, 0, bytes.Length);
+                    using var ms = new MemoryStream();
+                    await stream.CopyToAsync(ms);
+                    bytes = options.ResolveCustomResource(path, ms.ToArray());
                 }
+
+                if (bytes == null)
+                {
+                    // not found, standard request.
+                    await next(httpContext);
+                    return;
+                }
+
+                httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
+                httpContext.Response.StatusCode = 200;
+                var response = httpContext.Response.Body;
+                await response.WriteAsync(bytes, 0, bytes.Length);
             }
         }
 
-        static string GetMediaType(string path)
+        private static string GetMediaType(string path)
         {
             var extension = path.Split('.').Last();
 
-            switch (extension)
+            return extension switch
             {
-                case "css":
-                    return "text/css";
-                case "js":
-                    return "text/javascript";
-                case "json":
-                    return "application/json";
-                case "gif":
-                    return "image/gif";
-                case "png":
-                    return "image/png";
-                case "eot":
-                    return "application/vnd.ms-fontobject";
-                case "woff":
-                    return "application/font-woff";
-                case "woff2":
-                    return "application/font-woff2";
-                case "otf":
-                    return "application/font-sfnt";
-                case "ttf":
-                    return "application/font-sfnt";
-                case "svg":
-                    return "image/svg+xml";
-                case "ico":
-                    return "image/x-icon";
-                default:
-                    return "text/html";
-            }
+                "css" => "text/css",
+                "js" => "text/javascript",
+                "json" => "application/json",
+                "gif" => "image/gif",
+                "png" => "image/png",
+                "eot" => "application/vnd.ms-fontobject",
+                "woff" => "application/font-woff",
+                "woff2" => "application/font-woff2",
+                "otf" => "application/font-sfnt",
+                "ttf" => "application/font-sfnt",
+                "svg" => "image/svg+xml",
+                "ico" => "image/x-icon",
+                _ => "text/html",
+            };
         }
     }
 }

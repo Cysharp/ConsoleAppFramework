@@ -105,19 +105,17 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     doc.paths.Add("/" + declaringTypeName + "/" + item.Name, new PathItem { post = operation }); // everything post.
                 }
 
-                using (var ms = new MemoryStream())
-                using (var sw = new StreamWriter(ms, new UTF8Encoding(false)))
+                using var ms = new MemoryStream();
+                using var sw = new StreamWriter(ms, new UTF8Encoding(false));
+                var serializer = new JsonSerializer()
                 {
-                    var serializer = new JsonSerializer()
-                    {
-                        NullValueHandling = NullValueHandling.Ignore,
-                        ContractResolver = IgnoreEmptyEnumerablesResolver.Instance // omit empty collection.
-                    };
-                    serializer.Serialize(sw, doc);
+                    NullValueHandling = NullValueHandling.Ignore,
+                    ContractResolver = IgnoreEmptyEnumerablesResolver.Instance // omit empty collection.
+                };
+                serializer.Serialize(sw, doc);
 
-                    sw.Flush();
-                    return ms.ToArray();
-                }
+                sw.Flush();
+                return ms.ToArray();
             }
             catch (Exception ex)
             {

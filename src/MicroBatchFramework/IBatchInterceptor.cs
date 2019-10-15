@@ -30,7 +30,7 @@ namespace MicroBatchFramework
     public class NullBatchInterceptor : IBatchInterceptor
     {
         public static readonly IBatchInterceptor Default = new NullBatchInterceptor();
-        private readonly ValueTask Empty = default(ValueTask);
+        private readonly ValueTask Empty = default;
 
         public ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger)
         {
