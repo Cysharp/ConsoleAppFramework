@@ -13,10 +13,10 @@ namespace MicroBatchFramework
 {
     public class BatchEngine
     {
-        private readonly ILogger<BatchEngine> logger;
-        private readonly IServiceProvider provider;
-        private readonly IBatchInterceptor interceptor;
-        private readonly CancellationToken cancellationToken;
+        readonly ILogger<BatchEngine> logger;
+        readonly IServiceProvider provider;
+        readonly IBatchInterceptor interceptor;
+        readonly CancellationToken cancellationToken;
 
         public BatchEngine(ILogger<BatchEngine> logger, IServiceProvider provider, IBatchInterceptor interceptor, CancellationToken cancellationToken)
         {
@@ -118,8 +118,9 @@ namespace MicroBatchFramework
 
         async Task RunCore(BatchContext ctx, Type type, MethodInfo methodInfo, string[] args, int argsOffset)
         {
-            object instance;
-            object[] invokeArgs;
+            object instance = null;
+            object[] invokeArgs = null;
+
             try
             {
                 if (!TryGetInvokeArguments(methodInfo.GetParameters(), args, argsOffset, out invokeArgs, out var errorMessage))

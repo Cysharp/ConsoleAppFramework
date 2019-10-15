@@ -6,7 +6,7 @@ namespace MicroBatchFramework.WebHosting
 {
     public class TargetBatchTypeCollection : IEnumerable<Type>
     {
-        private readonly IEnumerable<Type> types;
+        readonly IEnumerable<Type> types;
 
         public TargetBatchTypeCollection(IEnumerable<Type> types)
         {

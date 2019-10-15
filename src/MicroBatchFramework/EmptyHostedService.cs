@@ -6,7 +6,7 @@ namespace MicroBatchFramework
 {
     internal class EmptyHostedService : IHostedService
     {
-        private readonly IApplicationLifetime appLifetime;
+        readonly IApplicationLifetime appLifetime;
 
         public EmptyHostedService(IApplicationLifetime appLifetime)
         {

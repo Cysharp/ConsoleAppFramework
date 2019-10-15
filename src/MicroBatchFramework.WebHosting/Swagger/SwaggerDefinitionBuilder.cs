@@ -16,11 +16,11 @@ namespace MicroBatchFramework.WebHosting.Swagger
 {
     public class SwaggerDefinitionBuilder
     {
-        private readonly SwaggerOptions options;
-        private readonly HttpContext httpContext;
-        private readonly IEnumerable<MethodInfo> handlers;
+        readonly SwaggerOptions options;
+        readonly HttpContext httpContext;
+        readonly IEnumerable<MethodInfo> handlers;
 
-        private ILookup<Tuple<string, string>, XmlCommentStructure> xDocLookup;
+        ILookup<Tuple<string, string>, XmlCommentStructure> xDocLookup;
 
         public SwaggerDefinitionBuilder(SwaggerOptions options, HttpContext httpContext, IEnumerable<MethodInfo> handlers)
         {
@@ -44,15 +44,13 @@ namespace MicroBatchFramework.WebHosting.Swagger
                         : null;
                 }
 
-                var doc = new SwaggerDocument
-                {
-                    info = options.Info,
-                    host = (options.CustomHost != null) ? options.CustomHost(httpContext) : httpContext.Request.Headers["Host"][0],
-                    basePath = options.ApiBasePath,
-                    schemes = (options.ForceSchemas.Length == 0) ? new[] { httpContext.Request.IsHttps ? "https" : httpContext.Request.Scheme } : options.ForceSchemas,
-                    paths = new Dictionary<string, PathItem>(),
-                    definitions = new Dictionary<string, Schema>()
-                };
+                var doc = new SwaggerDocument();
+                doc.info = options.Info;
+                doc.host = (options.CustomHost != null) ? options.CustomHost(httpContext) : httpContext.Request.Headers["Host"][0];
+                doc.basePath = options.ApiBasePath;
+                doc.schemes = (options.ForceSchemas.Length == 0) ? new[] { httpContext.Request.IsHttps ? "https" : httpContext.Request.Scheme } : options.ForceSchemas;
+                doc.paths = new Dictionary<string, PathItem>();
+                doc.definitions = new Dictionary<string, Schema>();
 
                 // tags.
                 var xmlServiceName = (xDocLookup != null)
@@ -105,17 +103,19 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     doc.paths.Add("/" + declaringTypeName + "/" + item.Name, new PathItem { post = operation }); // everything post.
                 }
 
-                using var ms = new MemoryStream();
-                using var sw = new StreamWriter(ms, new UTF8Encoding(false));
-                var serializer = new JsonSerializer()
+                using (var ms = new MemoryStream())
+                using (var sw = new StreamWriter(ms, new UTF8Encoding(false)))
                 {
-                    NullValueHandling = NullValueHandling.Ignore,
-                    ContractResolver = IgnoreEmptyEnumerablesResolver.Instance // omit empty collection.
-                };
-                serializer.Serialize(sw, doc);
+                    var serializer = new JsonSerializer()
+                    {
+                        NullValueHandling = NullValueHandling.Ignore,
+                        ContractResolver = IgnoreEmptyEnumerablesResolver.Instance // omit empty collection.
+                    };
+                    serializer.Serialize(sw, doc);
 
-                sw.Flush();
-                return ms.ToArray();
+                    sw.Flush();
+                    return ms.ToArray();
+                }
             }
             catch (Exception ex)
             {
@@ -203,7 +203,8 @@ namespace MicroBatchFramework.WebHosting.Swagger
             var fullName = type.FullName;
             if (fullName == null) return ""; // safety(TODO:IDictionary<> is not supported)
 
-            if (definitions.TryGetValue(fullName, out Schema schema)) return "#/definitions/" + fullName;
+            Schema schema;
+            if (definitions.TryGetValue(fullName, out schema)) return "#/definitions/" + fullName;
 
             var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
             var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);

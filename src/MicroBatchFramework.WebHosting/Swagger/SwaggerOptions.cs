@@ -6,7 +6,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
 {
     public class SwaggerOptions
     {
-        public string ApiBasePath { get; }
+        public string ApiBasePath { get; private set; }
         public Info Info { get; set; }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace MicroBatchFramework.Tests
     {
         class CommandAttributeTestCommand : BatchBase
         {
-            private readonly ResultContainer _Result;
+            ResultContainer _Result;
             public CommandAttributeTestCommand(ResultContainer r)
             {
                 _Result = r;

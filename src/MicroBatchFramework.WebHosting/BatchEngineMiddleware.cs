@@ -89,12 +89,12 @@ namespace MicroBatchFramework.WebHosting
 
     public class BatchEngineMiddleware
     {
-        private readonly RequestDelegate next;
-        private readonly IServiceProvider provider;
-        private readonly ILogger<BatchEngine> logger;
-        private readonly IBatchInterceptor interceptor;
+        readonly RequestDelegate next;
+        readonly IServiceProvider provider;
+        readonly ILogger<BatchEngine> logger;
+        readonly IBatchInterceptor interceptor;
 
-        private readonly Dictionary<string, MethodInfo> methodLookup;
+        readonly Dictionary<string, MethodInfo> methodLookup;
 
         public BatchEngineMiddleware(RequestDelegate next, ILogger<BatchEngine> logger, IBatchInterceptor interceptor, IServiceProvider provider, TargetBatchTypeCollection targetTypes)
         {
@@ -115,7 +115,7 @@ namespace MicroBatchFramework.WebHosting
             }
 
             // create args
-            string[] args;
+            string[] args = null;
             try
             {
                 if (httpContext.Request.HasFormContentType)

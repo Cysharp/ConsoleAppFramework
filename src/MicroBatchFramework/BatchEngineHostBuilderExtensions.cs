@@ -10,8 +10,8 @@ namespace MicroBatchFramework
 {
     public static class BatchEngineHostBuilderExtensions
     {
-        private const string ListCommand = "list";
-        private const string HelpCommand = "help";
+        const string ListCommand = "list";
+        const string HelpCommand = "help";
 
         public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
         {
@@ -153,7 +153,7 @@ namespace MicroBatchFramework
             return UseBatchEngine<T>(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
-        private static void ShowMethodList()
+        static void ShowMethodList()
         {
             Console.WriteLine("list of methods:");
             var list = GetBatchTypes();
@@ -166,7 +166,7 @@ namespace MicroBatchFramework
             }
         }
 
-        private static List<Type> GetBatchTypes()
+        static List<Type> GetBatchTypes()
         {
             List<Type> batchBaseTypes = new List<Type>();
 
@@ -196,7 +196,7 @@ namespace MicroBatchFramework
             return batchBaseTypes;
         }
 
-        private static (Type, MethodInfo) GetTypeFromAssemblies(string arg0)
+        static (Type, MethodInfo) GetTypeFromAssemblies(string arg0)
         {
             var batchBaseTypes = GetBatchTypes();
             if (batchBaseTypes == null)

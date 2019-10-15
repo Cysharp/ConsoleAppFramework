@@ -9,9 +9,11 @@ namespace MicroBatchFramework.WebHosting
 {
     public class BatchEngineSwaggerMiddleware
     {
-        private readonly RequestDelegate next;
-        private readonly MethodInfo[] handlers;
-        private readonly SwaggerOptions options;
+        static readonly Task EmptyTask = Task.FromResult(0);
+
+        readonly RequestDelegate next;
+        readonly MethodInfo[] handlers;
+        readonly SwaggerOptions options;
 
         public BatchEngineSwaggerMiddleware(RequestDelegate next, TargetBatchTypeCollection targetTypes, SwaggerOptions options)
         {
@@ -42,69 +44,86 @@ namespace MicroBatchFramework.WebHosting
 
             var myAssembly = typeof(BatchEngineSwaggerMiddleware).GetTypeInfo().Assembly;
 
-            using var stream = myAssembly.GetManifestResourceStream(filePath);
-            if (options.ResolveCustomResource == null)
+            using (var stream = myAssembly.GetManifestResourceStream(filePath))
             {
-                if (stream == null)
+                if (options.ResolveCustomResource == null)
                 {
-                    // not found, standard request.
-                    await next(httpContext);
-                    return;
-                }
+                    if (stream == null)
+                    {
+                        // not found, standard request.
+                        await next(httpContext);
+                        return;
+                    }
 
-                httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
-                httpContext.Response.StatusCode = 200;
-                var response = httpContext.Response.Body;
-                await stream.CopyToAsync(response);
-            }
-            else
-            {
-                byte[] bytes;
-                if (stream == null)
-                {
-                    bytes = options.ResolveCustomResource(path, null);
+                    httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
+                    httpContext.Response.StatusCode = 200;
+                    var response = httpContext.Response.Body;
+                    await stream.CopyToAsync(response);
                 }
                 else
                 {
-                    using var ms = new MemoryStream();
-                    await stream.CopyToAsync(ms);
-                    bytes = options.ResolveCustomResource(path, ms.ToArray());
-                }
+                    byte[] bytes;
+                    if (stream == null)
+                    {
+                        bytes = options.ResolveCustomResource(path, null);
+                    }
+                    else
+                    {
+                        using (var ms = new MemoryStream())
+                        {
+                            await stream.CopyToAsync(ms);
+                            bytes = options.ResolveCustomResource(path, ms.ToArray());
+                        }
+                    }
 
-                if (bytes == null)
-                {
-                    // not found, standard request.
-                    await next(httpContext);
-                    return;
-                }
+                    if (bytes == null)
+                    {
+                        // not found, standard request.
+                        await next(httpContext);
+                        return;
+                    }
 
-                httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
-                httpContext.Response.StatusCode = 200;
-                var response = httpContext.Response.Body;
-                await response.WriteAsync(bytes, 0, bytes.Length);
+                    httpContext.Response.Headers["Content-Type"] = new[] { mediaType };
+                    httpContext.Response.StatusCode = 200;
+                    var response = httpContext.Response.Body;
+                    await response.WriteAsync(bytes, 0, bytes.Length);
+                }
             }
         }
 
-        private static string GetMediaType(string path)
+        static string GetMediaType(string path)
         {
             var extension = path.Split('.').Last();
 
-            return extension switch
+            switch (extension)
             {
-                "css" => "text/css",
-                "js" => "text/javascript",
-                "json" => "application/json",
-                "gif" => "image/gif",
-                "png" => "image/png",
-                "eot" => "application/vnd.ms-fontobject",
-                "woff" => "application/font-woff",
-                "woff2" => "application/font-woff2",
-                "otf" => "application/font-sfnt",
-                "ttf" => "application/font-sfnt",
-                "svg" => "image/svg+xml",
-                "ico" => "image/x-icon",
-                _ => "text/html",
-            };
+                case "css":
+                    return "text/css";
+                case "js":
+                    return "text/javascript";
+                case "json":
+                    return "application/json";
+                case "gif":
+                    return "image/gif";
+                case "png":
+                    return "image/png";
+                case "eot":
+                    return "application/vnd.ms-fontobject";
+                case "woff":
+                    return "application/font-woff";
+                case "woff2":
+                    return "application/font-woff2";
+                case "otf":
+                    return "application/font-sfnt";
+                case "ttf":
+                    return "application/font-sfnt";
+                case "svg":
+                    return "image/svg+xml";
+                case "ico":
+                    return "image/x-icon";
+                default:
+                    return "text/html";
+            }
         }
     }
 }
