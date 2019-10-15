@@ -39,9 +39,10 @@ namespace MicroBatchFramework // .WebHosting
                 {
                     if (swaggerOptions == null)
                     {
-                        var entryAsm = Assembly.GetEntryAssembly();
+                        // GetEntryAssembly() never returns null when called from managed code.
+                        var entryAsm = Assembly.GetEntryAssembly()!;
                         var xmlName = entryAsm.GetName().Name + ".xml";
-                        var xmlPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), xmlName);
+                        var xmlPath = Path.Combine(Path.GetDirectoryName(entryAsm.Location) ?? "", xmlName);
                         swaggerOptions = new SwaggerOptions(entryAsm.GetName().Name, "", "/") { XmlDocumentPath = xmlPath };
                     }
                     services.AddSingleton<SwaggerOptions>(swaggerOptions);
@@ -101,7 +102,8 @@ namespace MicroBatchFramework // .WebHosting
 
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (asm.FullName.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions")) continue;
+                if (!(asm.FullName is null)
+                    && (asm.FullName.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions"))) continue;
 
                 Type[] types;
                 try
@@ -110,9 +112,11 @@ namespace MicroBatchFramework // .WebHosting
                 }
                 catch (ReflectionTypeLoadException ex)
                 {
+                    // If Reflection cannot load a class, Types will be null.
                     types = ex.Types;
                 }
 
+                if (types is null) continue;
                 foreach (var item in types)
                 {
                     if (typeof(BatchBase).IsAssignableFrom(item) && item != typeof(BatchBase))

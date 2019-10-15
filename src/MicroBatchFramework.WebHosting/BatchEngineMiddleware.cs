@@ -123,7 +123,8 @@ namespace MicroBatchFramework.WebHosting
                     args = new string[(httpContext.Request.Form.Count * 2) + 1];
                     {
                         var i = 0;
-                        args[i++] = methodInfo.DeclaringType.Name + "." + methodInfo.Name;
+                        // MemberInfo.DeclaringType is null only if it is a member of a VB Module.
+                        args[i++] = methodInfo.DeclaringType!.Name + "." + methodInfo.Name;
                         foreach (var item in httpContext.Request.Form)
                         {
                             args[i++] = "-" + item.Key;
@@ -135,7 +136,8 @@ namespace MicroBatchFramework.WebHosting
                 }
                 else
                 {
-                    args = new[] { methodInfo.DeclaringType.Name + "." + methodInfo.Name };
+                    // MemberInfo.DeclaringType is null only if it is a member of a VB Module.
+                    args = new[] { methodInfo.DeclaringType!.Name + "." + methodInfo.Name };
                 }
             }
             catch (Exception ex)
