@@ -9,8 +9,6 @@ namespace MicroBatchFramework.WebHosting
 {
     public class BatchEngineSwaggerMiddleware
     {
-        private static readonly Task EmptyTask = Task.FromResult(0);
-
         private readonly RequestDelegate next;
         private readonly MethodInfo[] handlers;
         private readonly SwaggerOptions options;

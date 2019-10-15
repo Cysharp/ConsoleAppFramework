@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -118,9 +118,8 @@ namespace MicroBatchFramework
 
         async Task RunCore(BatchContext ctx, Type type, MethodInfo methodInfo, string[] args, int argsOffset)
         {
-            object instance = null;
-            object[] invokeArgs = null;
-
+            object instance;
+            object[] invokeArgs;
             try
             {
                 if (!TryGetInvokeArguments(methodInfo.GetParameters(), args, argsOffset, out invokeArgs, out var errorMessage))

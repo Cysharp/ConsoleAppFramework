@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -115,7 +115,7 @@ namespace MicroBatchFramework.WebHosting
             }
 
             // create args
-            string[] args = null;
+            string[] args;
             try
             {
                 if (httpContext.Request.HasFormContentType)
