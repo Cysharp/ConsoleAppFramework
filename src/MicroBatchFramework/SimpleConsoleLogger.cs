@@ -7,7 +7,7 @@ namespace MicroBatchFramework.Logging
 {
     public class SimpleConsoleLoggerProvider : ILoggerProvider
     {
-        readonly SimpleConsoleLogger logger;
+        private readonly SimpleConsoleLogger logger;
 
         public SimpleConsoleLoggerProvider()
         {

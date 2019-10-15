@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -89,12 +89,12 @@ namespace MicroBatchFramework.WebHosting
 
     public class BatchEngineMiddleware
     {
-        readonly RequestDelegate next;
-        readonly IServiceProvider provider;
-        readonly ILogger<BatchEngine> logger;
-        readonly IBatchInterceptor interceptor;
+        private readonly RequestDelegate next;
+        private readonly IServiceProvider provider;
+        private readonly ILogger<BatchEngine> logger;
+        private readonly IBatchInterceptor interceptor;
 
-        readonly Dictionary<string, MethodInfo> methodLookup;
+        private readonly Dictionary<string, MethodInfo> methodLookup;
 
         public BatchEngineMiddleware(RequestDelegate next, ILogger<BatchEngine> logger, IBatchInterceptor interceptor, IServiceProvider provider, TargetBatchTypeCollection targetTypes)
         {

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,10 +13,10 @@ namespace MicroBatchFramework
 {
     public class BatchEngine
     {
-        readonly ILogger<BatchEngine> logger;
-        readonly IServiceProvider provider;
-        readonly IBatchInterceptor interceptor;
-        readonly CancellationToken cancellationToken;
+        private readonly ILogger<BatchEngine> logger;
+        private readonly IServiceProvider provider;
+        private readonly IBatchInterceptor interceptor;
+        private readonly CancellationToken cancellationToken;
 
         public BatchEngine(ILogger<BatchEngine> logger, IServiceProvider provider, IBatchInterceptor interceptor, CancellationToken cancellationToken)
         {

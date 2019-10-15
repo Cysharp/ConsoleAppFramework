@@ -1,4 +1,4 @@
-﻿using MicroBatchFramework.WebHosting.Swagger.Schemas;
+using MicroBatchFramework.WebHosting.Swagger.Schemas;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -16,11 +16,11 @@ namespace MicroBatchFramework.WebHosting.Swagger
 {
     public class SwaggerDefinitionBuilder
     {
-        readonly SwaggerOptions options;
-        readonly HttpContext httpContext;
-        readonly IEnumerable<MethodInfo> handlers;
+        private readonly SwaggerOptions options;
+        private readonly HttpContext httpContext;
+        private readonly IEnumerable<MethodInfo> handlers;
 
-        ILookup<Tuple<string, string>, XmlCommentStructure> xDocLookup;
+        private ILookup<Tuple<string, string>, XmlCommentStructure> xDocLookup;
 
         public SwaggerDefinitionBuilder(SwaggerOptions options, HttpContext httpContext, IEnumerable<MethodInfo> handlers)
         {

@@ -49,7 +49,7 @@ namespace MicroBatchFramework.Tests
 
         public struct Scope : IDisposable
         {
-            TextWriter writer;
+            private readonly TextWriter writer;
 
             public Scope(TextWriter writer)
             {

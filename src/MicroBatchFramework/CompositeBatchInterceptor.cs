@@ -9,7 +9,7 @@ namespace MicroBatchFramework
 {
     public class CompositeBatchInterceptor : IBatchInterceptor
     {
-        readonly IBatchInterceptor[] interceptors;
+        private readonly IBatchInterceptor[] interceptors;
 
         public CompositeBatchInterceptor(params IBatchInterceptor[] interceptors)
         {
@@ -87,7 +87,7 @@ namespace MicroBatchFramework
 
     internal struct AggregateExceptionHolder
     {
-        List<ExceptionDispatchInfo> exceptions;
+        private List<ExceptionDispatchInfo> exceptions;
 
         public void Add(Exception ex)
         {

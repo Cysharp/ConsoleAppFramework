@@ -6,10 +6,10 @@ namespace MicroBatchFramework
 {
     public class BatchContext
     {
-        public string[] Arguments { get; private set; }
-        public DateTime Timestamp { get; private set; }
-        public CancellationToken CancellationToken { get; private set; }
-        public ILogger<BatchEngine> Logger { get; private set; }
+        public string[] Arguments { get; }
+        public DateTime Timestamp { get; }
+        public CancellationToken CancellationToken { get; }
+        public ILogger<BatchEngine> Logger { get; }
 
         public BatchContext(string[] arguments, DateTime timestamp, CancellationToken cancellationToken, ILogger<BatchEngine> logger)
         {

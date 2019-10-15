@@ -10,7 +10,7 @@ namespace MicroBatchFramework.Tests
 {
     public class SingleContainedTest
     {
-        ITestOutputHelper testOutput;
+        private readonly ITestOutputHelper testOutput;
 
         public SingleContainedTest(ITestOutputHelper testOutput)
         {

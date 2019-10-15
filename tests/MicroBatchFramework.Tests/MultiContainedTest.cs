@@ -34,7 +34,7 @@ namespace MicroBatchFramework.Tests
 
     public class MultiContainedTest
     {
-        ITestOutputHelper testOutput;
+        private readonly ITestOutputHelper testOutput;
 
         public MultiContainedTest(ITestOutputHelper testOutput)
         {

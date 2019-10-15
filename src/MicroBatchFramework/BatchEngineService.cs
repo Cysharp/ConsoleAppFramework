@@ -9,15 +9,15 @@ namespace MicroBatchFramework
 {
     public sealed class BatchEngineService : IHostedService
     {
-        string[] args;
-        Type type;
-        MethodInfo methodInfo;
-        IApplicationLifetime appLifetime;
-        ILogger<BatchEngine> logger;
-        IServiceProvider provider;
-        IBatchInterceptor interceptor;
-        Task runningTask;
-        CancellationTokenSource cancellationTokenSource;
+        private readonly string[] args;
+        private readonly Type type;
+        private readonly MethodInfo methodInfo;
+        private readonly IApplicationLifetime appLifetime;
+        private readonly ILogger<BatchEngine> logger;
+        private readonly IServiceProvider provider;
+        private readonly IBatchInterceptor interceptor;
+        private Task runningTask;
+        private readonly CancellationTokenSource cancellationTokenSource;
 
         public BatchEngineService(IApplicationLifetime appLifetime, Type type, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
             : this(appLifetime, type, null, args, logger, provider)
