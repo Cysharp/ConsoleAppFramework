@@ -1,14 +1,14 @@
 ﻿using MicroBatchFramework.WebHosting;
-using Microsoft.Extensions.DependencyInjection;
+using MicroBatchFramework.WebHosting.Swagger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using System.Threading.Tasks;
-using System;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
+using System;
 using System.Collections.Generic;
-using MicroBatchFramework.WebHosting.Swagger;
 using System.IO;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace MicroBatchFramework // .WebHosting
 {

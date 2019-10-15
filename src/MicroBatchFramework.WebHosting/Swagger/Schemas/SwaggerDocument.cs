@@ -1,7 +1,7 @@
 ﻿// This definition is borrowed from Swashbuckle.
 
-using System.Collections.Generic;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace MicroBatchFramework.WebHosting.Swagger.Schemas
 {

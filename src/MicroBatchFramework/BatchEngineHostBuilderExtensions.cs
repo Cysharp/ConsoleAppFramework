@@ -1,12 +1,10 @@
-﻿using System.Linq;
-using MicroBatchFramework.Logging;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
-using System.Threading.Tasks;
-using System.Reflection;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace MicroBatchFramework
 {
