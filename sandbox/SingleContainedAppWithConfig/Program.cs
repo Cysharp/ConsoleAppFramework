@@ -8,7 +8,7 @@ public class Baz : BatchBase
 {
     private readonly IOptions<SingleContainedAppWithConfig.AppConfig> config;
     // Batche inject Config on constructor.
-    public Baz(IOptions<SingleContainedAppWithConfig.AppConfig> config)
+    public Baz(IOptions<SingleContainedAppWithConfig.AppConfig> config, MyServiceA serviceA, MyServiceB serviceB, MyServiceC serviceC)
     {
         this.config = config;
     }
@@ -25,6 +25,9 @@ public class Baz : BatchBase
     }
 }
 
+public class MyServiceA { }
+public class MyServiceB { }
+public class MyServiceC { }
 
 namespace SingleContainedAppWithConfig
 {
@@ -39,6 +42,10 @@ namespace SingleContainedAppWithConfig
                     services.AddOptions();
                     // mapping json element to class
                     services.Configure<AppConfig>(hostContext.Configuration.GetSection("AppConfig"));
+
+                    services.AddScoped<MyServiceA>();
+                    services.AddTransient<MyServiceB>();
+                    services.AddSingleton<MyServiceC>();
                 })
                 .RunBatchEngineAsync<Baz>(args);
         }

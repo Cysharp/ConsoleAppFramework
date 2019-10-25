@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MicroBatchFramework
 {
@@ -15,7 +16,7 @@ namespace MicroBatchFramework
         MethodInfo methodInfo;
         IApplicationLifetime appLifetime;
         ILogger<BatchEngine> logger;
-        IServiceProvider provider;
+        IServiceScope scope;
         IBatchInterceptor interceptor;
         Task runningTask;
         CancellationTokenSource cancellationTokenSource;
@@ -31,7 +32,7 @@ namespace MicroBatchFramework
             this.type = type;
             this.methodInfo = methodInfo;
             this.appLifetime = appLifetime;
-            this.provider = provider;
+            this.scope = provider.CreateScope();
             this.logger = logger;
             this.interceptor = (provider.GetService(typeof(IBatchInterceptor)) as IBatchInterceptor) ?? NullBatchInterceptor.Default;
             this.cancellationTokenSource = new CancellationTokenSource();
@@ -39,7 +40,7 @@ namespace MicroBatchFramework
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await interceptor.OnBatchEngineBeginAsync(provider, logger);
+            await interceptor.OnBatchEngineBeginAsync(scope.ServiceProvider, logger);
 
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
@@ -47,7 +48,7 @@ namespace MicroBatchFramework
                 var self = (BatchEngineService)state;
                 try
                 {
-                    var engine = new BatchEngine(self.logger, self.provider, self.interceptor, self.cancellationTokenSource.Token);
+                    var engine = new BatchEngine(self.logger, scope.ServiceProvider, self.interceptor, self.cancellationTokenSource.Token);
                     if (self.methodInfo != null)
                     {
                         self.runningTask = engine.RunAsync(self.type, self.methodInfo, self.args);
@@ -85,6 +86,7 @@ namespace MicroBatchFramework
             finally
             {
                 await interceptor.OnBatchEngineEndAsync();
+                scope.Dispose();
             }
         }
     }
