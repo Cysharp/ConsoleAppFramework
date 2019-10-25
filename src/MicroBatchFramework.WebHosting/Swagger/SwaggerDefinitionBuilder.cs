@@ -58,7 +58,8 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     : null;
 
                 doc.tags = handlers
-                    .Select(x => x.DeclaringType.Name)
+                    // MemberInfo.DeclaringType is null only if it is a member of a VB Module.
+                    .Select(x => x.DeclaringType!.Name)
                     .Distinct()
                     .Select(x =>
                     {
@@ -77,16 +78,19 @@ namespace MicroBatchFramework.WebHosting.Swagger
 
                 foreach (var item in handlers)
                 {
+                    // MemberInfo.DeclaringType is null only if it is a member of a VB Module.
+                    string declaringTypeName = item.DeclaringType!.Name;
                     XmlCommentStructure xmlComment = null;
                     if (xDocLookup != null)
                     {
-                        xmlComment = xDocLookup[Tuple.Create(item.DeclaringType.Name, item.Name)].FirstOrDefault();
+                        // ParameterInfo.Name will be null only it is ReturnParameter.
+                        xmlComment = xDocLookup[Tuple.Create(declaringTypeName, item.Name!)].FirstOrDefault();
                     }
 
                     var parameters = BuildParameters(doc.definitions, xmlComment, item);
                     var operation = new Operation
                     {
-                        tags = new[] { item.DeclaringType.Name },
+                        tags = new[] { declaringTypeName },
                         summary = (xmlComment != null) ? xmlComment.Summary : "",
                         description = (xmlComment != null) ? xmlComment.Remarks : "",
                         parameters = parameters,
@@ -96,7 +100,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
                         }
                     };
 
-                    doc.paths.Add("/" + item.DeclaringType.Name + "/" + item.Name, new PathItem { post = operation }); // everything post.
+                    doc.paths.Add("/" + declaringTypeName + "/" + item.Name, new PathItem { post = operation }); // everything post.
                 }
 
                 using (var ms = new MemoryStream())
@@ -128,7 +132,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     var parameterXmlComment = UnwrapTypeName(x.ParameterType);
                     if (xmlComment != null)
                     {
-                        xmlComment.Parameters.TryGetValue(x.Name, out parameterXmlComment);
+                        xmlComment.Parameters.TryGetValue(x.Name, out parameterXmlComment!);
                         parameterXmlComment = UnwrapTypeName(x.ParameterType) + " " + parameterXmlComment;
                     }
 
@@ -147,7 +151,8 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     object[] enums = null;
                     if (x.ParameterType.GetTypeInfo().IsEnum || (collectionType != null && collectionType.GetTypeInfo().IsEnum))
                     {
-                        var enumType = (x.ParameterType.GetTypeInfo().IsEnum) ? x.ParameterType : collectionType;
+                        // Compiler cannot understand collectionType is not null.
+                        var enumType = (x.ParameterType.GetTypeInfo().IsEnum) ? x.ParameterType : collectionType!;
 
                         var enumValues = Enum.GetNames(enumType);
 
@@ -374,7 +379,8 @@ namespace MicroBatchFramework.WebHosting.Swagger
 
             if (type.IsNullable())
             {
-                type = Nullable.GetUnderlyingType(type);
+                // if type is Nullable<T>, it has UnderlyingType T.
+                type = Nullable.GetUnderlyingType(type)!;
             }
 
             if (type.GetTypeInfo().IsEnum || type == typeof(DateTime) || type == typeof(DateTimeOffset))
@@ -462,13 +468,13 @@ namespace MicroBatchFramework.WebHosting.Swagger
                             enumerable = instance
                                 .GetType()
                                 .GetProperty(member.Name)
-                                .GetValue(instance, null) as IEnumerable;
+                                ?.GetValue(instance, null) as IEnumerable;
                             break;
                         case MemberTypes.Field:
                             enumerable = instance
                                 .GetType()
                                 .GetField(member.Name)
-                                .GetValue(instance) as IEnumerable;
+                                ?.GetValue(instance) as IEnumerable;
                             break;
                         default:
                             break;

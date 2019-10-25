@@ -1,12 +1,8 @@
-﻿using System;
-using FluentAssertions;
-using System.Collections.Generic;
-using System.Text;
-using Xunit.Abstractions;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Xunit;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace MicroBatchFramework.Tests
 {

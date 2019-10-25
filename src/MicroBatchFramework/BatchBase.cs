@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace MicroBatchFramework
+﻿namespace MicroBatchFramework
 {
     public abstract class BatchBase
     {
