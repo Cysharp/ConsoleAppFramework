@@ -13,19 +13,19 @@ namespace MicroBatchFramework
         string[] args;
         Type type;
         MethodInfo methodInfo;
-        IApplicationLifetime appLifetime;
+        IHostApplicationLifetime appLifetime;
         ILogger<BatchEngine> logger;
         IServiceScope scope;
         IBatchInterceptor interceptor;
         Task runningTask;
         CancellationTokenSource cancellationTokenSource;
 
-        public BatchEngineService(IApplicationLifetime appLifetime, Type type, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
+        public BatchEngineService(IHostApplicationLifetime appLifetime, Type type, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
             : this(appLifetime, type, null, args, logger, provider)
         {
         }
 
-        public BatchEngineService(IApplicationLifetime appLifetime, Type type, MethodInfo methodInfo, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
+        public BatchEngineService(IHostApplicationLifetime appLifetime, Type type, MethodInfo methodInfo, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
         {
             this.args = args;
             this.type = type;
