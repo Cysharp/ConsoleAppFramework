@@ -7,16 +7,21 @@ namespace MicroBatchFramework.Logging
 {
     public class SimpleConsoleLoggerProvider : ILoggerProvider
     {
-        readonly SimpleConsoleLogger logger;
+        readonly SimpleConsoleLogger loggerDefault;
+        readonly SimpleConsoleLogger loggerHostingInternal;
 
         public SimpleConsoleLoggerProvider()
         {
-            logger = new SimpleConsoleLogger();
+            loggerDefault = new SimpleConsoleLogger(LogLevel.Trace);
+            loggerHostingInternal = new SimpleConsoleLogger(LogLevel.Information);
         }
 
         public ILogger CreateLogger(string categoryName)
         {
-            return logger;
+            // NOTE: It omits unimportant log messages from Microsoft.Extension.Hosting.Internal.*
+            return categoryName.StartsWith("Microsoft.Extensions.Hosting.Internal")
+                ? loggerHostingInternal
+                : loggerDefault;
         }
 
         public void Dispose()
@@ -26,8 +31,11 @@ namespace MicroBatchFramework.Logging
 
     public class SimpleConsoleLogger : ILogger
     {
-        public SimpleConsoleLogger()
+        readonly LogLevel minimumLogLevel;
+
+        public SimpleConsoleLogger(LogLevel minimumLogLevel)
         {
+            this.minimumLogLevel = minimumLogLevel;
         }
 
         public IDisposable BeginScope<TState>(TState state)
@@ -37,15 +45,16 @@ namespace MicroBatchFramework.Logging
 
         public bool IsEnabled(LogLevel logLevel)
         {
-            return true;
+            return minimumLogLevel <= logLevel;
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
 
-            var msg = formatter(state, exception);
+            if (minimumLogLevel > logLevel) return;
 
+            var msg = formatter(state, exception);
 
             if (!string.IsNullOrEmpty(msg))
             {
