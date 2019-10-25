@@ -100,21 +100,6 @@ namespace MicroBatchFramework
                     }
 
                     logging.AddSimpleConsole();
-                    logging.AddFilter((providerName, category, level) =>
-                    {
-                        if (providerName == typeof(SimpleConsoleLogger).FullName)
-                        {
-                            // omit system message
-                            if (category.StartsWith("Microsoft.Extensions.Hosting.Internal"))
-                            {
-                                if (level <= LogLevel.Debug) return false;
-                            }
-
-                            return level >= minSimpleConsoleLoggerLogLevel;
-                        }
-
-                        return true;
-                    });
                 });
             }
         }
