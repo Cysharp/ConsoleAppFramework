@@ -14,8 +14,8 @@ namespace MicroBatchFramework.WebHosting
         readonly IBatchInterceptor innerInterceptor;
 
         public bool CompleteSuccessfully { get; private set; }
-        public string ErrorMessage { get; private set; }
-        public Exception Exception { get; private set; }
+        public string? ErrorMessage { get; private set; }
+        public Exception? Exception { get; private set; }
 
         public WebHostingInterceptor(IBatchInterceptor innerInterceptor)
         {
@@ -37,7 +37,7 @@ namespace MicroBatchFramework.WebHosting
             return innerInterceptor.OnBatchRunBeginAsync(context);
         }
 
-        public ValueTask OnBatchRunCompleteAsync(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists)
+        public ValueTask OnBatchRunCompleteAsync(BatchContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
             this.ErrorMessage = errorMessageIfFailed;
@@ -115,7 +115,7 @@ namespace MicroBatchFramework.WebHosting
             }
 
             // create args
-            string[] args = null;
+            string?[] args;
             try
             {
                 if (httpContext.Request.HasFormContentType)
