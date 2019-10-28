@@ -12,12 +12,12 @@ namespace MicroBatchFramework
     {
         string[] args;
         Type type;
-        MethodInfo methodInfo;
+        MethodInfo? methodInfo;
         IHostApplicationLifetime appLifetime;
         ILogger<BatchEngine> logger;
         IServiceScope scope;
         IBatchInterceptor interceptor;
-        Task runningTask;
+        Task? runningTask;
         CancellationTokenSource cancellationTokenSource;
 
         public BatchEngineService(IHostApplicationLifetime appLifetime, Type type, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
@@ -25,7 +25,7 @@ namespace MicroBatchFramework
         {
         }
 
-        public BatchEngineService(IHostApplicationLifetime appLifetime, Type type, MethodInfo methodInfo, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
+        public BatchEngineService(IHostApplicationLifetime appLifetime, Type type, MethodInfo? methodInfo, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
         {
             this.args = args;
             this.type = type;

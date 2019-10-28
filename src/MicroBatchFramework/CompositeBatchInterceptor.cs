@@ -67,7 +67,7 @@ namespace MicroBatchFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnBatchRunCompleteAsync(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists)
+        public async ValueTask OnBatchRunCompleteAsync(BatchContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)

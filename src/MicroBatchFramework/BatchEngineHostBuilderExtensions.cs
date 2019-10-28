@@ -13,7 +13,7 @@ namespace MicroBatchFramework
         const string ListCommand = "list";
         const string HelpCommand = "help";
 
-        public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
+        public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
         {
             if (args.Length == 0 || (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase)))
             {
@@ -44,8 +44,8 @@ namespace MicroBatchFramework
                 return hostBuilder;
             }
 
-            Type type = null;
-            MethodInfo methodInfo = null;
+            Type? type = null;
+            MethodInfo? methodInfo = null;
             if (args.Length >= 1)
             {
                 (type, methodInfo) = GetTypeFromAssemblies(args[0]);
@@ -77,12 +77,12 @@ namespace MicroBatchFramework
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunBatchEngineAsync(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
+        public static Task RunBatchEngineAsync(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
         {
             return UseBatchEngine(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
-        public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
+        public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
             where T : BatchBase
         {
             var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
@@ -147,7 +147,7 @@ namespace MicroBatchFramework
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunBatchEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor interceptor = null)
+        public static Task RunBatchEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
             where T : BatchBase
         {
             return UseBatchEngine<T>(hostBuilder, args, interceptor).Build().RunAsync();
@@ -196,7 +196,7 @@ namespace MicroBatchFramework
             return batchBaseTypes;
         }
 
-        static (Type, MethodInfo) GetTypeFromAssemblies(string arg0)
+        static (Type?, MethodInfo?) GetTypeFromAssemblies(string arg0)
         {
             var batchBaseTypes = GetBatchTypes();
             if (batchBaseTypes == null)
@@ -205,8 +205,8 @@ namespace MicroBatchFramework
             }
 
             var split = arg0.Split('.');
-            Type foundType = null;
-            MethodInfo foundMethod = null;
+            Type? foundType = null;
+            MethodInfo? foundMethod = null;
             foreach (var baseType in batchBaseTypes)
             {
                 bool isFound = false;
