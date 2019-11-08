@@ -397,6 +397,11 @@ namespace MicroBatchFramework
         {
             public int Compare(MethodInfo x, MethodInfo y)
             {
+                if (x.Name == y.Name)
+                {
+                    return 0;
+                }
+
                 var xc = x.GetCustomAttribute<CommandAttribute>();
                 var yc = y.GetCustomAttribute<CommandAttribute>();
 
