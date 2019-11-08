@@ -24,7 +24,7 @@ namespace MicroBatchFramework
         /// <summary>
         /// Called when BatchMethod is error or completed.
         /// </summary>
-        ValueTask OnBatchRunCompleteAsync(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists);
+        ValueTask OnBatchRunCompleteAsync(BatchContext context, string? errorMessageIfFailed, Exception? exceptionIfExists);
     }
 
     public class NullBatchInterceptor : IBatchInterceptor
@@ -47,7 +47,7 @@ namespace MicroBatchFramework
             return Empty;
         }
 
-        public ValueTask OnBatchRunCompleteAsync(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists)
+        public ValueTask OnBatchRunCompleteAsync(BatchContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             return Empty;
         }

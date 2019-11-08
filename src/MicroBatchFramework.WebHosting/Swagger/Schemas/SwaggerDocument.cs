@@ -1,5 +1,5 @@
 ﻿// This definition is borrowed from Swashbuckle.
-
+#nullable disable annotations
 using Newtonsoft.Json;
 using System.Collections.Generic;
 

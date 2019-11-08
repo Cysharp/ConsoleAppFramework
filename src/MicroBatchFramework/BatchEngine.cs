@@ -26,7 +26,7 @@ namespace MicroBatchFramework
             this.cancellationToken = cancellationToken;
         }
 
-        public async Task RunAsync(Type type, MethodInfo method, string[] args)
+        public async Task RunAsync(Type type, MethodInfo method, string?[] args)
         {
             logger.LogTrace("BatchEngine.Run Start");
             var ctx = new BatchContext(args, DateTime.UtcNow, cancellationToken, logger);
@@ -38,7 +38,7 @@ namespace MicroBatchFramework
             logger.LogTrace("BatchEngine.Run Start");
 
             int argsOffset = 0;
-            MethodInfo method = null;
+            MethodInfo? method = null;
             var ctx = new BatchContext(args, DateTime.UtcNow, cancellationToken, logger);
             try
             {
@@ -57,7 +57,7 @@ namespace MicroBatchFramework
                     return;
                 }
 
-                MethodInfo helpMethod = null;
+                MethodInfo? helpMethod = null;
                 foreach (var item in methods)
                 {
                     var command = item.GetCustomAttribute<CommandAttribute>();
@@ -116,10 +116,10 @@ namespace MicroBatchFramework
             await RunCore(ctx, type, method, args, argsOffset);
         }
 
-        async Task RunCore(BatchContext ctx, Type type, MethodInfo methodInfo, string[] args, int argsOffset)
+        async Task RunCore(BatchContext ctx, Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
         {
-            object instance = null;
-            object[] invokeArgs = null;
+            object instance;
+            object[] invokeArgs;
 
             try
             {
@@ -199,7 +199,7 @@ namespace MicroBatchFramework
             await interceptor.OnBatchRunCompleteAsync(context, message, ex);
         }
 
-        static bool TryGetInvokeArguments(ParameterInfo[] parameters, string[] args, int argsOffset, out object[] invokeArgs, out string errorMessage)
+        static bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)
         {
             var argumentDictionary = ParseArgument(args, argsOffset);
             invokeArgs = new object[parameters.Length];
@@ -294,22 +294,29 @@ namespace MicroBatchFramework
             return true;
         }
 
-        static ReadOnlyDictionary<string, OptionParameter> ParseArgument(string[] args, int argsOffset)
+        static ReadOnlyDictionary<string, OptionParameter> ParseArgument(string?[] args, int argsOffset)
         {
             var dict = new Dictionary<string, OptionParameter>(args.Length, StringComparer.OrdinalIgnoreCase);
             for (int i = argsOffset; i < args.Length;)
             {
-                if (!args[i].StartsWith("-"))
+                var key = args[i++];
+                if (key is null || !key.StartsWith("-"))
                 {
-                    i++;
                     continue; // not key
                 }
 
-                var key = args[i++].TrimStart('-');
-                if (i < args.Length && !args[i].StartsWith("-"))
+                key = key.TrimStart('-');
+                if (i >= args.Length)
                 {
-                    var value = args[i++];
+                    dict.Add(key, new OptionParameter { BooleanSwitch = true }); // Last parameter
+                    break;
+                }
+
+                var value = args[i];
+                if (value != null && !value.StartsWith("-"))
+                {
                     dict.Add(key, new OptionParameter { Value = value });
+                    i++;
                 }
                 else
                 {
@@ -322,7 +329,7 @@ namespace MicroBatchFramework
 
         struct OptionParameter
         {
-            public string Value;
+            public string? Value;
             public bool BooleanSwitch;
         }
 
@@ -362,7 +369,8 @@ namespace MicroBatchFramework
                         }
                         else
                         {
-                            sb.Append("-" + option.ShortName.Trim('-') + ", ");
+                            // If Index is -1, ShortName is initialized at Constractor.
+                            sb.Append("-" + option.ShortName!.Trim('-') + ", ");
                         }
                     }
 

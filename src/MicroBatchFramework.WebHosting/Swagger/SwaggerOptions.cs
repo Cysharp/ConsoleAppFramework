@@ -12,9 +12,9 @@ namespace MicroBatchFramework.WebHosting.Swagger
         /// <summary>
         /// (FilePath, LoadedEmbeddedBytes) => CustomBytes)
         /// </summary>
-        public Func<string, byte[], byte[]> ResolveCustomResource { get; set; }
-        public Func<HttpContext, string> CustomHost { get; set; }
-        public string XmlDocumentPath { get; set; }
+        public Func<string, byte[]?, byte[]>? ResolveCustomResource { get; set; }
+        public Func<HttpContext, string>? CustomHost { get; set; }
+        public string? XmlDocumentPath { get; set; }
         public string JsonName { get; set; }
         public string[] ForceSchemas { get; set; }
 

@@ -6,8 +6,8 @@ namespace MicroBatchFramework
     public class OptionAttribute : Attribute
     {
         public int Index { get; }
-        public string ShortName { get; }
-        public string Description { get; }
+        public string? ShortName { get; }
+        public string? Description { get; }
 
         public OptionAttribute(int index)
         {

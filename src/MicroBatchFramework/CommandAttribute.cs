@@ -5,7 +5,7 @@ namespace MicroBatchFramework
     public class CommandAttribute : Attribute
     {
         public string[] CommandNames { get; }
-        public string Description { get; }
+        public string? Description { get; }
 
         public CommandAttribute(string commandName)
             : this(new[] { commandName }, null)
@@ -22,7 +22,7 @@ namespace MicroBatchFramework
         {
         }
 
-        public CommandAttribute(string[] commandNames, string description)
+        public CommandAttribute(string[] commandNames, string? description)
         {
             this.CommandNames = commandNames;
             this.Description = description;

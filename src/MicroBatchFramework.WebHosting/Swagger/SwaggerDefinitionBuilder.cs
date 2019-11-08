@@ -20,7 +20,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
         readonly HttpContext httpContext;
         readonly IEnumerable<MethodInfo> handlers;
 
-        ILookup<Tuple<string, string>, XmlCommentStructure> xDocLookup;
+        ILookup<Tuple<string, string>, XmlCommentStructure>? xDocLookup;
 
         public SwaggerDefinitionBuilder(SwaggerOptions options, HttpContext httpContext, IEnumerable<MethodInfo> handlers)
         {
@@ -33,15 +33,13 @@ namespace MicroBatchFramework.WebHosting.Swagger
         {
             try
             {
-                if (options.XmlDocumentPath != null && !File.Exists(options.XmlDocumentPath))
+                if (options.XmlDocumentPath != null && File.Exists(options.XmlDocumentPath))
                 {
-                    xDocLookup = null;
+                    xDocLookup = BuildXmlMemberCommentStructure(options.XmlDocumentPath);
                 }
                 else
                 {
-                    xDocLookup = (options.XmlDocumentPath != null)
-                        ? BuildXmlMemberCommentStructure(options.XmlDocumentPath)
-                        : null;
+                    xDocLookup = null;
                 }
 
                 var doc = new SwaggerDocument();
@@ -54,7 +52,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
 
                 // tags.
                 var xmlServiceName = (xDocLookup != null)
-                    ? BuildXmlTypeSummary(options.XmlDocumentPath)
+                    ? BuildXmlTypeSummary(options.XmlDocumentPath!)  // xDocLookup is not null if XmlDocumentPath is not null.
                     : null;
 
                 doc.tags = handlers
@@ -63,7 +61,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     .Distinct()
                     .Select(x =>
                     {
-                        string desc = null;
+                        string? desc = null;
                         if (xmlServiceName != null)
                         {
                             xmlServiceName.TryGetValue(x, out desc);
@@ -80,7 +78,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
                 {
                     // MemberInfo.DeclaringType is null only if it is a member of a VB Module.
                     string declaringTypeName = item.DeclaringType!.Name;
-                    XmlCommentStructure xmlComment = null;
+                    XmlCommentStructure? xmlComment = null;
                     if (xDocLookup != null)
                     {
                         // ParameterInfo.Name will be null only it is ReturnParameter.
@@ -123,7 +121,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
             }
         }
 
-        Schemas.Parameter[] BuildParameters(IDictionary<string, Schema> definitions, XmlCommentStructure xmlComment, MethodInfo method)
+        Schemas.Parameter[] BuildParameters(IDictionary<string, Schema> definitions, XmlCommentStructure? xmlComment, MethodInfo method)
         {
             var parameterInfos = method.GetParameters();
             var parameters = parameterInfos
@@ -132,7 +130,8 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     var parameterXmlComment = UnwrapTypeName(x.ParameterType);
                     if (xmlComment != null)
                     {
-                        xmlComment.Parameters.TryGetValue(x.Name, out parameterXmlComment!);
+                        // Name is null only if Parameter is ReturnParameter.
+                        xmlComment.Parameters.TryGetValue(x.Name!, out parameterXmlComment!);
                         parameterXmlComment = UnwrapTypeName(x.ParameterType) + " " + parameterXmlComment;
                     }
 
@@ -147,8 +146,8 @@ namespace MicroBatchFramework.WebHosting.Swagger
                         ? new PartialSchema { type = ToSwaggerDataType(collectionType) }
                         : null;
 
-                    string defaultObjectExample = null;
-                    object[] enums = null;
+                    string? defaultObjectExample = null;
+                    object[]? enums = null;
                     if (x.ParameterType.GetTypeInfo().IsEnum || (collectionType != null && collectionType.GetTypeInfo().IsEnum))
                     {
                         // Compiler cannot understand collectionType is not null.
@@ -169,7 +168,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     }
 
                     var swaggerDataType = ToSwaggerDataType(x.ParameterType);
-                    Schema refSchema = null;
+                    Schema? refSchema = null;
                     if (swaggerDataType == "object")
                     {
                         BuildSchema(definitions, x.ParameterType);
@@ -203,7 +202,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
             var fullName = type.FullName;
             if (fullName == null) return ""; // safety(TODO:IDictionary<> is not supported)
 
-            Schema schema;
+            Schema? schema;
             if (definitions.TryGetValue(fullName, out schema)) return "#/definitions/" + fullName;
 
             var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
@@ -229,10 +228,11 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     }
                     else
                     {
-                        Schema items = null;
+                        Schema? items = null;
                         if (swaggerDataType == "array")
                         {
-                            var collectionType = GetCollectionType(memberType);
+                            // If swaggerDataType is array, it will be Collection.
+                            Type collectionType = GetCollectionType(memberType)!;
                             var dataType = ToSwaggerDataType(collectionType);
                             if (dataType == "object")
                             {
@@ -258,7 +258,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
                             }
                         }
 
-                        IList<object> schemaEnum = null;
+                        IList<object>? schemaEnum = null;
                         if (memberType.GetTypeInfo().IsEnum)
                         {
                             schemaEnum = Enum.GetNames(memberType);
@@ -298,7 +298,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
             throw new Exception();
         }
 
-        static Type GetCollectionType(Type type)
+        static Type? GetCollectionType(Type type)
         {
             if (type.IsArray) return type.GetElementType();
 
@@ -338,14 +338,14 @@ namespace MicroBatchFramework.WebHosting.Swagger
                         .ToDictionary(e => e.Item1, e => e.Item2.Value.Trim());
 
                     return new XmlCommentStructure
-                    {
-                        ClassName = match.Groups[1].Value,
-                        MethodName = match.Groups[2].Value,
-                        Summary = summary.Trim(),
-                        Remarks = remarks.Trim(),
-                        Parameters = parameters,
-                        Returns = returns.Trim()
-                    };
+                    (
+                        className: match.Groups[1].Value,
+                        methodName: match.Groups[2].Value,
+                        summary: summary.Trim(),
+                        remarks: remarks.Trim(),
+                        parameters: parameters,
+                        returns: returns.Trim()
+                    );
                 })
                 .ToLookup(x => Tuple.Create(x.ClassName, x.MethodName));
 
@@ -422,7 +422,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
             return Regex.Replace(t.GetGenericTypeDefinition().Name, @"`.+$", "") + "&lt;" + innerFormat + "&gt;";
         }
 
-        class Item1EqualityCompaerer<T1, T2> : EqualityComparer<Tuple<T1, T2>>
+        class Item1EqualityCompaerer<T1, T2> : EqualityComparer<Tuple<T1, T2>> where T1 : class
         {
             public override bool Equals(Tuple<T1, T2> x, Tuple<T1, T2> y)
             {
@@ -443,6 +443,16 @@ namespace MicroBatchFramework.WebHosting.Swagger
             public string Remarks { get; set; }
             public Dictionary<string, string> Parameters { get; set; }
             public string Returns { get; set; }
+
+            public XmlCommentStructure(string className, string methodName, string summary, string remarks, Dictionary<string,string> parameters, string returns)
+            {
+                ClassName = className;
+                MethodName = methodName;
+                Summary = summary;
+                Remarks = remarks;
+                Parameters = parameters;
+                Returns = returns;
+            }
         }
     }
 
@@ -459,7 +469,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
             {
                 property.ShouldSerialize = instance =>
                 {
-                    IEnumerable enumerable = null;
+                    IEnumerable? enumerable = null;
 
                     // this value could be in a public field or public property
                     switch (member.MemberType)

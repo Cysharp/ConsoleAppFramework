@@ -14,7 +14,7 @@ namespace MicroBatchFramework // .WebHosting
 {
     public static class BatchEngineHostingExtensions
     {
-        public static IWebHostBuilder PrepareBatchEngineMiddleware(this IWebHostBuilder builder, IBatchInterceptor interceptor = null)
+        public static IWebHostBuilder PrepareBatchEngineMiddleware(this IWebHostBuilder builder, IBatchInterceptor? interceptor = null)
         {
             var batchTypes = CollectBatchTypes();
             var target = new TargetBatchTypeCollection(batchTypes);
@@ -31,7 +31,7 @@ namespace MicroBatchFramework // .WebHosting
                 });
         }
 
-        public static Task RunBatchEngineWebHosting(this IWebHostBuilder builder, string urls, SwaggerOptions swaggerOptions = null, IBatchInterceptor interceptor = null)
+        public static Task RunBatchEngineWebHosting(this IWebHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, IBatchInterceptor? interceptor = null)
         {
             return builder
                 .PrepareBatchEngineMiddleware(interceptor)
@@ -43,7 +43,7 @@ namespace MicroBatchFramework // .WebHosting
                         var entryAsm = Assembly.GetEntryAssembly()!;
                         var xmlName = entryAsm.GetName().Name + ".xml";
                         var xmlPath = Path.Combine(Path.GetDirectoryName(entryAsm.Location) ?? "", xmlName);
-                        swaggerOptions = new SwaggerOptions(entryAsm.GetName().Name, "", "/") { XmlDocumentPath = xmlPath };
+                        swaggerOptions = new SwaggerOptions(entryAsm.GetName().Name!, "", "/") { XmlDocumentPath = xmlPath };
                     }
                     services.AddSingleton<SwaggerOptions>(swaggerOptions);
                 })
@@ -105,7 +105,7 @@ namespace MicroBatchFramework // .WebHosting
                 if (!(asm.FullName is null)
                     && (asm.FullName.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions"))) continue;
 
-                Type[] types;
+                Type[]? types;
                 try
                 {
                     types = asm.GetTypes();
