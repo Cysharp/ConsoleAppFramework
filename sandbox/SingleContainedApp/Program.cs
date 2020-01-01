@@ -115,7 +115,7 @@ namespace SingleContainedApp
 
     public class ComplexArgTest : BatchBase
     {
-        public void Foo(string[] array, Person person)
+        public void Foo(int[] array, Person person)
         {
             Console.WriteLine(array.Length + ":" + string.Join(", ", array));
             Console.WriteLine(person.Age + ":" + person.Name);
@@ -132,7 +132,7 @@ namespace SingleContainedApp
     {
         static async Task Main(string[] args)
         {
-            args = new[] { "-array", "foo bar baz", "-person", @"{""Age"":10,""Name"":""foo""}" };
+            args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
 
             await BatchHost.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>

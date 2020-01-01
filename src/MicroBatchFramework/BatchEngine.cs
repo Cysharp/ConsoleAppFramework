@@ -254,7 +254,7 @@ namespace MicroBatchFramework
                                 {
                                     if (!(v.StartsWith("\"") && v.EndsWith("\"")))
                                     {
-                                        v = "[" + string.Join(",", v.Split(' ').Select(x => "\"" + x + "\"")) + "]";
+                                        v = "[" + string.Join(",", v.Split(' ', ',').Select(x => "\"" + x + "\"")) + "]";
                                     }
                                     else
                                     {
@@ -263,7 +263,7 @@ namespace MicroBatchFramework
                                 }
                                 else
                                 {
-                                    v = "[" + string.Join(",", v.Trim('\'', '\"').Split(' ')) + "]";
+                                    v = "[" + string.Join(",", v.Trim('\'', '\"').Split(' ', ',')) + "]";
                                 }
                             }
                             try

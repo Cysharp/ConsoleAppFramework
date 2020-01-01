@@ -224,19 +224,23 @@ Foo(int[] array)
 > SampleApp.exe -array 9999
 ```
 
-multiple-argument can handle by split with ` `.
+multiple-argument can handle by split with ` ` or `,`.
 
 ```csharp
 Foo(int[] array)
 > SampleApp.exe -array "11 22 33"
+> SampleApp.exe -array "11,22,33"
+> SampleApp.exe -array "[11,22,33]"
 ```
 
 string argument can handle without `"`.
 
 ```csharp
 Foo(string[] array)
-> SampleApp.exe -array "hello"
+> SampleApp.exe -array hello
 > SampleApp.exe -array "foo bar baz"
+> SampleApp.exe -array foo,bar,baz
+> SampleApp.exe -array "["foo","bar","baz"]"
 ```
 
 Exit Code
