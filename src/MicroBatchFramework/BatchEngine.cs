@@ -5,9 +5,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Utf8Json;
 
 namespace MicroBatchFramework
 {
@@ -253,7 +253,7 @@ namespace MicroBatchFramework
                             }
                             try
                             {
-                                invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, v);
+                                invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType);
                                 continue;
                             }
                             catch
@@ -264,10 +264,9 @@ namespace MicroBatchFramework
                         }
                         else
                         {
-                            // decouple dependency?
                             try
                             {
-                                invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, value.Value);
+                                invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType);
                                 continue;
                             }
                             catch
