@@ -3,6 +3,7 @@ using MicroBatchFramework.WebHosting.Swagger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -66,7 +67,7 @@ namespace MicroBatchFramework // .WebHosting
 
         public class DefaultStartup
         {
-            public void Configure(IApplicationBuilder app, IApplicationLifetime lifetime)
+            public void Configure(IApplicationBuilder app, IHostApplicationLifetime lifetime)
             {
                 var interceptor = app.ApplicationServices.GetService<IBatchInterceptor>();
                 var provider = app.ApplicationServices.GetService<IServiceProvider>();

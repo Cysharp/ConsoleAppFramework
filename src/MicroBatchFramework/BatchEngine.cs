@@ -5,9 +5,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Utf8Json;
 
 namespace MicroBatchFramework
 {
@@ -249,11 +249,26 @@ namespace MicroBatchFramework
                             var v = value.Value;
                             if (!(v.StartsWith("[") && v.EndsWith("]")))
                             {
-                                v = "[" + v + "]";
+                                var elemType = UnwrapCollectionElementType(parameters[i].ParameterType);
+                                if (elemType == typeof(string))
+                                {
+                                    if (!(v.StartsWith("\"") && v.EndsWith("\"")))
+                                    {
+                                        v = "[" + string.Join(",", v.Split(' ').Select(x => "\"" + x + "\"")) + "]";
+                                    }
+                                    else
+                                    {
+                                        v = "[" + v + "]";
+                                    }
+                                }
+                                else
+                                {
+                                    v = "[" + string.Join(",", v.Trim('\'', '\"').Split(' ')) + "]";
+                                }
                             }
                             try
                             {
-                                invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, v);
+                                invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType);
                                 continue;
                             }
                             catch
@@ -264,10 +279,9 @@ namespace MicroBatchFramework
                         }
                         else
                         {
-                            // decouple dependency?
                             try
                             {
-                                invokeArgs[i] = JsonSerializer.NonGeneric.Deserialize(parameters[i].ParameterType, value.Value);
+                                invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType);
                                 continue;
                             }
                             catch
@@ -285,13 +299,36 @@ namespace MicroBatchFramework
                 }
                 else
                 {
-                    errorMessage = "Required parameter \"" + item.Name + "\"" + " not found in argument.";
+                    var name = item.Name;
+                    if (option?.ShortName != null)
+                    {
+                        name = item.Name + "(" + "-" + option.ShortName + ")";
+                    }
+                    errorMessage = "Required parameter \"" + name + "\"" + " not found in argument.";
                     return false;
                 }
             }
 
             errorMessage = null;
             return true;
+        }
+
+        static Type? UnwrapCollectionElementType(Type collectionType)
+        {
+            if (collectionType.IsArray)
+            {
+                return collectionType.GetElementType();
+            }
+
+            foreach (var i in collectionType.GetInterfaces())
+            {
+                if (i.IsGenericType && (i.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
+                {
+                    return i.GetGenericArguments()[0];
+                }
+            }
+
+            return null;
         }
 
         static ReadOnlyDictionary<string, OptionParameter> ParseArgument(string?[] args, int argsOffset)

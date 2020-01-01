@@ -216,6 +216,29 @@ You can call like here.
 > SampleApp.exe -array [10,20,30] -person {"Age":10,"Name":"foo"}
 ```
 
+For the array handling, it can be a treat without correct JSON.
+e.g. one-length argument can handle without `[]`.
+
+```csharp
+Foo(int[] array)
+> SampleApp.exe -array 9999
+```
+
+multiple-argument can handle by split with ` `.
+
+```csharp
+Foo(int[] array)
+> SampleApp.exe -array "11 22 33"
+```
+
+string argument can handle without `"`.
+
+```csharp
+Foo(string[] array)
+> SampleApp.exe -array "hello"
+> SampleApp.exe -array "foo bar baz"
+```
+
 Exit Code
 ---
 If the batch method returns `int` or `Task<int>` value, BatchEngine will set the return value to the exit code.
