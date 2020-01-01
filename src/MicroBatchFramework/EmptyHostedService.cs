@@ -6,9 +6,9 @@ namespace MicroBatchFramework
 {
     internal class EmptyHostedService : IHostedService
     {
-        readonly IApplicationLifetime appLifetime;
+        readonly IHostApplicationLifetime appLifetime;
 
-        public EmptyHostedService(IApplicationLifetime appLifetime)
+        public EmptyHostedService(IHostApplicationLifetime appLifetime)
         {
             this.appLifetime = appLifetime;
         }
