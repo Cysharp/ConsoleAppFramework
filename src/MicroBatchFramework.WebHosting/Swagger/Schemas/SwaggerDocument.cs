@@ -1,319 +1,319 @@
 ﻿// This definition is borrowed from Swashbuckle.
 #nullable disable annotations
-using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace MicroBatchFramework.WebHosting.Swagger.Schemas
 {
     public class SwaggerDocument
     {
-        public readonly string swagger = "2.0";
+        public string swagger { get; set; } = "2.0";
 
-        public Info info;
+        public Info info { get; set; }
 
-        public string host;
+        public string host { get; set; }
 
-        public string basePath;
+        public string basePath { get; set; }
 
-        public IList<string> schemes;
+        public IList<string> schemes { get; set; }
 
-        public IList<string> consumes;
+        public IList<string> consumes { get; set; }
 
-        public IList<string> produces;
+        public IList<string> produces { get; set; }
 
-        public IDictionary<string, PathItem> paths;
+        public IDictionary<string, PathItem> paths { get; set; }
 
-        public IDictionary<string, Schema> definitions;
+        public IDictionary<string, Schema> definitions { get; set; }
 
-        public IDictionary<string, Parameter> parameters;
+        public IDictionary<string, Parameter> parameters { get; set; }
 
-        public IDictionary<string, Response> responses;
+        public IDictionary<string, Response> responses { get; set; }
 
-        public IDictionary<string, SecurityScheme> securityDefinitions;
+        public IDictionary<string, SecurityScheme> securityDefinitions { get; set; }
 
-        public IList<IDictionary<string, IEnumerable<string>>> security;
+        public IList<IDictionary<string, IEnumerable<string>>> security { get; set; }
 
-        public IList<Tag> tags;
+        public IList<Tag> tags { get; set; }
 
-        public ExternalDocs externalDocs;
+        public ExternalDocs externalDocs { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class Info
     {
-        public string version;
+        public string version { get; set; }
 
-        public string title;
+        public string title { get; set; }
 
-        public string description;
+        public string description { get; set; }
 
-        public string termsOfService;
+        public string termsOfService { get; set; }
 
-        public Contact contact;
+        public Contact contact { get; set; }
 
-        public License license;
+        public License license { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class Contact
     {
-        public string name;
+        public string name { get; set; }
 
-        public string url;
+        public string url { get; set; }
 
-        public string email;
+        public string email { get; set; }
     }
 
     public class License
     {
-        public string name;
+        public string name { get; set; }
 
-        public string url;
+        public string url { get; set; }
     }
 
     public class PathItem
     {
-        [JsonProperty("$ref")]
-        public string @ref;
+        [JsonPropertyName("$ref")]
+        public string @ref { get; set; }
 
-        public Operation get;
+        public Operation get { get; set; }
 
-        public Operation put;
+        public Operation put { get; set; }
 
-        public Operation post;
+        public Operation post { get; set; }
 
-        public Operation delete;
+        public Operation delete { get; set; }
 
-        public Operation options;
+        public Operation options { get; set; }
 
-        public Operation head;
+        public Operation head { get; set; }
 
-        public Operation patch;
+        public Operation patch { get; set; }
 
-        public IList<Parameter> parameters;
+        public IList<Parameter> parameters { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class Operation
     {
-        public IList<string> tags;
+        public IList<string> tags { get; set; }
 
-        public string summary;
+        public string summary { get; set; }
 
-        public string description;
+        public string description { get; set; }
 
-        public ExternalDocs externalDocs;
+        public ExternalDocs externalDocs { get; set; }
 
-        public string operationId;
+        public string operationId { get; set; }
 
-        public IList<string> consumes;
+        public IList<string> consumes { get; set; }
 
-        public IList<string> produces;
+        public IList<string> produces { get; set; }
 
-        public IList<Parameter> parameters;
+        public IList<Parameter> parameters { get; set; }
 
-        public IDictionary<string, Response> responses;
+        public IDictionary<string, Response> responses { get; set; }
 
-        public IList<string> schemes;
+        public IList<string> schemes { get; set; }
 
-        public bool? deprecated;
+        public bool? deprecated { get; set; }
 
-        public IList<IDictionary<string, IEnumerable<string>>> security;
+        public IList<IDictionary<string, IEnumerable<string>>> security { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class Tag
     {
-        public string name;
+        public string name { get; set; }
 
-        public string description;
+        public string description { get; set; }
 
-        public ExternalDocs externalDocs;
+        public ExternalDocs externalDocs { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class ExternalDocs
     {
-        public string description;
+        public string description { get; set; }
 
-        public string url;
+        public string url { get; set; }
     }
 
     public class Parameter : PartialSchema
     {
-        [JsonProperty("$ref")]
-        public string @ref;
+        [JsonPropertyName("$ref")]
+        public string @ref { get; set; }
 
-        public string name;
+        public string name { get; set; }
 
-        public string @in;
+        public string @in { get; set; }
 
-        public string description;
+        public string description { get; set; }
 
-        public bool? required;
+        public bool? required { get; set; }
 
-        public Schema schema;
+        public Schema schema { get; set; }
     }
 
     public class Schema
     {
-        [JsonProperty("$ref")]
-        public string @ref;
+        [JsonPropertyName("$ref")]
+        public string @ref { get; set; }
 
-        public string format;
+        public string format { get; set; }
 
-        public string title;
+        public string title { get; set; }
 
-        public string description;
+        public string description { get; set; }
 
-        public object @default;
+        public object @default { get; set; }
 
-        public int? multipleOf;
+        public int? multipleOf { get; set; }
 
-        public int? maximum;
+        public int? maximum { get; set; }
 
-        public bool? exclusiveMaximum;
+        public bool? exclusiveMaximum { get; set; }
 
-        public int? minimum;
+        public int? minimum { get; set; }
 
-        public bool? exclusiveMinimum;
+        public bool? exclusiveMinimum { get; set; }
 
-        public int? maxLength;
+        public int? maxLength { get; set; }
 
-        public int? minLength;
+        public int? minLength { get; set; }
 
-        public string pattern;
+        public string pattern { get; set; }
 
-        public int? maxItems;
+        public int? maxItems { get; set; }
 
-        public int? minItems;
+        public int? minItems { get; set; }
 
-        public bool? uniqueItems;
+        public bool? uniqueItems { get; set; }
 
-        public int? maxProperties;
+        public int? maxProperties { get; set; }
 
-        public int? minProperties;
+        public int? minProperties { get; set; }
 
-        public IList<string> required;
+        public IList<string> required { get; set; }
 
-        public IList<object> @enum;
+        public IList<object> @enum { get; set; }
 
-        public string type;
+        public string type { get; set; }
 
-        public Schema items;
+        public Schema items { get; set; }
 
-        public IList<Schema> allOf;
+        public IList<Schema> allOf { get; set; }
 
-        public IDictionary<string, Schema> properties;
+        public IDictionary<string, Schema> properties { get; set; }
 
-        public Schema additionalProperties;
+        public Schema additionalProperties { get; set; }
 
-        public string discriminator;
+        public string discriminator { get; set; }
 
-        public bool? readOnly;
+        public bool? readOnly { get; set; }
 
-        public Xml xml;
+        public Xml xml { get; set; }
 
-        public ExternalDocs externalDocs;
+        public ExternalDocs externalDocs { get; set; }
 
-        public object example;
+        public object example { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class PartialSchema
     {
-        public string type;
+        public string type { get; set; }
 
-        public string format;
+        public string format { get; set; }
 
-        public PartialSchema items;
+        public PartialSchema items { get; set; }
 
-        public string collectionFormat;
+        public string collectionFormat { get; set; }
 
-        public object @default;
+        public object @default { get; set; }
 
-        public int? maximum;
+        public int? maximum { get; set; }
 
-        public bool? exclusiveMaximum;
+        public bool? exclusiveMaximum { get; set; }
 
-        public int? minimum;
+        public int? minimum { get; set; }
 
-        public bool? exclusiveMinimum;
+        public bool? exclusiveMinimum { get; set; }
 
-        public int? maxLength;
+        public int? maxLength { get; set; }
 
-        public int? minLength;
+        public int? minLength { get; set; }
 
-        public string pattern;
+        public string pattern { get; set; }
 
-        public int? maxItems;
+        public int? maxItems { get; set; }
 
-        public int? minItems;
+        public int? minItems { get; set; }
 
-        public bool? uniqueItems;
+        public bool? uniqueItems { get; set; }
 
-        public IList<object> @enum;
+        public IList<object> @enum { get; set; }
 
-        public int? multipleOf;
+        public int? multipleOf { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class Response
     {
-        public string description;
+        public string description { get; set; }
 
-        public Schema schema;
+        public Schema schema { get; set; }
 
-        public IDictionary<string, Header> headers;
+        public IDictionary<string, Header> headers { get; set; }
 
-        public object examples;
+        public object examples { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 
     public class Header : PartialSchema
     {
-        public string description;
+        public string description { get; set; }
     }
 
     public class Xml
     {
-        public string name;
+        public string name { get; set; }
 
-        public string @namespace;
+        public string @namespace { get; set; }
 
-        public string prefix;
+        public string prefix { get; set; }
 
-        public bool? attribute;
+        public bool? attribute { get; set; }
 
-        public bool? wrapped;
+        public bool? wrapped { get; set; }
     }
 
     public class SecurityScheme
     {
-        public string type;
+        public string type { get; set; }
 
-        public string description;
+        public string description { get; set; }
 
-        public string name;
+        public string name { get; set; }
 
-        public string @in;
+        public string @in { get; set; }
 
-        public string flow;
+        public string flow { get; set; }
 
-        public string authorizationUrl;
+        public string authorizationUrl { get; set; }
 
-        public string tokenUrl;
+        public string tokenUrl { get; set; }
 
-        public IDictionary<string, string> scopes;
+        public IDictionary<string, string> scopes { get; set; }
 
-        public Dictionary<string, object> vendorExtensions = new Dictionary<string, object>();
+        // public Dictionary<string, object> vendorExtensions { get; set; } = new Dictionary<string, object>();
     }
 }

@@ -1,7 +1,5 @@
 ﻿using MicroBatchFramework.WebHosting.Swagger.Schemas;
 using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -101,19 +101,12 @@ namespace MicroBatchFramework.WebHosting.Swagger
                     doc.paths.Add("/" + declaringTypeName + "/" + item.Name, new PathItem { post = operation }); // everything post.
                 }
 
-                using (var ms = new MemoryStream())
-                using (var sw = new StreamWriter(ms, new UTF8Encoding(false)))
+                var serializer = new JsonSerializerOptions()
                 {
-                    var serializer = new JsonSerializer()
-                    {
-                        NullValueHandling = NullValueHandling.Ignore,
-                        ContractResolver = IgnoreEmptyEnumerablesResolver.Instance // omit empty collection.
-                    };
-                    serializer.Serialize(sw, doc);
-
-                    sw.Flush();
-                    return ms.ToArray();
-                }
+                    IgnoreNullValues = true,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+                return JsonSerializer.SerializeToUtf8Bytes(doc, serializer);
             }
             catch (Exception ex)
             {
@@ -174,7 +167,12 @@ namespace MicroBatchFramework.WebHosting.Swagger
                         BuildSchema(definitions, x.ParameterType);
                         refSchema = new Schema { @ref = BuildSchema(definitions, x.ParameterType) };
                         var unknownObj = System.Runtime.Serialization.FormatterServices.GetUninitializedObject(x.ParameterType);
-                        defaultObjectExample = JsonConvert.SerializeObject(unknownObj, new[] { new Newtonsoft.Json.Converters.StringEnumConverter() });
+                        var serializerOptions = new JsonSerializerOptions()
+                        {
+                            IgnoreNullValues = true,
+                            Converters = { new JsonStringEnumConverter() }
+                        };
+                        defaultObjectExample = JsonSerializer.Serialize(unknownObj, x.ParameterType, serializerOptions);
                         swaggerDataType = "string"; // object can not attach formData.
                     }
 
@@ -444,7 +442,7 @@ namespace MicroBatchFramework.WebHosting.Swagger
             public Dictionary<string, string> Parameters { get; set; }
             public string Returns { get; set; }
 
-            public XmlCommentStructure(string className, string methodName, string summary, string remarks, Dictionary<string,string> parameters, string returns)
+            public XmlCommentStructure(string className, string methodName, string summary, string remarks, Dictionary<string, string> parameters, string returns)
             {
                 ClassName = className;
                 MethodName = methodName;
@@ -453,59 +451,6 @@ namespace MicroBatchFramework.WebHosting.Swagger
                 Parameters = parameters;
                 Returns = returns;
             }
-        }
-    }
-
-    // http://stackoverflow.com/questions/34903151/how-to-omit-empty-collections-when-serializing-with-json-net
-    public class IgnoreEmptyEnumerablesResolver : DefaultContractResolver
-    {
-        public static readonly IgnoreEmptyEnumerablesResolver Instance = new IgnoreEmptyEnumerablesResolver();
-
-        protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
-        {
-            var property = base.CreateProperty(member, memberSerialization);
-
-            if (property.PropertyType != typeof(string) && typeof(IEnumerable).IsAssignableFrom(property.PropertyType))
-            {
-                property.ShouldSerialize = instance =>
-                {
-                    IEnumerable? enumerable = null;
-
-                    // this value could be in a public field or public property
-                    switch (member.MemberType)
-                    {
-                        case MemberTypes.Property:
-                            enumerable = instance
-                                .GetType()
-                                .GetProperty(member.Name)
-                                ?.GetValue(instance, null) as IEnumerable;
-                            break;
-                        case MemberTypes.Field:
-                            enumerable = instance
-                                .GetType()
-                                .GetField(member.Name)
-                                ?.GetValue(instance) as IEnumerable;
-                            break;
-                        default:
-                            break;
-
-                    }
-
-                    if (enumerable != null)
-                    {
-                        // check to see if there is at least one item in the Enumerable
-                        return enumerable.GetEnumerator().MoveNext();
-                    }
-                    else
-                    {
-                        // if the list is null, we defer the decision to NullValueHandling
-                        return true;
-                    }
-
-                };
-            }
-
-            return property;
         }
     }
 }
