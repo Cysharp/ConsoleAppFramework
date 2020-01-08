@@ -102,15 +102,15 @@ namespace SingleContainedApp
         [Command(new[] { "unescape", "-h" }, "unescape base64url to base64")]
         public void Unescape([Option(0)]string input) => Console.WriteLine((input));
 
-        [Command(new[] { "help", "-h", "-help", "--help" }, "show help")]
-        public void Help()
-        {
-            Console.WriteLine("Usage: base64urls [-version] [-help] [decode|encode|escape|unescape] [args]");
-            Console.WriteLine("E.g., run this: base64urls decode QyMgaXMgYXdlc29tZQ==");
-            Console.WriteLine("E.g., run this: base64urls encode \"C# is awesome.\"");
-            Console.WriteLine("E.g., run this: base64urls escape \"This+is/goingto+escape==\"");
-            Console.WriteLine("E.g., run this: base64urls unescape \"This-is_goingto-escape\"");
-        }
+        //[Command(new[] { "help", "-h", "-help", "--help" }, "show help")]
+        //public void Help()
+        //{
+        //    Console.WriteLine("Usage: base64urls [-version] [-help] [decode|encode|escape|unescape] [args]");
+        //    Console.WriteLine("E.g., run this: base64urls decode QyMgaXMgYXdlc29tZQ==");
+        //    Console.WriteLine("E.g., run this: base64urls encode \"C# is awesome.\"");
+        //    Console.WriteLine("E.g., run this: base64urls escape \"This+is/goingto+escape==\"");
+        //    Console.WriteLine("E.g., run this: base64urls unescape \"This-is_goingto-escape\"");
+        //}
     }
 
     public class ComplexArgTest : ConsoleAppBase
@@ -132,7 +132,7 @@ namespace SingleContainedApp
     {
         static async Task Main(string[] args)
         {
-            args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
+            // args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
 
             await ConsoleAppHost.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
@@ -140,7 +140,7 @@ namespace SingleContainedApp
                     // mapping config json to IOption<MyConfig>
                     services.Configure<MyConfig>(hostContext.Configuration);
                 })
-                .RunConsoleAppEngineAsync<ComplexArgTest>(args);
+                .RunConsoleAppEngineAsync<OverrideCheck>(args);
         }
     }
 }

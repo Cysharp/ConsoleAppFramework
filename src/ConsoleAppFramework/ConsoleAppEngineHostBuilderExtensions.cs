@@ -15,7 +15,7 @@ namespace ConsoleAppFramework
 
         public static IHostBuilder UseConsoleAppEngine(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
         {
-            if (args.Length == 0 || (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase)))
+            if (args.Length == 0 || (args.Length == 1 && args[0].Trim('-').Equals(ListCommand, StringComparison.OrdinalIgnoreCase)))
             {
                 ShowMethodList();
                 hostBuilder.ConfigureServices(services =>
@@ -25,7 +25,7 @@ namespace ConsoleAppFramework
                 });
                 return hostBuilder;
             }
-            if (args.Length == 2 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
+            if (args.Length == 2 && args[0].Trim('-').Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
                 var (t, mi) = GetTypeFromAssemblies(args[1]);
                 if (mi != null)
@@ -87,7 +87,6 @@ namespace ConsoleAppFramework
         {
             var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             var defaultMethod = method.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
-            var hasList = method.Any(x => x.GetCustomAttribute<CommandAttribute>()?.EqualsAny(ListCommand) ?? false);
             var hasHelp = method.Any(x => x.GetCustomAttribute<CommandAttribute>()?.EqualsAny(HelpCommand) ?? false);
 
             if (args.Length == 0)
@@ -113,18 +112,7 @@ namespace ConsoleAppFramework
                 }
             }
 
-            if (!hasList && args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase))
-            {
-                ShowMethodList();
-                hostBuilder.ConfigureServices(services =>
-                {
-                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                    services.AddSingleton<IHostedService, EmptyHostedService>();
-                });
-                return hostBuilder;
-            }
-
-            if (!hasHelp && args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
+            if (!hasHelp && args.Length == 1 && args[0].Trim('-').Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
                 Console.Write(new CommandHelpBuilder().BuildHelpMessage(method, defaultMethod));
 
@@ -209,7 +197,7 @@ namespace ConsoleAppFramework
                 {
                     if (cmdattr.CommandNames.Any(x => arg0.Equals(x, StringComparison.OrdinalIgnoreCase)))
                     {
-                        if(foundType != null && foundMethod != null)
+                        if (foundType != null && foundMethod != null)
                         {
                             throw new InvalidOperationException($"Duplicate ConsoleApp Command name is not allowed, {foundType.FullName}.{foundMethod.Name} and {baseType.FullName}.{method.Name}");
                         }
@@ -231,7 +219,7 @@ namespace ConsoleAppFramework
                     }
                 }
             }
-            if(foundType != null && foundMethod != null)
+            if (foundType != null && foundMethod != null)
             {
                 return (foundType, foundMethod);
             }
