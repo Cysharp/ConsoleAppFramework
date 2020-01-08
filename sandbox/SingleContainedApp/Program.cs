@@ -122,6 +122,15 @@ namespace SingleContainedApp
         }
     }
 
+    public class StandardArgTest : ConsoleAppBase
+    {
+        public void Run([Option(0, "message of x.")]string x)
+        {
+            Console.WriteLine("1." + x);
+            //Console.WriteLine("2." + y);
+        }
+    }
+
     public class Person
     {
         public int Age { get; set; }
@@ -140,7 +149,7 @@ namespace SingleContainedApp
                     // mapping config json to IOption<MyConfig>
                     services.Configure<MyConfig>(hostContext.Configuration);
                 })
-                .RunConsoleAppEngineAsync<OverrideCheck>(args);
+                .RunConsoleAppEngineAsync<StandardArgTest>(args);
         }
     }
 }

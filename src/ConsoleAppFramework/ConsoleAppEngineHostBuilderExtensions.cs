@@ -10,14 +10,13 @@ namespace ConsoleAppFramework
 {
     public static class ConsoleAppEngineHostBuilderExtensions
     {
-        const string ListCommand = "list";
         const string HelpCommand = "help";
+        const string VersionCommand = "version";
 
         public static IHostBuilder UseConsoleAppEngine(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
         {
-            if (args.Length == 0 || (args.Length == 1 && args[0].Trim('-').Equals(ListCommand, StringComparison.OrdinalIgnoreCase)))
+            IHostBuilder ConfigureEmptyService()
             {
-                ShowMethodList();
                 hostBuilder.ConfigureServices(services =>
                 {
                     services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
@@ -25,30 +24,59 @@ namespace ConsoleAppFramework
                 });
                 return hostBuilder;
             }
-            if (args.Length == 2 && args[0].Trim('-').Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
+
+            // () or -help
+            if (args.Length == 0 || (args.Length == 1 && TrimEquals(args[0], HelpCommand)))
             {
-                var (t, mi) = GetTypeFromAssemblies(args[1]);
-                if (mi != null)
-                {
-                    Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
-                }
-                else
-                {
-                    Console.Error.WriteLine("Method not found , please check \"list\" command.");
-                }
-                hostBuilder.ConfigureServices(services =>
-                {
-                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                    services.AddSingleton<IHostedService, EmptyHostedService>();
-                });
+                ShowMethodList();
+                ConfigureEmptyService();
                 return hostBuilder;
+            }
+
+            // -version
+            if (args.Length == 1 && TrimEquals(args[0], VersionCommand))
+            {
+                ShowVersion();
+                ConfigureEmptyService();
+                return hostBuilder;
+            }
+
+            if (args.Length == 2)
+            {
+                int methodIndex = -1;
+
+                // help command
+                if (TrimEquals(args[0], HelpCommand))
+                {
+                    methodIndex = 1;
+                }
+                // command -help
+                else if (TrimEquals(args[1], HelpCommand))
+                {
+                    methodIndex = 0;
+                }
+
+                if (methodIndex != -1)
+                {
+                    var (t, mi) = GetTypeFromAssemblies(args[1], null);
+                    if (mi != null)
+                    {
+                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("Method not found, please check \"help\" command.");
+                    }
+                    ConfigureEmptyService();
+                    return hostBuilder;
+                }
             }
 
             Type? type = null;
             MethodInfo? methodInfo = null;
             if (args.Length >= 1)
             {
-                (type, methodInfo) = GetTypeFromAssemblies(args[0]);
+                (type, methodInfo) = GetTypeFromAssemblies(args[0], null);
             }
 
             hostBuilder = hostBuilder
@@ -85,9 +113,20 @@ namespace ConsoleAppFramework
         public static IHostBuilder UseConsoleAppEngine<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
             where T : ConsoleAppBase
         {
-            var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            var defaultMethod = method.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
-            var hasHelp = method.Any(x => x.GetCustomAttribute<CommandAttribute>()?.EqualsAny(HelpCommand) ?? false);
+            IHostBuilder ConfigureEmptyService()
+            {
+                hostBuilder.ConfigureServices(services =>
+                {
+                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                    services.AddSingleton<IHostedService, EmptyHostedService>();
+                });
+                return hostBuilder;
+            }
+
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var defaultMethod = methods.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
+            var hasHelp = methods.Any(x => x.GetCustomAttribute<CommandAttribute>()?.EqualsAny(HelpCommand) ?? false);
+            var hasVersion = methods.Any(x => x.GetCustomAttribute<CommandAttribute>()?.EqualsAny(VersionCommand) ?? false);
 
             if (args.Length == 0)
             {
@@ -95,13 +134,8 @@ namespace ConsoleAppFramework
                 {
                     if (!hasHelp)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(method, defaultMethod));
-
-                        hostBuilder.ConfigureServices(services =>
-                        {
-                            services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                            services.AddSingleton<IHostedService, EmptyHostedService>();
-                        });
+                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
+                        ConfigureEmptyService();
                         return hostBuilder;
                     }
                     else
@@ -112,16 +146,45 @@ namespace ConsoleAppFramework
                 }
             }
 
-            if (!hasHelp && args.Length == 1 && args[0].Trim('-').Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
+            if (!hasHelp && args.Length == 1 && TrimEquals(args[0], HelpCommand))
             {
-                Console.Write(new CommandHelpBuilder().BuildHelpMessage(method, defaultMethod));
-
-                hostBuilder.ConfigureServices(services =>
-                {
-                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                    services.AddSingleton<IHostedService, EmptyHostedService>();
-                });
+                Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
+                ConfigureEmptyService();
                 return hostBuilder;
+            }
+
+            if (args.Length == 1 && TrimEquals(args[0], VersionCommand))
+            {
+                ShowVersion();
+                ConfigureEmptyService();
+                return hostBuilder;
+            }
+
+            if (args.Length == 2 && methods.Length != 1)
+            {
+                int methodIndex = -1;
+
+                // help command
+                if (TrimEquals(args[0], HelpCommand))
+                {
+                    methodIndex = 1;
+                }
+                // command -help
+                else if (TrimEquals(args[1], HelpCommand))
+                {
+                    methodIndex = 0;
+                }
+
+                if (methodIndex != -1)
+                {
+                    var (_, mi) = GetTypeFromAssemblies(args[methodIndex], typeof(T));
+                    if (mi != null)
+                    {
+                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
+                        ConfigureEmptyService();
+                        return hostBuilder;
+                    }
+                }
             }
 
             hostBuilder = hostBuilder.ConfigureServices(services =>
@@ -141,6 +204,31 @@ namespace ConsoleAppFramework
             where T : ConsoleAppBase
         {
             return UseConsoleAppEngine<T>(hostBuilder, args, interceptor).Build().RunAsync();
+        }
+
+        static bool TrimEquals(string arg, string command)
+        {
+            return arg.Trim('-').Equals(command, StringComparison.OrdinalIgnoreCase);
+        }
+
+        static void ShowVersion()
+        {
+            var asm = Assembly.GetEntryAssembly();
+            var version = "1.0.0";
+            var infoVersion = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            if (infoVersion != null)
+            {
+                version = infoVersion.InformationalVersion;
+            }
+            else
+            {
+                var asmVersion = asm.GetCustomAttribute<AssemblyVersionAttribute>();
+                if (asmVersion != null)
+                {
+                    version = asmVersion.Version;
+                }
+            }
+            Console.WriteLine(version);
         }
 
         static void ShowMethodList()
@@ -178,9 +266,12 @@ namespace ConsoleAppFramework
             return consoleAppBaseTypes;
         }
 
-        static (Type?, MethodInfo?) GetTypeFromAssemblies(string arg0)
+        static (Type?, MethodInfo?) GetTypeFromAssemblies(string arg0, Type? defaultBaseType)
         {
-            var consoleAppBaseTypes = GetConsoleAppTypes();
+            var consoleAppBaseTypes = (defaultBaseType == null)
+                ? GetConsoleAppTypes()
+                : new List<Type> { defaultBaseType };
+
             if (consoleAppBaseTypes == null)
             {
                 return (null, null);
@@ -195,7 +286,7 @@ namespace ConsoleAppFramework
                 foreach (var (method, cmdattr) in baseType.GetMethods().
                     Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
                 {
-                    if (cmdattr.CommandNames.Any(x => arg0.Equals(x, StringComparison.OrdinalIgnoreCase)))
+                    if (cmdattr.CommandNames.Any(x => TrimEquals(arg0, x)))
                     {
                         if (foundType != null && foundMethod != null)
                         {

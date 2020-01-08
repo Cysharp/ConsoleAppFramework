@@ -43,9 +43,9 @@ namespace ConsoleAppFramework
             if (defaultMethod != null)
             {
                 // Display a help messages for default method
-                sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultMethod), showCommandName:false));
+                sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultMethod), showCommandName: false));
             }
-            
+
             if (methodInfo.Length > 1)
             {
                 // Display sub commands list.
@@ -155,13 +155,13 @@ namespace ConsoleAppFramework
                 .Where(x => !x.Index.HasValue)
                 .Select(x => (Options: string.Join(", ", x.Options) + $" <{x.ValueTypeName}>", x.Description, x.IsRequired, x.DefaultValue))
                 .ToArray();
-            
+
             if (!optionsFormatted.Any()) return string.Empty;
-            
+
             var maxWidth = optionsFormatted.Max(x => x.Options.Length);
 
             var sb = new StringBuilder();
-            
+
             sb.AppendLine("Options:");
             foreach (var opt in optionsFormatted)
             {
