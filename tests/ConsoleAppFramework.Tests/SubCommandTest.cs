@@ -17,7 +17,7 @@ namespace ConsoleAppFramework.Tests
             this.testOutput = testOutput;
         }
 
-        public class TwoSubCommand : BatchBase
+        public class TwoSubCommand : ConsoleAppBase
         {
             public void Main(double d)
             {
@@ -55,7 +55,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "d:12345.12345");
             }
             {
@@ -63,7 +63,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "path:foo");
                 log.InfoLogShouldBe(1, "pfx:bar");
             }
@@ -72,7 +72,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "x:10");
                 log.InfoLogShouldBe(1, "y:20");
             }
@@ -81,14 +81,14 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "input:foobarbaz");
                 log.InfoLogShouldBe(1, "x:10");
                 log.InfoLogShouldBe(2, "y:20");
             }
         }
 
-        public class AliasCommand : BatchBase
+        public class AliasCommand : ConsoleAppBase
         {
             [Command(new[] { "run", "r" })]
             public void Run(string path, string pfx)
@@ -117,7 +117,7 @@ namespace ConsoleAppFramework.Tests
                     var log = new LogStack();
                     await new HostBuilder()
                         .ConfigureTestLogging(testOutput, log, true)
-                        .RunBatchEngineAsync<AliasCommand>(args);
+                        .RunConsoleAppEngineAsync<AliasCommand>(args);
                     log.InfoLogShouldBe(0, "path:foo");
                     log.InfoLogShouldBe(1, "pfx:bar");
                 }
@@ -128,7 +128,7 @@ namespace ConsoleAppFramework.Tests
                     var log = new LogStack();
                     await new HostBuilder()
                         .ConfigureTestLogging(testOutput, log, true)
-                        .RunBatchEngineAsync<AliasCommand>(args);
+                        .RunConsoleAppEngineAsync<AliasCommand>(args);
                     log.InfoLogShouldBe(0, "30");
                 }
                 {
@@ -136,13 +136,13 @@ namespace ConsoleAppFramework.Tests
                     var log = new LogStack();
                     await new HostBuilder()
                         .ConfigureTestLogging(testOutput, log, true)
-                        .RunBatchEngineAsync<AliasCommand>(args);
+                        .RunConsoleAppEngineAsync<AliasCommand>(args);
                     log.InfoLogShouldBe(0, "199");
                 }
             }
         }
 
-        public class OverrideDefaultCommand : BatchBase
+        public class OverrideDefaultCommand : ConsoleAppBase
         {
             [Command("list")]
             public void List()
@@ -165,7 +165,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<OverrideDefaultCommand>(args);
+                    .RunConsoleAppEngineAsync<OverrideDefaultCommand>(args);
                 log.InfoLogShouldBe(0, "lst");
             }
             {
@@ -173,7 +173,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<OverrideDefaultCommand>(args);
+                    .RunConsoleAppEngineAsync<OverrideDefaultCommand>(args);
                 log.InfoLogShouldBe(0, "hlp");
             }
             {
@@ -181,12 +181,12 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<OverrideDefaultCommand>(args);
+                    .RunConsoleAppEngineAsync<OverrideDefaultCommand>(args);
                 log.InfoLogShouldBe(0, "hlp");
             }
         }
 
-        public class NotFoundPath : BatchBase
+        public class NotFoundPath : ConsoleAppBase
         {
             [Command("run")]
             public void Run(string path, string pfx, string thumbnail, string output, bool allowoverwrite = false)
@@ -209,7 +209,7 @@ namespace ConsoleAppFramework.Tests
             {
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync<NotFoundPath>(args);
+                    .RunConsoleAppEngineAsync<NotFoundPath>(args);
             });
         }
     }

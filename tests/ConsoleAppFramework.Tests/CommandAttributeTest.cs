@@ -8,7 +8,7 @@ namespace ConsoleAppFramework.Tests
 {
     public class CommandAttributeTest
     {
-        class CommandAttributeTestCommand : BatchBase
+        class CommandAttributeTestCommand : ConsoleAppBase
         {
             ResultContainer _Result;
             public CommandAttributeTestCommand(ResultContainer r)
@@ -28,12 +28,12 @@ namespace ConsoleAppFramework.Tests
         [Fact]
         public async Task TestCommandName()
         {
-            var host = BatchHost.CreateDefaultBuilder()
+            var host = ConsoleAppHost.CreateDefaultBuilder()
                 .ConfigureServices((c, services) =>
                 {
                     services.AddSingleton<ResultContainer>();
                 })
-                .UseBatchEngine<CommandAttributeTestCommand>(new string[]{ "test", "-value", "1" })
+                .UseConsoleAppEngine<CommandAttributeTestCommand>(new string[]{ "test", "-value", "1" })
                 .Build();
             var result = host.Services.GetService<ResultContainer>();
             await host.RunAsync();

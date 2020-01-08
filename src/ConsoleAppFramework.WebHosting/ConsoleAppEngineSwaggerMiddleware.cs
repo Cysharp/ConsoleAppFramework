@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.WebHosting
 {
-    public class BatchEngineSwaggerMiddleware
+    public class ConsoleAppEngineSwaggerMiddleware
     {
         static readonly Task EmptyTask = Task.FromResult(0);
 
@@ -15,7 +15,7 @@ namespace ConsoleAppFramework.WebHosting
         readonly MethodInfo[] handlers;
         readonly SwaggerOptions options;
 
-        public BatchEngineSwaggerMiddleware(RequestDelegate next, TargetBatchTypeCollection targetTypes, SwaggerOptions options)
+        public ConsoleAppEngineSwaggerMiddleware(RequestDelegate next, TargetConsoleAppTypeCollection targetTypes, SwaggerOptions options)
         {
             this.next = next;
             this.handlers = targetTypes.SelectMany(x => x.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)).ToArray();
@@ -42,7 +42,7 @@ namespace ConsoleAppFramework.WebHosting
                 return;
             }
 
-            var myAssembly = typeof(BatchEngineSwaggerMiddleware).GetTypeInfo().Assembly;
+            var myAssembly = typeof(ConsoleAppEngineSwaggerMiddleware).GetTypeInfo().Assembly;
 
             using (var stream = myAssembly.GetManifestResourceStream(filePath))
             {

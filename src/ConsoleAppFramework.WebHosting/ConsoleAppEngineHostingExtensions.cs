@@ -13,18 +13,18 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework // .WebHosting
 {
-    public static class BatchEngineHostingExtensions
+    public static class ConsoleAppEngineHostingExtensions
     {
-        public static IWebHostBuilder PrepareBatchEngineMiddleware(this IWebHostBuilder builder, IBatchInterceptor? interceptor = null)
+        public static IWebHostBuilder PrepareConsoleAppEngineMiddleware(this IWebHostBuilder builder, IConsoleAppInterceptor? interceptor = null)
         {
-            var batchTypes = CollectBatchTypes();
-            var target = new TargetBatchTypeCollection(batchTypes);
+            var consoleAppTypes = CollectConsoleAppTypes();
+            var target = new TargetConsoleAppTypeCollection(consoleAppTypes);
 
             return builder
                 .ConfigureServices(services =>
                 {
-                    services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInterceptor.Default);
-                    services.AddSingleton<TargetBatchTypeCollection>(target);
+                    services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
+                    services.AddSingleton<TargetConsoleAppTypeCollection>(target);
                     foreach (var item in target)
                     {
                         services.AddTransient(item);
@@ -32,10 +32,10 @@ namespace ConsoleAppFramework // .WebHosting
                 });
         }
 
-        public static Task RunBatchEngineWebHosting(this IWebHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, IBatchInterceptor? interceptor = null)
+        public static Task RunConsoleAppEngineWebHosting(this IWebHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, IConsoleAppInterceptor? interceptor = null)
         {
             return builder
-                .PrepareBatchEngineMiddleware(interceptor)
+                .PrepareConsoleAppEngineMiddleware(interceptor)
                 .ConfigureServices(services =>
                 {
                     if (swaggerOptions == null)
@@ -55,29 +55,29 @@ namespace ConsoleAppFramework // .WebHosting
                 .RunAsync();
         }
 
-        public static IApplicationBuilder UseBatchEngineMiddleware(this IApplicationBuilder builder)
+        public static IApplicationBuilder UseConsoleAppEngineMiddleware(this IApplicationBuilder builder)
         {
-            return builder.UseMiddleware<BatchEngineMiddleware>();
+            return builder.UseMiddleware<ConsoleAppEngineMiddleware>();
         }
 
-        public static IApplicationBuilder UseBatchEngineSwaggerMiddleware(this IApplicationBuilder builder, SwaggerOptions options)
+        public static IApplicationBuilder UseConsoleAppEngineSwaggerMiddleware(this IApplicationBuilder builder, SwaggerOptions options)
         {
-            return builder.UseMiddleware<BatchEngineSwaggerMiddleware>(options);
+            return builder.UseMiddleware<ConsoleAppEngineSwaggerMiddleware>(options);
         }
 
         public class DefaultStartup
         {
             public void Configure(IApplicationBuilder app, IHostApplicationLifetime lifetime)
             {
-                var interceptor = app.ApplicationServices.GetService<IBatchInterceptor>();
+                var interceptor = app.ApplicationServices.GetService<IConsoleAppInterceptor>();
                 var provider = app.ApplicationServices.GetService<IServiceProvider>();
-                var logger = app.ApplicationServices.GetService<ILogger<BatchEngine>>();
+                var logger = app.ApplicationServices.GetService<ILogger<ConsoleAppEngine>>();
 
                 lifetime.ApplicationStarted.Register(async () =>
                 {
                     try
                     {
-                        await interceptor.OnBatchEngineBeginAsync(provider, logger);
+                        await interceptor.OnConsoleAppEngineBeginAsync(provider, logger);
                     }
                     catch { }
                 });
@@ -86,20 +86,20 @@ namespace ConsoleAppFramework // .WebHosting
                 {
                     try
                     {
-                        await interceptor.OnBatchEngineEndAsync();
+                        await interceptor.OnConsoleAppEngineEndAsync();
                     }
                     catch { }
                 });
 
                 var swaggerOption = app.ApplicationServices.GetService<SwaggerOptions>() ?? new SwaggerOptions("ConsoleAppFramework", "", "/");
-                app.UseBatchEngineSwaggerMiddleware(swaggerOption);
-                app.UseBatchEngineMiddleware();
+                app.UseConsoleAppEngineSwaggerMiddleware(swaggerOption);
+                app.UseConsoleAppEngineMiddleware();
             }
         }
 
-        static List<Type> CollectBatchTypes()
+        static List<Type> CollectConsoleAppTypes()
         {
-            List<Type> batchBaseTypes = new List<Type>();
+            List<Type> consoleAppBaseTypes = new List<Type>();
 
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -120,14 +120,14 @@ namespace ConsoleAppFramework // .WebHosting
                 if (types is null) continue;
                 foreach (var item in types)
                 {
-                    if (typeof(BatchBase).IsAssignableFrom(item) && item != typeof(BatchBase))
+                    if (typeof(ConsoleAppBase).IsAssignableFrom(item) && item != typeof(ConsoleAppBase))
                     {
-                        batchBaseTypes.Add(item);
+                        consoleAppBaseTypes.Add(item);
                     }
                 }
             }
 
-            return batchBaseTypes;
+            return consoleAppBaseTypes;
         }
     }
 }

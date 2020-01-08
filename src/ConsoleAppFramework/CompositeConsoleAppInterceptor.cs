@@ -7,23 +7,23 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    public class CompositeBatchInterceptor : IBatchInterceptor
+    public class CompositeConsoleAppInterceptor : IConsoleAppInterceptor
     {
-        readonly IBatchInterceptor[] interceptors;
+        readonly IConsoleAppInterceptor[] interceptors;
 
-        public CompositeBatchInterceptor(params IBatchInterceptor[] interceptors)
+        public CompositeConsoleAppInterceptor(params IConsoleAppInterceptor[] interceptors)
         {
             this.interceptors = interceptors;
         }
 
-        public async ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger)
+        public async ValueTask OnConsoleAppEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnBatchEngineBeginAsync(serviceProvider, logger);
+                    await item.OnConsoleAppEngineBeginAsync(serviceProvider, logger);
                 }
                 catch (Exception e)
                 {
@@ -33,14 +33,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnBatchEngineEndAsync()
+        public async ValueTask OnConsoleAppEngineEndAsync()
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnBatchEngineEndAsync();
+                    await item.OnConsoleAppEngineEndAsync();
                 }
                 catch (Exception e)
                 {
@@ -50,14 +50,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnBatchRunBeginAsync(BatchContext context)
+        public async ValueTask OnConsoleAppRunBeginAsync(ConsoleAppContext context)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnBatchRunBeginAsync(context);
+                    await item.OnConsoleAppRunBeginAsync(context);
                 }
                 catch (Exception e)
                 {
@@ -67,14 +67,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnBatchRunCompleteAsync(BatchContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public async ValueTask OnConsoleAppRunCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnBatchRunCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
+                    await item.OnConsoleAppRunCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
                 }
                 catch (Exception e)
                 {

@@ -10,12 +10,12 @@ namespace MultiContainedApp
     {
         static async Task Main(string[] args)
         {
-            await BatchHost.CreateDefaultBuilder()
-                .RunBatchEngineAsync(args);
+            await ConsoleAppHost.CreateDefaultBuilder()
+                .RunConsoleAppEngineAsync(args);
         }
     }
 
-    public class Foo : BatchBase
+    public class Foo : ConsoleAppBase
     {
         [Command("Echo", "Echo message to the logger")]
         public void Echo([Option("msg", "Message to send.")]string msg)
@@ -29,7 +29,7 @@ namespace MultiContainedApp
         }
     }
 
-    public class Bar : BatchBase
+    public class Bar : ConsoleAppBase
     {
         public void Hello2()
         {

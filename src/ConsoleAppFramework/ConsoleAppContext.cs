@@ -4,14 +4,14 @@ using System.Threading;
 
 namespace ConsoleAppFramework
 {
-    public class BatchContext
+    public class ConsoleAppContext
     {
         public string?[] Arguments { get; private set; }
         public DateTime Timestamp { get; private set; }
         public CancellationToken CancellationToken { get; private set; }
-        public ILogger<BatchEngine> Logger { get; private set; }
+        public ILogger<ConsoleAppEngine> Logger { get; private set; }
 
-        public BatchContext(string?[] arguments, DateTime timestamp, CancellationToken cancellationToken, ILogger<BatchEngine> logger)
+        public ConsoleAppContext(string?[] arguments, DateTime timestamp, CancellationToken cancellationToken, ILogger<ConsoleAppEngine> logger)
         {
             Arguments = arguments;
             Timestamp = timestamp;

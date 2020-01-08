@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    public static class BatchEngineHostBuilderExtensions
+    public static class ConsoleAppEngineHostBuilderExtensions
     {
         const string ListCommand = "list";
         const string HelpCommand = "help";
 
-        public static IHostBuilder UseBatchEngine(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
+        public static IHostBuilder UseConsoleAppEngine(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
         {
             if (args.Length == 0 || (args.Length == 1 && args[0].Equals(ListCommand, StringComparison.OrdinalIgnoreCase)))
             {
@@ -56,8 +56,8 @@ namespace ConsoleAppFramework
                 {
                     services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
                     services.AddSingleton<string[]>(args);
-                    services.AddSingleton<IHostedService, BatchEngineService>();
-                    services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInterceptor.Default);
+                    services.AddSingleton<IHostedService, ConsoleAppEngineService>();
+                    services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
                     if (type != null)
                     {
                         services.AddSingleton<Type>(type);
@@ -77,13 +77,13 @@ namespace ConsoleAppFramework
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunBatchEngineAsync(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
+        public static Task RunConsoleAppEngineAsync(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
         {
-            return UseBatchEngine(hostBuilder, args, interceptor).Build().RunAsync();
+            return UseConsoleAppEngine(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
-        public static IHostBuilder UseBatchEngine<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
-            where T : BatchBase
+        public static IHostBuilder UseConsoleAppEngine<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+            where T : ConsoleAppBase
         {
             var method = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             var defaultMethod = method.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
@@ -141,28 +141,28 @@ namespace ConsoleAppFramework
                 services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
                 services.AddSingleton<string[]>(args);
                 services.AddSingleton<Type>(typeof(T));
-                services.AddSingleton<IHostedService, BatchEngineService>();
-                services.AddSingleton<IBatchInterceptor>(interceptor ?? NullBatchInterceptor.Default);
+                services.AddSingleton<IHostedService, ConsoleAppEngineService>();
+                services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
                 services.AddTransient<T>();
             });
 
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunBatchEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IBatchInterceptor? interceptor = null)
-            where T : BatchBase
+        public static Task RunConsoleAppEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+            where T : ConsoleAppBase
         {
-            return UseBatchEngine<T>(hostBuilder, args, interceptor).Build().RunAsync();
+            return UseConsoleAppEngine<T>(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
         static void ShowMethodList()
         {
-            Console.Write(new CommandHelpBuilder().BuildHelpMessage(GetBatchTypes()));
+            Console.Write(new CommandHelpBuilder().BuildHelpMessage(GetConsoleAppTypes()));
         }
 
-        static List<Type> GetBatchTypes()
+        static List<Type> GetConsoleAppTypes()
         {
-            List<Type> batchBaseTypes = new List<Type>();
+            List<Type> consoleAppBaseTypes = new List<Type>();
 
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -180,20 +180,20 @@ namespace ConsoleAppFramework
 
                 foreach (var item in types)
                 {
-                    if (typeof(BatchBase).IsAssignableFrom(item) && item != typeof(BatchBase))
+                    if (typeof(ConsoleAppBase).IsAssignableFrom(item) && item != typeof(ConsoleAppBase))
                     {
-                        batchBaseTypes.Add(item);
+                        consoleAppBaseTypes.Add(item);
                     }
                 }
             }
 
-            return batchBaseTypes;
+            return consoleAppBaseTypes;
         }
 
         static (Type?, MethodInfo?) GetTypeFromAssemblies(string arg0)
         {
-            var batchBaseTypes = GetBatchTypes();
-            if (batchBaseTypes == null)
+            var consoleAppBaseTypes = GetConsoleAppTypes();
+            if (consoleAppBaseTypes == null)
             {
                 return (null, null);
             }
@@ -201,7 +201,7 @@ namespace ConsoleAppFramework
             var split = arg0.Split('.');
             Type? foundType = null;
             MethodInfo? foundMethod = null;
-            foreach (var baseType in batchBaseTypes)
+            foreach (var baseType in consoleAppBaseTypes)
             {
                 bool isFound = false;
                 foreach (var (method, cmdattr) in baseType.GetMethods().
@@ -211,7 +211,7 @@ namespace ConsoleAppFramework
                     {
                         if(foundType != null && foundMethod != null)
                         {
-                            throw new InvalidOperationException($"Duplicate BatchBase Command name is not allowed, {foundType.FullName}.{foundMethod.Name} and {baseType.FullName}.{method.Name}");
+                            throw new InvalidOperationException($"Duplicate ConsoleApp Command name is not allowed, {foundType.FullName}.{foundMethod.Name} and {baseType.FullName}.{method.Name}");
                         }
                         foundType = baseType;
                         foundMethod = method;
@@ -224,7 +224,7 @@ namespace ConsoleAppFramework
                     {
                         if (foundType != null)
                         {
-                            throw new InvalidOperationException("Duplicate BatchBase TypeName is not allowed, " + foundType.FullName + " and " + baseType.FullName);
+                            throw new InvalidOperationException("Duplicate ConsoleApp TypeName is not allowed, " + foundType.FullName + " and " + baseType.FullName);
                         }
                         foundType = baseType;
                         foundMethod = baseType.GetMethod(split[1]);

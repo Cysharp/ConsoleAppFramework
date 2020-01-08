@@ -7,7 +7,7 @@ namespace ConsoleAppFramework.Tests
 {
     public class ExitCodeTest
     {
-        public class ExitCodeTestBatch : BatchBase
+        public class ExitCodeTestBatch : ConsoleAppBase
         {
             [Command(nameof(NoExitCode))]
             public void NoExitCode()
@@ -55,7 +55,7 @@ namespace ConsoleAppFramework.Tests
         public async Task NoExitCode()
         {
             Environment.ExitCode = 0;
-            await new HostBuilder().RunBatchEngineAsync<ExitCodeTestBatch>(new[] { nameof(NoExitCode) });
+            await new HostBuilder().RunConsoleAppEngineAsync<ExitCodeTestBatch>(new[] { nameof(NoExitCode) });
             Assert.Equal(0, Environment.ExitCode);
         }
 
@@ -63,7 +63,7 @@ namespace ConsoleAppFramework.Tests
         public async Task NoExitCodeWithTask()
         {
             Environment.ExitCode = 0;
-            await new HostBuilder().RunBatchEngineAsync<ExitCodeTestBatch>(new[] { nameof(NoExitCodeWithTask) });
+            await new HostBuilder().RunConsoleAppEngineAsync<ExitCodeTestBatch>(new[] { nameof(NoExitCodeWithTask) });
             Assert.Equal(0, Environment.ExitCode);
         }
 
@@ -71,7 +71,7 @@ namespace ConsoleAppFramework.Tests
         public async Task NoExitCodeException()
         {
             Environment.ExitCode = 0;
-            await new HostBuilder().RunBatchEngineAsync<ExitCodeTestBatch>(new[] { nameof(NoExitCodeException) });
+            await new HostBuilder().RunConsoleAppEngineAsync<ExitCodeTestBatch>(new[] { nameof(NoExitCodeException) });
             Assert.Equal(1, Environment.ExitCode);
         }
 
@@ -79,7 +79,7 @@ namespace ConsoleAppFramework.Tests
         public async Task ExitCode()
         {
             Environment.ExitCode = 0;
-            await new HostBuilder().RunBatchEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCode) });
+            await new HostBuilder().RunConsoleAppEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCode) });
             Assert.Equal(12345, Environment.ExitCode);
         }
 
@@ -87,7 +87,7 @@ namespace ConsoleAppFramework.Tests
         public async Task ExitCodeException()
         {
             Environment.ExitCode = 0;
-            await new HostBuilder().RunBatchEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCodeException) });
+            await new HostBuilder().RunConsoleAppEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCodeException) });
             Assert.Equal(1, Environment.ExitCode);
         }
 
@@ -95,7 +95,7 @@ namespace ConsoleAppFramework.Tests
         public async Task ExitCodeWithTask()
         {
             Environment.ExitCode = 0;
-            await new HostBuilder().RunBatchEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCodeWithTask) });
+            await new HostBuilder().RunConsoleAppEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCodeWithTask) });
             Assert.Equal(54321, Environment.ExitCode);
         }
 
@@ -103,7 +103,7 @@ namespace ConsoleAppFramework.Tests
         public async Task ExitCodeWithTaskException()
         {
             Environment.ExitCode = 0;
-            await new HostBuilder().RunBatchEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCodeWithTaskException) });
+            await new HostBuilder().RunConsoleAppEngineAsync<ExitCodeTestBatch>(new[] { nameof(ExitCodeWithTaskException) });
             Assert.Equal(1, Environment.ExitCode);
         }
 

@@ -9,49 +9,49 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.WebHosting
 {
-    internal class WebHostingInterceptor : IBatchInterceptor
+    internal class WebHostingInterceptor : IConsoleAppInterceptor
     {
-        readonly IBatchInterceptor innerInterceptor;
+        readonly IConsoleAppInterceptor innerInterceptor;
 
         public bool CompleteSuccessfully { get; private set; }
         public string? ErrorMessage { get; private set; }
         public Exception? Exception { get; private set; }
 
-        public WebHostingInterceptor(IBatchInterceptor innerInterceptor)
+        public WebHostingInterceptor(IConsoleAppInterceptor innerInterceptor)
         {
             this.innerInterceptor = innerInterceptor;
         }
 
-        public ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger)
+        public ValueTask OnConsoleAppEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
-            return innerInterceptor.OnBatchEngineBeginAsync(serviceProvider, logger);
+            return innerInterceptor.OnConsoleAppEngineBeginAsync(serviceProvider, logger);
         }
 
-        public ValueTask OnBatchEngineEndAsync()
+        public ValueTask OnConsoleAppEngineEndAsync()
         {
-            return innerInterceptor.OnBatchEngineEndAsync();
+            return innerInterceptor.OnConsoleAppEngineEndAsync();
         }
 
-        public ValueTask OnBatchRunBeginAsync(BatchContext context)
+        public ValueTask OnConsoleAppRunBeginAsync(ConsoleAppContext context)
         {
-            return innerInterceptor.OnBatchRunBeginAsync(context);
+            return innerInterceptor.OnConsoleAppRunBeginAsync(context);
         }
 
-        public ValueTask OnBatchRunCompleteAsync(BatchContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public ValueTask OnConsoleAppRunCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
             this.ErrorMessage = errorMessageIfFailed;
             this.Exception = exceptionIfExists;
-            return innerInterceptor.OnBatchRunCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
+            return innerInterceptor.OnConsoleAppRunCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
         }
     }
 
-    internal class LogCollector : ILogger<BatchEngine>
+    internal class LogCollector : ILogger<ConsoleAppEngine>
     {
-        readonly ILogger<BatchEngine> innerLogger;
+        readonly ILogger<ConsoleAppEngine> innerLogger;
         readonly StringBuilder sb;
 
-        public LogCollector(ILogger<BatchEngine> innerLogger)
+        public LogCollector(ILogger<ConsoleAppEngine> innerLogger)
         {
             this.innerLogger = innerLogger;
             this.sb = new StringBuilder();
@@ -87,16 +87,16 @@ namespace ConsoleAppFramework.WebHosting
         }
     }
 
-    public class BatchEngineMiddleware
+    public class ConsoleAppEngineMiddleware
     {
         readonly RequestDelegate next;
         readonly IServiceProvider provider;
-        readonly ILogger<BatchEngine> logger;
-        readonly IBatchInterceptor interceptor;
+        readonly ILogger<ConsoleAppEngine> logger;
+        readonly IConsoleAppInterceptor interceptor;
 
         readonly Dictionary<string, MethodInfo> methodLookup;
 
-        public BatchEngineMiddleware(RequestDelegate next, ILogger<BatchEngine> logger, IBatchInterceptor interceptor, IServiceProvider provider, TargetBatchTypeCollection targetTypes)
+        public ConsoleAppEngineMiddleware(RequestDelegate next, ILogger<ConsoleAppEngine> logger, IConsoleAppInterceptor interceptor, IServiceProvider provider, TargetConsoleAppTypeCollection targetTypes)
         {
             this.next = next;
             this.logger = logger;
@@ -152,7 +152,7 @@ namespace ConsoleAppFramework.WebHosting
             var hostingInterceptor = new WebHostingInterceptor(interceptor);
             var collectLogger = new LogCollector(logger);
 
-            var engine = new BatchEngine(collectLogger, provider, hostingInterceptor, httpContext.RequestAborted);
+            var engine = new ConsoleAppEngine(collectLogger, provider, hostingInterceptor, httpContext.RequestAborted);
             await engine.RunAsync(methodInfo.DeclaringType, methodInfo, args);
 
             // out result
@@ -172,11 +172,11 @@ namespace ConsoleAppFramework.WebHosting
             }
         }
 
-        static Dictionary<string, MethodInfo> BuildMethodLookup(IEnumerable<Type> batchTypes)
+        static Dictionary<string, MethodInfo> BuildMethodLookup(IEnumerable<Type> consoleAppTypes)
         {
             var methods = new Dictionary<string, MethodInfo>();
 
-            foreach (var type in batchTypes)
+            foreach (var type in consoleAppTypes)
             {
                 foreach (var item in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {

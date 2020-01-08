@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 
 namespace ConsoleAppFramework.Tests
 {
-    public class Multi1 : BatchBase
+    public class Multi1 : ConsoleAppBase
     {
         public void Hello1()
         {
@@ -19,7 +19,7 @@ namespace ConsoleAppFramework.Tests
         }
     }
 
-    public class Multi2 : BatchBase
+    public class Multi2 : ConsoleAppBase
     {
         public void Hello1([Option("x")]int xxx, [Option("y")]int yyy)
         {
@@ -49,7 +49,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync(args);
+                    .RunConsoleAppEngineAsync(args);
                 log.InfoLogShouldBe(0, "ok");
             }
             {
@@ -57,7 +57,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync(args);
+                    .RunConsoleAppEngineAsync(args);
                 log.InfoLogShouldBe(0, "yeah");
             }
             {
@@ -65,7 +65,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync(args);
+                    .RunConsoleAppEngineAsync(args);
                 log.InfoLogShouldBe(0, "20:30");
             }
             {
@@ -73,7 +73,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunBatchEngineAsync(args);
+                    .RunConsoleAppEngineAsync(args);
                 log.InfoLogShouldBe(0, "True:True:yeah:999");
             }
         }

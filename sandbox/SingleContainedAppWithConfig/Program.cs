@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading.Tasks;
 
-public class Baz : BatchBase
+public class Baz : ConsoleAppBase
 {
     private readonly IOptions<SingleContainedAppWithConfig.AppConfig> config;
     // Batche inject Config on constructor.
@@ -36,7 +36,7 @@ namespace SingleContainedAppWithConfig
         static async Task Main(string[] args)
         {
             // using ConsoleAppFramework.Configuration;
-            await ConsoleAppFramework.BatchHost.CreateDefaultBuilder()
+            await ConsoleAppFramework.ConsoleAppHost.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
@@ -47,7 +47,7 @@ namespace SingleContainedAppWithConfig
                     services.AddTransient<MyServiceB>();
                     services.AddSingleton<MyServiceC>();
                 })
-                .RunBatchEngineAsync<Baz>(args);
+                .RunConsoleAppEngineAsync<Baz>(args);
         }
     }
 

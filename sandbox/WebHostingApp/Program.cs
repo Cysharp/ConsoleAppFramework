@@ -11,11 +11,11 @@ namespace WebHostingApp
     {
         public static async Task Main(string[] args)
         {
-            await new WebHostBuilder().RunBatchEngineWebHosting("http://localhost:12345");
+            await new WebHostBuilder().RunConsoleAppEngineWebHosting("http://localhost:12345");
         }
     }
 
-    public class MyBatch : BatchBase
+    public class MyBatch : ConsoleAppBase
     {
         public void Foo()
         {

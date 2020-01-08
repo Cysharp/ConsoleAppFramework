@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace SingleContainedApp
 {
-    public class MyFirstBatch : BatchBase
+    public class MyFirstBatch : ConsoleAppBase
     {
         public void Hello(
             [Option("n", "name of send user.")]string name,
@@ -88,7 +88,7 @@ namespace SingleContainedApp
         public bool Bar { get; set; }
     }
 
-    public class OverrideCheck : BatchBase
+    public class OverrideCheck : ConsoleAppBase
     {
         [Command("encode", "encode input string to base64url")]
         public void Encode([Option(0)]string input) => Console.WriteLine((input));
@@ -113,7 +113,7 @@ namespace SingleContainedApp
         }
     }
 
-    public class ComplexArgTest : BatchBase
+    public class ComplexArgTest : ConsoleAppBase
     {
         public void Foo(int[] array, Person person)
         {
@@ -134,13 +134,13 @@ namespace SingleContainedApp
         {
             args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
 
-            await BatchHost.CreateDefaultBuilder()
+            await ConsoleAppHost.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     // mapping config json to IOption<MyConfig>
                     services.Configure<MyConfig>(hostContext.Configuration);
                 })
-                .RunBatchEngineAsync<ComplexArgTest>(args);
+                .RunConsoleAppEngineAsync<ComplexArgTest>(args);
         }
     }
 }

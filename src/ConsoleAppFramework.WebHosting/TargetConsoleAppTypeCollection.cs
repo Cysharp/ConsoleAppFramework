@@ -4,11 +4,11 @@ using System.Collections.Generic;
 
 namespace ConsoleAppFramework.WebHosting
 {
-    public class TargetBatchTypeCollection : IEnumerable<Type>
+    public class TargetConsoleAppTypeCollection : IEnumerable<Type>
     {
         readonly IEnumerable<Type> types;
 
-        public TargetBatchTypeCollection(IEnumerable<Type> types)
+        public TargetConsoleAppTypeCollection(IEnumerable<Type> types)
         {
             this.types = types;
         }

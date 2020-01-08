@@ -15,11 +15,11 @@
         <PackageVersion>$(Version)</PackageVersion>
         <Authors>Cysharp</Authors>
         <Copyright>Cysharp</Copyright>
-        <Description>Cloud Native Batch Framework.</Description>
+        <Description>Micro-framework for console applications.</Description>
         <PackageProjectUrl>https://github.com/Cysharp/ConsoleAppFramework</PackageProjectUrl>
         <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageTags>batch</PackageTags>
+        <PackageTags>batch,console</PackageTags>
     </PropertyGroup>
 
     <PropertyGroup>

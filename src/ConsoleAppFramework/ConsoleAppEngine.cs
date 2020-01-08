@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    public class BatchEngine
+    public class ConsoleAppEngine
     {
-        readonly ILogger<BatchEngine> logger;
+        readonly ILogger<ConsoleAppEngine> logger;
         readonly IServiceProvider provider;
-        readonly IBatchInterceptor interceptor;
+        readonly IConsoleAppInterceptor interceptor;
         readonly CancellationToken cancellationToken;
 
-        public BatchEngine(ILogger<BatchEngine> logger, IServiceProvider provider, IBatchInterceptor interceptor, CancellationToken cancellationToken)
+        public ConsoleAppEngine(ILogger<ConsoleAppEngine> logger, IServiceProvider provider, IConsoleAppInterceptor interceptor, CancellationToken cancellationToken)
         {
             this.logger = logger;
             this.provider = provider;
@@ -28,21 +28,21 @@ namespace ConsoleAppFramework
 
         public async Task RunAsync(Type type, MethodInfo method, string?[] args)
         {
-            logger.LogTrace("BatchEngine.Run Start");
-            var ctx = new BatchContext(args, DateTime.UtcNow, cancellationToken, logger);
+            logger.LogTrace("ConsoleAppEngine.Run Start");
+            var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger);
             await RunCore(ctx, type, method, args, 1); // 0 is type selector
         }
 
         public async Task RunAsync(Type type, string[] args)
         {
-            logger.LogTrace("BatchEngine.Run Start");
+            logger.LogTrace("ConsoleAppEngine.Run Start");
 
             int argsOffset = 0;
             MethodInfo? method = null;
-            var ctx = new BatchContext(args, DateTime.UtcNow, cancellationToken, logger);
+            var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger);
             try
             {
-                await interceptor.OnBatchRunBeginAsync(ctx);
+                await interceptor.OnConsoleAppRunBeginAsync(ctx);
 
                 if (type == typeof(void))
                 {
@@ -53,7 +53,7 @@ namespace ConsoleAppFramework
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 if (methods.Length == 0)
                 {
-                    await SetFailAsync(ctx, "Method can not select. T of Run/UseBatchEngine<T> have to be contain single method or command. Type:" + type.FullName);
+                    await SetFailAsync(ctx, "Method can not select. T of Run/UseConsoleAppEngine<T> have to be contain single method or command. Type:" + type.FullName);
                     return;
                 }
 
@@ -116,7 +116,7 @@ namespace ConsoleAppFramework
             await RunCore(ctx, type, method, args, argsOffset);
         }
 
-        async Task RunCore(BatchContext ctx, Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
+        async Task RunCore(ConsoleAppContext ctx, Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
         {
             object instance;
             object[] invokeArgs;
@@ -138,11 +138,11 @@ namespace ConsoleAppFramework
             try
             {
                 instance = provider.GetService(type);
-                typeof(BatchBase).GetProperty(nameof(BatchBase.Context)).SetValue(instance, ctx);
+                typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context)).SetValue(instance, ctx);
             }
             catch (Exception ex)
             {
-                await SetFailAsync(ctx, "Fail to create BatchBase instance. Type:" + type.FullName, ex);
+                await SetFailAsync(ctx, "Fail to create ConsoleAppBase instance. Type:" + type.FullName, ex);
                 return;
             }
 
@@ -171,32 +171,32 @@ namespace ConsoleAppFramework
 
                 if (ex is TargetInvocationException tex)
                 {
-                    await SetFailAsync(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
+                    await SetFailAsync(ctx, "Fail in console app running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
                     return;
                 }
                 else
                 {
-                    await SetFailAsync(ctx, "Fail in batch running on " + type.Name + "." + methodInfo.Name, ex);
+                    await SetFailAsync(ctx, "Fail in console app running on " + type.Name + "." + methodInfo.Name, ex);
                     return;
                 }
             }
 
-            await interceptor.OnBatchRunCompleteAsync(ctx, null, null);
-            logger.LogTrace("BatchEngine.Run Complete Successfully");
+            await interceptor.OnConsoleAppRunCompleteAsync(ctx, null, null);
+            logger.LogTrace("ConsoleAppEngine.Run Complete Successfully");
         }
 
-        async ValueTask SetFailAsync(BatchContext context, string message)
+        async ValueTask SetFailAsync(ConsoleAppContext context, string message)
         {
             Environment.ExitCode = 1;
             logger.LogError(message);
-            await interceptor.OnBatchRunCompleteAsync(context, message, null);
+            await interceptor.OnConsoleAppRunCompleteAsync(context, message, null);
         }
 
-        async ValueTask SetFailAsync(BatchContext context, string message, Exception ex)
+        async ValueTask SetFailAsync(ConsoleAppContext context, string message, Exception ex)
         {
             Environment.ExitCode = 1;
             logger.LogError(ex, message);
-            await interceptor.OnBatchRunCompleteAsync(context, message, ex);
+            await interceptor.OnConsoleAppRunCompleteAsync(context, message, ex);
         }
 
         static bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)

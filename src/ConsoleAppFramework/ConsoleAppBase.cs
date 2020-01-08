@@ -1,11 +1,11 @@
 ﻿namespace ConsoleAppFramework
 {
-    public abstract class BatchBase
+    public abstract class ConsoleAppBase
     {
-        // Context will be set non-null value by BatchEngine,
+        // Context will be set non-null value by ConsoleAppEngine,
         // but it might be null because it has public setter.
         #nullable disable warnings
-        public BatchContext Context { get; set; }
+        public ConsoleAppContext Context { get; set; }
         #nullable restore warnings
     }
 }

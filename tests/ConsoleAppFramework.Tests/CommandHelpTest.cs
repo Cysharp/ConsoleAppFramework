@@ -276,7 +276,7 @@ Options:
         }
     }
 
-    public class CommandHelpTestListMessageBatch : BatchBase
+    public class CommandHelpTestListMessageBatch : ConsoleAppBase
     {
         public void Hello()
         {
@@ -293,7 +293,7 @@ Options:
         }
     }
 
-    public class CommandHelpTestBatch : BatchBase
+    public class CommandHelpTestBatch : ConsoleAppBase
     {
         public void Hello()
         {

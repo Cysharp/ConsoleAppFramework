@@ -12,7 +12,7 @@ namespace ConsoleAppFramework
     /// <summary>
     /// Provides convenience methods for creating instances of <see cref="IHost"/> and <see cref="IHostBuilder"/> with pre-configured defaults.
     /// </summary>
-    public static class BatchHost
+    public static class ConsoleAppHost
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HostBuilder"/> class with pre-configured defaults.

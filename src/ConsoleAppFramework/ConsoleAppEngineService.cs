@@ -8,24 +8,24 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ConsoleAppFramework
 {
-    public sealed class BatchEngineService : IHostedService
+    public sealed class ConsoleAppEngineService : IHostedService
     {
         string[] args;
         Type type;
         MethodInfo? methodInfo;
         IHostApplicationLifetime appLifetime;
-        ILogger<BatchEngine> logger;
+        ILogger<ConsoleAppEngine> logger;
         IServiceScope scope;
-        IBatchInterceptor interceptor;
+        IConsoleAppInterceptor interceptor;
         Task? runningTask;
         CancellationTokenSource cancellationTokenSource;
 
-        public BatchEngineService(IHostApplicationLifetime appLifetime, Type type, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
+        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, Type type, string[] args, ILogger<ConsoleAppEngine> logger, IServiceProvider provider)
             : this(appLifetime, type, null, args, logger, provider)
         {
         }
 
-        public BatchEngineService(IHostApplicationLifetime appLifetime, Type type, MethodInfo? methodInfo, string[] args, ILogger<BatchEngine> logger, IServiceProvider provider)
+        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, Type type, MethodInfo? methodInfo, string[] args, ILogger<ConsoleAppEngine> logger, IServiceProvider provider)
         {
             this.args = args;
             this.type = type;
@@ -33,21 +33,21 @@ namespace ConsoleAppFramework
             this.appLifetime = appLifetime;
             this.scope = provider.CreateScope();
             this.logger = logger;
-            this.interceptor = (provider.GetService(typeof(IBatchInterceptor)) as IBatchInterceptor) ?? NullBatchInterceptor.Default;
+            this.interceptor = (provider.GetService(typeof(IConsoleAppInterceptor)) as IConsoleAppInterceptor) ?? NullConsoleAppInterceptor.Default;
             this.cancellationTokenSource = new CancellationTokenSource();
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await interceptor.OnBatchEngineBeginAsync(scope.ServiceProvider, logger);
+            await interceptor.OnConsoleAppEngineBeginAsync(scope.ServiceProvider, logger);
 
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
             {
-                var self = (BatchEngineService)state;
+                var self = (ConsoleAppEngineService)state;
                 try
                 {
-                    var engine = new BatchEngine(self.logger, scope.ServiceProvider, self.interceptor, self.cancellationTokenSource.Token);
+                    var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, self.interceptor, self.cancellationTokenSource.Token);
                     if (self.methodInfo != null)
                     {
                         self.runningTask = engine.RunAsync(self.type, self.methodInfo, self.args);
@@ -77,14 +77,14 @@ namespace ConsoleAppFramework
                 var task = runningTask;
                 if (task != null)
                 {
-                    logger.LogTrace("Detect Cancel signal, wait for running batch task canceled.");
+                    logger.LogTrace("Detect Cancel signal, wait for running console app task canceled.");
                     await task;
-                    logger.LogTrace("Batch cancel completed.");
+                    logger.LogTrace("ConsoleApp cancel completed.");
                 }
             }
             finally
             {
-                await interceptor.OnBatchEngineEndAsync();
+                await interceptor.OnConsoleAppEngineEndAsync();
                 scope.Dispose();
             }
         }
