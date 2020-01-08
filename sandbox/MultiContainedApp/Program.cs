@@ -17,7 +17,8 @@ namespace MultiContainedApp
 
     public class Foo : BatchBase
     {
-        public void Echo(string msg)
+        [Command("Echo", "Echo message to the logger")]
+        public void Echo([Option("msg", "Message to send.")]string msg)
         {
             this.Context.Logger.LogInformation(msg);
         }
