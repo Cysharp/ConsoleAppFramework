@@ -102,7 +102,7 @@ namespace MicroBatchFramework
                 }
                 else
                 {
-                    Console.WriteLine(BatchEngine.BuildHelpParameter(methods));
+                    Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, null));
                     return;
                 }
             }
@@ -368,74 +368,6 @@ namespace MicroBatchFramework
         {
             public string? Value;
             public bool BooleanSwitch;
-        }
-
-        internal static string BuildHelpParameter(MethodInfo[] methods)
-        {
-            var sb = new StringBuilder();
-            foreach (var method in methods.OrderBy(x => x, new CustomSorter()))
-            {
-                var command = method.GetCustomAttribute<CommandAttribute>();
-                if (command != null)
-                {
-                    sb.AppendLine(string.Join(", ", command.CommandNames) + ": " + command.Description);
-                }
-                else
-                {
-                    sb.AppendLine("argument list:");
-                }
-
-                var parameters = method.GetParameters();
-                if (parameters.Length == 0)
-                {
-                    sb.AppendLine("()");
-                }
-
-                foreach (var item in parameters)
-                {
-                    // -i, -input | [default=foo]...
-
-                    var option = item.GetCustomAttribute<OptionAttribute>();
-
-                    if (option != null)
-                    {
-                        if (option.Index != -1)
-                        {
-                            sb.Append("[" + option.Index + "]");
-                            goto WRITE_DESCRIPTION;
-                        }
-                        else
-                        {
-                            // If Index is -1, ShortName is initialized at Constractor.
-                            sb.Append("-" + option.ShortName!.Trim('-') + ", ");
-                        }
-                    }
-
-                    sb.Append("-" + item.Name);
-
-                    WRITE_DESCRIPTION:
-                    sb.Append(": ");
-
-                    if (item.HasDefaultValue)
-                    {
-                        sb.Append("[default=" + (item.DefaultValue?.ToString() ?? "null") + "]");
-                    }
-
-                    if (option != null && !string.IsNullOrEmpty(option.Description))
-                    {
-                        sb.Append(option.Description);
-                    }
-                    else
-                    {
-                        sb.Append(item.ParameterType.Name);
-                    }
-                    sb.AppendLine();
-                }
-
-                sb.AppendLine();
-            }
-
-            return sb.ToString();
         }
 
         class CustomSorter : IComparer<MethodInfo>

@@ -30,11 +30,11 @@ namespace MicroBatchFramework
                 var (t, mi) = GetTypeFromAssemblies(args[1]);
                 if (mi != null)
                 {
-                    Console.WriteLine(BatchEngine.BuildHelpParameter(new[] { mi }));
+                    Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
                 }
                 else
                 {
-                    Console.WriteLine("Method not found , please check \"list\" command.");
+                    Console.Error.WriteLine("Method not found , please check \"list\" command.");
                 }
                 hostBuilder.ConfigureServices(services =>
                 {
@@ -96,7 +96,8 @@ namespace MicroBatchFramework
                 {
                     if (!hasHelp)
                     {
-                        Console.WriteLine(BatchEngine.BuildHelpParameter(method));
+                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(method, defaultMethod));
+
                         hostBuilder.ConfigureServices(services =>
                         {
                             services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
@@ -125,7 +126,8 @@ namespace MicroBatchFramework
 
             if (!hasHelp && args.Length == 1 && args[0].Equals(HelpCommand, StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine(BatchEngine.BuildHelpParameter(method));
+                Console.Write(new CommandHelpBuilder().BuildHelpMessage(method, defaultMethod));
+
                 hostBuilder.ConfigureServices(services =>
                 {
                     services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
@@ -155,15 +157,7 @@ namespace MicroBatchFramework
 
         static void ShowMethodList()
         {
-            Console.WriteLine("list of methods:");
-            var list = GetBatchTypes();
-            foreach (var item in list)
-            {
-                foreach (var item2 in item.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-                {
-                    Console.WriteLine(item.Name + "." + item2.Name);
-                }
-            }
+            Console.Write(new CommandHelpBuilder().BuildHelpMessage(GetBatchTypes()));
         }
 
         static List<Type> GetBatchTypes()
