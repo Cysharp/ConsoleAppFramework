@@ -8,7 +8,7 @@ using System.Text;
 
 namespace MicroBatchFramework
 {
-    public class CommandHelpBuilder
+    internal class CommandHelpBuilder
     {
         readonly Func<string> _getExecutionCommandName;
 
