@@ -1,5 +1,5 @@
-﻿using MicroBatchFramework;
-using MicroBatchFramework.Logging;
+﻿using ConsoleAppFramework;
+using ConsoleAppFramework.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

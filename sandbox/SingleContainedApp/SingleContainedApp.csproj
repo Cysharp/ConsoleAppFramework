@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MicroBatchFramework\MicroBatchFramework.csproj" />
+    <ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj" />
   </ItemGroup>
 
 </Project>

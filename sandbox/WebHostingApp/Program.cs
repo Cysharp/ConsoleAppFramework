@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using MicroBatchFramework;
+using ConsoleAppFramework;
 using System;
 using System.Threading.Tasks;
 
