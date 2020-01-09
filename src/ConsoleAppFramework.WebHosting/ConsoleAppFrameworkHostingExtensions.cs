@@ -79,7 +79,7 @@ namespace ConsoleAppFramework // .WebHosting
                 {
                     try
                     {
-                        await interceptor.OnConsoleAppEngineBeginAsync(provider, logger);
+                        await interceptor.OnEngineBeginAsync(provider, logger);
                     }
                     catch { }
                 });
@@ -88,7 +88,7 @@ namespace ConsoleAppFramework // .WebHosting
                 {
                     try
                     {
-                        await interceptor.OnConsoleAppEngineEndAsync();
+                        await interceptor.OnMethodEndAsync();
                     }
                     catch { }
                 });

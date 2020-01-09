@@ -22,27 +22,27 @@ namespace ConsoleAppFramework.WebHosting
             this.innerInterceptor = innerInterceptor;
         }
 
-        public ValueTask OnConsoleAppEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
+        public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
-            return innerInterceptor.OnConsoleAppEngineBeginAsync(serviceProvider, logger);
+            return innerInterceptor.OnEngineBeginAsync(serviceProvider, logger);
         }
 
-        public ValueTask OnConsoleAppEngineEndAsync()
+        public ValueTask OnMethodEndAsync()
         {
-            return innerInterceptor.OnConsoleAppEngineEndAsync();
+            return innerInterceptor.OnMethodEndAsync();
         }
 
-        public ValueTask OnConsoleAppRunBeginAsync(ConsoleAppContext context)
+        public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
         {
-            return innerInterceptor.OnConsoleAppRunBeginAsync(context);
+            return innerInterceptor.OnMethodBeginAsync(context);
         }
 
-        public ValueTask OnConsoleAppRunCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
             this.ErrorMessage = errorMessageIfFailed;
             this.Exception = exceptionIfExists;
-            return innerInterceptor.OnConsoleAppRunCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
+            return innerInterceptor.OnEngineCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
         }
     }
 

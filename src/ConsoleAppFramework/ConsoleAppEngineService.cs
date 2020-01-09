@@ -39,7 +39,7 @@ namespace ConsoleAppFramework
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await interceptor.OnConsoleAppEngineBeginAsync(scope.ServiceProvider, logger);
+            await interceptor.OnEngineBeginAsync(scope.ServiceProvider, logger);
 
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
@@ -84,7 +84,7 @@ namespace ConsoleAppFramework
             }
             finally
             {
-                await interceptor.OnConsoleAppEngineEndAsync();
+                await interceptor.OnMethodEndAsync();
                 scope.Dispose();
             }
         }

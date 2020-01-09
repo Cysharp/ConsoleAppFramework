@@ -7,24 +7,24 @@ namespace ConsoleAppFramework
     public interface IConsoleAppInterceptor
     {
         /// <summary>
-        /// Called once when ConsoleAppEngineService is stareted.
+        /// Called once when ConsoleAppFramework is stareted.
         /// </summary>
-        ValueTask OnConsoleAppEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger);
-
-        /// <summary>
-        /// Called once when ConsoleAppEngineService is finished.
-        /// </summary>
-        ValueTask OnConsoleAppEngineEndAsync();
+        ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger);
 
         /// <summary>
         /// Called when ConsoleAppMethod is called.
         /// </summary>
-        ValueTask OnConsoleAppRunBeginAsync(ConsoleAppContext context);
+        ValueTask OnMethodBeginAsync(ConsoleAppContext context);
 
         /// <summary>
-        /// Called when ConsoleAppMethod is error or completed.
+        /// Called once when ConsoleAppMethod is finished.
         /// </summary>
-        ValueTask OnConsoleAppRunCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists);
+        ValueTask OnMethodEndAsync();
+
+        /// <summary>
+        /// Called when ConsoleAppFramework is error or completed.
+        /// </summary>
+        ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists);
     }
 
     public class NullConsoleAppInterceptor : IConsoleAppInterceptor
@@ -32,22 +32,22 @@ namespace ConsoleAppFramework
         public static readonly IConsoleAppInterceptor Default = new NullConsoleAppInterceptor();
         readonly ValueTask Empty = default(ValueTask);
 
-        public ValueTask OnConsoleAppEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
+        public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
             return Empty;
         }
 
-        public ValueTask OnConsoleAppEngineEndAsync()
+        public ValueTask OnMethodEndAsync()
         {
             return Empty;
         }
 
-        public ValueTask OnConsoleAppRunBeginAsync(ConsoleAppContext context)
+        public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
         {
             return Empty;
         }
 
-        public ValueTask OnConsoleAppRunCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             return Empty;
         }

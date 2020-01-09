@@ -16,14 +16,14 @@ namespace ConsoleAppFramework
             this.interceptors = interceptors;
         }
 
-        public async ValueTask OnConsoleAppEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
+        public async ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnConsoleAppEngineBeginAsync(serviceProvider, logger);
+                    await item.OnEngineBeginAsync(serviceProvider, logger);
                 }
                 catch (Exception e)
                 {
@@ -33,14 +33,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnConsoleAppEngineEndAsync()
+        public async ValueTask OnMethodEndAsync()
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnConsoleAppEngineEndAsync();
+                    await item.OnMethodEndAsync();
                 }
                 catch (Exception e)
                 {
@@ -50,14 +50,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnConsoleAppRunBeginAsync(ConsoleAppContext context)
+        public async ValueTask OnMethodBeginAsync(ConsoleAppContext context)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnConsoleAppRunBeginAsync(context);
+                    await item.OnMethodBeginAsync(context);
                 }
                 catch (Exception e)
                 {
@@ -67,14 +67,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnConsoleAppRunCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public async ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnConsoleAppRunCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
+                    await item.OnEngineCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
                 }
                 catch (Exception e)
                 {

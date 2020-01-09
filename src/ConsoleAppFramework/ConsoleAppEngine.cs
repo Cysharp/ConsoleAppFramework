@@ -42,7 +42,7 @@ namespace ConsoleAppFramework
             var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger);
             try
             {
-                await interceptor.OnConsoleAppRunBeginAsync(ctx);
+                await interceptor.OnMethodBeginAsync(ctx);
 
                 if (type == typeof(void))
                 {
@@ -181,7 +181,7 @@ namespace ConsoleAppFramework
                 }
             }
 
-            await interceptor.OnConsoleAppRunCompleteAsync(ctx, null, null);
+            await interceptor.OnEngineCompleteAsync(ctx, null, null);
             logger.LogTrace("ConsoleAppEngine.Run Complete Successfully");
         }
 
@@ -189,18 +189,20 @@ namespace ConsoleAppFramework
         {
             Environment.ExitCode = 1;
             logger.LogError(message);
-            await interceptor.OnConsoleAppRunCompleteAsync(context, message, null);
+            await interceptor.OnEngineCompleteAsync(context, message, null);
         }
 
         async ValueTask SetFailAsync(ConsoleAppContext context, string message, Exception ex)
         {
             Environment.ExitCode = 1;
             logger.LogError(ex, message);
-            await interceptor.OnConsoleAppRunCompleteAsync(context, message, ex);
+            await interceptor.OnEngineCompleteAsync(context, message, ex);
         }
 
-        static bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)
+        bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)
         {
+            var jsonOption = (JsonSerializerOptions)provider.GetService(typeof(JsonSerializerOptions));
+
             var argumentDictionary = ParseArgument(args, argsOffset);
             invokeArgs = new object[parameters.Length];
 
@@ -268,7 +270,7 @@ namespace ConsoleAppFramework
                             }
                             try
                             {
-                                invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType);
+                                invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
                                 continue;
                             }
                             catch
@@ -281,7 +283,7 @@ namespace ConsoleAppFramework
                         {
                             try
                             {
-                                invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType);
+                                invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType, jsonOption);
                                 continue;
                             }
                             catch

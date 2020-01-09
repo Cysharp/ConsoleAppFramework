@@ -61,7 +61,7 @@ namespace ConsoleAppFramework
 
                 if (methodIndex != -1)
                 {
-                    var (t, mi) = GetTypeFromAssemblies(args[1], null);
+                    var (t, mi) = GetTypeFromAssemblies(args[methodIndex], null);
                     if (mi != null)
                     {
                         Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
