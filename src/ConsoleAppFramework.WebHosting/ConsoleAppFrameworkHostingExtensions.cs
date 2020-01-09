@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework // .WebHosting
 {
-    public static class ConsoleAppEngineHostingExtensions
+    public static class ConsoleAppFrameworkHostingExtensions
     {
-        public static IWebHostBuilder PrepareConsoleAppEngineMiddleware(this IWebHostBuilder builder, IConsoleAppInterceptor? interceptor = null)
+        public static IWebHostBuilder PrepareConsoleAppFrameworkMiddleware(this IWebHostBuilder builder, IConsoleAppInterceptor? interceptor = null)
         {
             var consoleAppTypes = CollectConsoleAppTypes();
             var target = new TargetConsoleAppTypeCollection(consoleAppTypes);
@@ -32,37 +32,39 @@ namespace ConsoleAppFramework // .WebHosting
                 });
         }
 
-        public static Task RunConsoleAppEngineWebHosting(this IWebHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, IConsoleAppInterceptor? interceptor = null)
+        public static async Task RunConsoleAppFrameworkWebHostingAsync(this IHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, IConsoleAppInterceptor? interceptor = null)
         {
-            return builder
-                .PrepareConsoleAppEngineMiddleware(interceptor)
-                .ConfigureServices(services =>
-                {
-                    if (swaggerOptions == null)
+            var host = builder.ConfigureWebHost(webHost =>
+            {
+                webHost.PrepareConsoleAppFrameworkMiddleware(interceptor)
+                    .ConfigureServices(services =>
                     {
-                        // GetEntryAssembly() never returns null when called from managed code.
-                        var entryAsm = Assembly.GetEntryAssembly()!;
-                        var xmlName = entryAsm.GetName().Name + ".xml";
-                        var xmlPath = Path.Combine(Path.GetDirectoryName(entryAsm.Location) ?? "", xmlName);
-                        swaggerOptions = new SwaggerOptions(entryAsm.GetName().Name!, "", "/") { XmlDocumentPath = xmlPath };
-                    }
-                    services.AddSingleton<SwaggerOptions>(swaggerOptions);
-                })
-                .UseKestrel()
-                .UseUrls(urls)
-                .UseStartup<DefaultStartup>()
-                .Build()
-                .RunAsync();
+                        if (swaggerOptions == null)
+                        {
+                            // GetEntryAssembly() never returns null when called from managed code.
+                            var entryAsm = Assembly.GetEntryAssembly()!;
+                            var xmlName = entryAsm.GetName().Name + ".xml";
+                            var xmlPath = Path.Combine(Path.GetDirectoryName(entryAsm.Location) ?? "", xmlName);
+                            swaggerOptions = new SwaggerOptions(entryAsm.GetName().Name!, "", "/") { XmlDocumentPath = xmlPath };
+                        }
+                        services.AddSingleton<SwaggerOptions>(swaggerOptions);
+                    })
+                    .UseKestrel()
+                    .UseUrls(urls)
+                    .UseStartup<DefaultStartup>();
+            });
+
+            await host.Build().RunAsync();
         }
 
-        public static IApplicationBuilder UseConsoleAppEngineMiddleware(this IApplicationBuilder builder)
+        public static IApplicationBuilder UseConsoleAppFrameworkMiddleware(this IApplicationBuilder builder)
         {
-            return builder.UseMiddleware<ConsoleAppEngineMiddleware>();
+            return builder.UseMiddleware<ConsoleAppFrameworkMiddleware>();
         }
 
-        public static IApplicationBuilder UseConsoleAppEngineSwaggerMiddleware(this IApplicationBuilder builder, SwaggerOptions options)
+        public static IApplicationBuilder UseConsoleAppFrameworkSwaggerMiddleware(this IApplicationBuilder builder, SwaggerOptions options)
         {
-            return builder.UseMiddleware<ConsoleAppEngineSwaggerMiddleware>(options);
+            return builder.UseMiddleware<ConsoleAppFrameworkSwaggerMiddleware>(options);
         }
 
         public class DefaultStartup
@@ -92,8 +94,8 @@ namespace ConsoleAppFramework // .WebHosting
                 });
 
                 var swaggerOption = app.ApplicationServices.GetService<SwaggerOptions>() ?? new SwaggerOptions("ConsoleAppFramework", "", "/");
-                app.UseConsoleAppEngineSwaggerMiddleware(swaggerOption);
-                app.UseConsoleAppEngineMiddleware();
+                app.UseConsoleAppFrameworkSwaggerMiddleware(swaggerOption);
+                app.UseConsoleAppFrameworkMiddleware();
             }
         }
 

@@ -87,7 +87,7 @@ namespace ConsoleAppFramework.WebHosting
         }
     }
 
-    public class ConsoleAppEngineMiddleware
+    public class ConsoleAppFrameworkMiddleware
     {
         readonly RequestDelegate next;
         readonly IServiceProvider provider;
@@ -96,7 +96,7 @@ namespace ConsoleAppFramework.WebHosting
 
         readonly Dictionary<string, MethodInfo> methodLookup;
 
-        public ConsoleAppEngineMiddleware(RequestDelegate next, ILogger<ConsoleAppEngine> logger, IConsoleAppInterceptor interceptor, IServiceProvider provider, TargetConsoleAppTypeCollection targetTypes)
+        public ConsoleAppFrameworkMiddleware(RequestDelegate next, ILogger<ConsoleAppEngine> logger, IConsoleAppInterceptor interceptor, IServiceProvider provider, TargetConsoleAppTypeCollection targetTypes)
         {
             this.next = next;
             this.logger = logger;
