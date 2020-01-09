@@ -69,6 +69,13 @@ Options:
   -r, -repeat <Int32>    repeat count. (Default: 3)
 ```
 
+`version` command shows `AssemblyInformationalVersion` or `AssemblylVersion`.
+
+```
+> SampleApp.exe version
+1.0.0
+```
+
 You can use `CommandAttribute` to create multi command program.
 
 ```csharp
