@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using MicroBatchFramework;
+using ConsoleAppFramework;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
 
 namespace WebHostingApp
 {
@@ -11,11 +12,12 @@ namespace WebHostingApp
     {
         public static async Task Main(string[] args)
         {
-            await new WebHostBuilder().RunBatchEngineWebHosting("http://localhost:12345");
+            await Host.CreateDefaultBuilder(args)
+                .RunConsoleAppFrameworkWebHostingAsync("http://localhost:12345");
         }
     }
 
-    public class MyBatch : BatchBase
+    public class MyBatch : ConsoleAppBase
     {
         public void Foo()
         {
@@ -62,7 +64,7 @@ namespace WebHostingApp
         }
         public void OjectArray(Person[] objectArray)
         {
-            Context.Logger.LogInformation(string.Join(", ", objectArray.Select(x =>(x==null) ? "nul" : x.Age + ":" + x.Name)));
+            Context.Logger.LogInformation(string.Join(", ", objectArray.Select(x => (x == null) ? "nul" : x.Age + ":" + x.Name)));
         }
 
         public void DefaultV(int x = 100, int y = 200, string foo = null)

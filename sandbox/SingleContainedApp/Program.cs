@@ -1,5 +1,5 @@
-﻿using MicroBatchFramework;
-using MicroBatchFramework.Logging;
+﻿using ConsoleAppFramework;
+using ConsoleAppFramework.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace SingleContainedApp
 {
-    public class MyFirstBatch : BatchBase
+    public class MyFirstBatch : ConsoleAppBase
     {
         public void Hello(
             [Option("n", "name of send user.")]string name,
@@ -88,7 +88,7 @@ namespace SingleContainedApp
         public bool Bar { get; set; }
     }
 
-    public class OverrideCheck : BatchBase
+    public class OverrideCheck : ConsoleAppBase
     {
         [Command("encode", "encode input string to base64url")]
         public void Encode([Option(0)]string input) => Console.WriteLine((input));
@@ -102,23 +102,32 @@ namespace SingleContainedApp
         [Command(new[] { "unescape", "-h" }, "unescape base64url to base64")]
         public void Unescape([Option(0)]string input) => Console.WriteLine((input));
 
-        [Command(new[] { "help", "-h", "-help", "--help" }, "show help")]
-        public void Help()
-        {
-            Console.WriteLine("Usage: base64urls [-version] [-help] [decode|encode|escape|unescape] [args]");
-            Console.WriteLine("E.g., run this: base64urls decode QyMgaXMgYXdlc29tZQ==");
-            Console.WriteLine("E.g., run this: base64urls encode \"C# is awesome.\"");
-            Console.WriteLine("E.g., run this: base64urls escape \"This+is/goingto+escape==\"");
-            Console.WriteLine("E.g., run this: base64urls unescape \"This-is_goingto-escape\"");
-        }
+        //[Command(new[] { "help", "-h", "-help", "--help" }, "show help")]
+        //public void Help()
+        //{
+        //    Console.WriteLine("Usage: base64urls [-version] [-help] [decode|encode|escape|unescape] [args]");
+        //    Console.WriteLine("E.g., run this: base64urls decode QyMgaXMgYXdlc29tZQ==");
+        //    Console.WriteLine("E.g., run this: base64urls encode \"C# is awesome.\"");
+        //    Console.WriteLine("E.g., run this: base64urls escape \"This+is/goingto+escape==\"");
+        //    Console.WriteLine("E.g., run this: base64urls unescape \"This-is_goingto-escape\"");
+        //}
     }
 
-    public class ComplexArgTest : BatchBase
+    public class ComplexArgTest : ConsoleAppBase
     {
         public void Foo(int[] array, Person person)
         {
-            Console.WriteLine(array.Length + ":" + string.Join(", ", array));
-            Console.WriteLine(person.Age + ":" + person.Name);
+            Context.Logger.LogTrace(array.Length + ":" + string.Join(", ", array));
+            Context.Logger.LogInformation(person.Age + ":" + person.Name);
+        }
+    }
+
+    public class StandardArgTest : ConsoleAppBase
+    {
+        public void Run([Option(0, "message of x.")]string x)
+        {
+            // Console.WriteLine("1." + x);
+            //Console.WriteLine("2." + y);
         }
     }
 
@@ -134,13 +143,20 @@ namespace SingleContainedApp
         {
             args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
 
-            await BatchHost.CreateDefaultBuilder()
-                .ConfigureServices((hostContext, services) =>
+
+            await Host.CreateDefaultBuilder()
+                .ConfigureLogging(logging =>
                 {
-                    // mapping config json to IOption<MyConfig>
-                    services.Configure<MyConfig>(hostContext.Configuration);
+                    logging.SetMinimumLevel(LogLevel.Trace).ReplaceToSimpleConsole();
                 })
-                .RunBatchEngineAsync<ComplexArgTest>(args);
+                .RunConsoleAppFrameworkAsync<ComplexArgTest>(args);
+            // .RunConsoleAppEngineAsync
+            //.ConfigureServices((hostContext, services) =>
+            //{
+            //    // mapping config json to IOption<MyConfig>
+            //    services.Configure<MyConfig>(hostContext.Configuration);
+            //})
+            //.RunConsoleAppEngineAsync<StandardArgTest>(args);
         }
     }
 }

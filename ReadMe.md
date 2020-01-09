@@ -1,47 +1,47 @@
-MicroBatchFramework
+ConsoleAppFramework
 ===
-[![CircleCI](https://circleci.com/gh/Cysharp/MicroBatchFramework.svg?style=svg)](https://circleci.com/gh/Cysharp/MicroBatchFramework)
+[![CircleCI](https://circleci.com/gh/Cysharp/ConsoleAppFramework.svg?style=svg)](https://circleci.com/gh/Cysharp/ConsoleAppFramework)
 
-MicroBatchFramework is an infrastructure of creating CLI(Command-line interface) tools, daemon, and multiple contained batch program. Easy to bind argument to the simple method definition. It built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) so you can configure Configuration, Logging, DI, etc can load by the standard way.
+ConsoleAppFramework is an infrastructure of creating CLI(Command-line interface) tools, daemon, and multi batch application.
 
-NuGet: [MicroBatchFramework](https://www.nuget.org/packages/MicroBatchFramework)
+// image
+
+ConsoleAppFramework is built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host), you can use configuration, logging, DI, lifetime management by Microsoft.Extensions packages. ConsoleAppFramework do parameter binding from string args, routing multi command, dotnet style help builder, etc.
+
+This concept is same as [Laravel Zero](https://laravel-zero.com/) of PHP. Similar competitor is [dotnet/command-line-api](https://github.com/dotnet/command-line-api)'s `System.CommandLine.Hosting` + `System.CommandLine.DragonFruit` but it is preview and currently not productivity.
+
+NuGet: [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
 
 ```
-Install-Package MicroBatchFramework
+Install-Package ConsoleAppFramework
 ```
 
 CLI Tools
 ---
 
-CLI Tools can write by simple method, argument is automatically binded to parameter.
+CLI Tools(Console Application) can write by simple method, argument is automatically binded to parameter.
 
 ```csharp
-using MicroBatchFramework;
+using ConsoleAppFramework;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
 // Entrypoint, create from the .NET Core Console App.
-class Program
+class Program : ConsoleAppBase // inherit ConsoleAppBase
 {
-    // C# 7.1(update lang version)
     static async Task Main(string[] args)
     {
-        // you can use new HostBuilder() instead of CreateDefaultBuilder
-        await BatchHost.CreateDefaultBuilder().RunBatchEngineAsync<MyFirstBatch>(args);
+        // target T as ConsoleAppBase.
+        await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args);
     }
-}
 
-// Batch definition.
-public class MyFirstBatch : BatchBase // inherit BatchBase
-{
-    // allows void/Task return type, parameter allows all types(deserialized by Utf8Json and can pass by JSON string)
-    public void Hello(string name, int repeat = 3)
-    { 
+    // allows void/Task return type, parameter is automatically binded from string[] args.
+    public void Run(string name, int repeat = 3)
+    {
         for (int i = 0; i < repeat; i++)
         {
-            this.Context.Logger.LogInformation($"Hello My Batch from {name}");
+            Console.WriteLine($"Hello My ConsoleApp from {name}");
         }
     }
 }
@@ -58,36 +58,36 @@ public void Hello(
 {
 ```
 
-`help` command shows there detail.
+`help` command(or no argument to pass) shows there detail. This help format is same as `dotnet` command.
 
 ```
 > SampleApp.exe help
--n, -name: name of send user.
--r, -repeat: [default=3]repeat count.
+Usage: SampleApp [options...]
+
+Options:
+  -n, -name <String>     name of send user. (Required)
+  -r, -repeat <Int32>    repeat count. (Default: 3)
 ```
 
 You can use `CommandAttribute` to create multi command program.
 
 ```csharp
-public class MyFirstBatch : BatchBase
+class Program : ConsoleAppBase
 {
+    static async Task Main(string[] args)
+    {
+        await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args);
+    }
+
+    // default(no command)
     public void Hello(
         [Option("n", "name of send user.")]string name,
         [Option("r", "repeat count.")]int repeat = 3)
     {
         for (int i = 0; i < repeat; i++)
         {
-            this.Context.Logger.LogInformation($"Hello My Batch from {name}");
+            Console.WriteLine($"Hello My ConsoleApp from {name}");
         }
-    }
-
-    [Command("version")]
-    public void ShowVersion()
-    {
-        var version = Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyFileVersionAttribute>()
-            .Version;
-        Console.WriteLine(version);
     }
 
     // [Option(int)] describes that parameter is passed by index
@@ -97,13 +97,14 @@ public class MyFirstBatch : BatchBase
         Console.WriteLine(Uri.EscapeDataString(input));
     }
 
+    // define async method returns Task
     [Command("timer")]
     public async Task Timer([Option(0)]uint waitSeconds)
     {
         Console.WriteLine(waitSeconds + " seconds");
         while (waitSeconds != 0)
         {
-            // MicroBatchFramework does not stop immediately on terminate command(Ctrl+C)
+            // ConsoleAppFramework does not stop immediately on terminate command(Ctrl+C)
             // so you have to pass Context.CancellationToken to async method.
             await Task.Delay(TimeSpan.FromSeconds(1), Context.CancellationToken);
             waitSeconds--;
@@ -117,19 +118,17 @@ You can call like
 
 ```
 SampleApp.exe -n "foo" -r 3
-SampleApp.exe version
 SampleApp.exe escape http://foo.bar/
 SampleApp.exe timer 10
 ```
 
-Multi Contained Batch
+Multi Batch Application
 ---
-MicroBatchFramework allows the multi contained batch. You can write many class, methods and select by first-argument.
+ConsoleAppFramework allows the multi batch application. You can write many class, methods and select by first-argument. It is useful to manage application specified batch programs. Uploading single binary and execute it, or git pull and run by `dotnet run [command] [option]` on CI.
 
 ```csharp
-using MicroBatchFramework;
+using ConsoleAppFramework;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
@@ -138,29 +137,30 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        await BatchHost.CreateDefaultBuilder().RunBatchEngineAsync(args); // don't pass <T>.
+        // don't pass <T>.
+        await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync(args);
     }
 }
 
 // Batches.
-public class Foo : BatchBase
+public class Foo : ConsoleAppBase
 {
     public void Echo(string msg)
     {
-        this.Context.Logger.LogInformation(msg);
+        Console.WriteLine(msg);
     }
 
     public void Sum(int x, int y)
     {
-        this.Context.Logger.LogInformation((x + y).ToString());
+        Console.WriteLine((x + y).ToString());
     }
 }
 
-public class Bar : BatchBase
+public class Bar : ConsoleAppBase
 {
     public void Hello2()
     {
-        this.Context.Logger.LogInformation("H E L L O");
+        Console.WriteLine("H E L L O");
     }
 }
 ```
@@ -173,20 +173,25 @@ SampleApp.exe Foo.Sum -x 100 -y 200
 SampleApp.exe Bar.Hello2
 ```
 
-`list` command shows all invokable methods.
+`help` describe the method list
 
 ```
-> SampleApp.exe list
-Foo.Echo
-Foo.Sum
-Bar.Hello2
+> SampleApp.exe help
+Usage: SampleApp <Command>
+
+Commands:
+  Foo.Echo
+  Foo.Sum
+  Bar.Hello2
 ```
 
-also use with `help`
+`[command] -help` shows command details.
 
-```
-> SampleApp.exe help Foo.Echo
--msg: String
+> SampleApp.exe Foo.Echo -help
+Usage: SampleApp Foo.Echo [options...]
+
+Options:
+  -msg <String>     (Required)
 ```
 
 Complex Argument
@@ -194,7 +199,7 @@ Complex Argument
 If the argument is not primitive, you can pass JSON string.
 
 ```csharp
-public class ComplexArgTest : BatchBase
+public class ComplexArgTest : ConsoleAppBase
 {
     public void Foo(int[] array, Person person)
     {
@@ -215,6 +220,10 @@ You can call like here.
 ```
 > SampleApp.exe -array [10,20,30] -person {"Age":10,"Name":"foo"}
 ```
+
+> be careful with JSON string double quotation.
+
+> JSON serializer is `System.Text.Json`. You can pass `JsonSerializerOptions` to SerivceProvider when you want to configure serializer behavior.
 
 For the array handling, it can be a treat without correct JSON.
 e.g. one-length argument can handle without `[]`.
@@ -245,35 +254,33 @@ Foo(string[] array)
 
 Exit Code
 ---
-If the batch method returns `int` or `Task<int>` value, BatchEngine will set the return value to the exit code.
+If the method returns `int` or `Task<int>` value, ConsoleAppFramework will set the return value to the exit code.
 
 ```csharp
-public class ExampleBatch : BatchBase
+public class ExampleApp : ConsoleAppBase
 {
-    [Command(nameof(ExitCodeWithTask))]
-    public async Task<int> ExitCodeWithTask()
-    {
-        return 54321;
-    }
-
-    [Command(nameof(ExitCode))]
+    [Command("exit")]
     public int ExitCode()
     {
         return 12345;
     }
+    
+    [Command("exitwithtask")]
+    public async Task<int> ExitCodeWithTask()
+    {
+        return 54321;
+    }
 }
 ```
 
-> **NOTE**: If the method throws an unhandled exception, BatchEngine always set `1` to the exit code.
-
+> **NOTE**: If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code.
 
 Daemon
 ---
-
-`BatchBase(this).Context.CancellationToken` is lifecycle token of batch. In default, MicroBatchFramework does not abort on received terminate request, you can check `CancellationToken.IsCancellationRequested` and shutdown gracefully. If use infinite-loop, it becomes daemon program.
+`ConsoleAppBase.Context.CancellationToken` is lifecycle token of application. In default, ConsoleAppFramework does not abort on received terminate request, you can check `CancellationToken.IsCancellationRequested` and shutdown gracefully. If use infinite-loop, it becomes daemon program.
 
 ```csharp
-public class Daemon : BatchBase
+public class Daemon : ConsoleAppBase
 {
     public async Task Run()
     {
@@ -284,12 +291,12 @@ public class Daemon : BatchBase
             {
                 try
                 {
-                    Context.Logger.LogDebug("Wait One Minutes");
+                    Console.WriteLine("Wait One Minutes");
                 }
                 catch (Exception ex)
                 {
                     // error occured but continue to run(or terminate).
-                    Context.Logger.LogError(ex, "Found error");
+                    Console.WriteLine(ex, "Found error");
                 }
 
                 // wait for next time
@@ -310,46 +317,46 @@ public class Daemon : BatchBase
 
 Interceptor
 ---
-Interceptor can hook before/after batch running event. You can imprement `IBatchInterceptor` for it.
+Interceptor can hook before/after batch running event. You can imprement `IConsoleAppInterceptor` for it.
 
-`BatchContext.Timestamp` has start time so if subtraction from now, get elapsed time.
+`ConsoleAppContext.Timestamp` has start time so if subtraction from now, get elapsed time.
 
 ```csharp
-public class LogRunningTimeInterceptor : IBatchInterceptor
+public class LogRunningTimeInterceptor : IConsoleAppInterceptor
 {
-    public ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger)
+    public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
     {
         return default;
     }
 
-    public ValueTask OnBatchEngineEndAsync()
+    public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
     {
         return default;
     }
 
-    public ValueTask OnBatchRunBeginAsync(BatchContext context)
+    public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
     {
-        context.Logger.LogInformation("Batch Begin at " + context.Timestamp.ToLocalTime()); // LocalTime for human readable time
+        context.Logger.LogInformation("Call method at " + context.Timestamp.ToLocalTime()); // LocalTime for human readable time
         return default;
     }
 
-    public ValueTask OnBatchRunCompleteAsync(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists)
+    public ValueTask OnMethodEndAsync()
     {
-        context.Logger.LogInformation("Batch Completed, Elapsed:" + (DateTimeOffset.UtcNow - context.Timestamp));
+        context.Logger.LogInformation("Call method Completed, Elapsed:" + (DateTimeOffset.UtcNow - context.Timestamp));
         return default;
     }
 }
 ```
 
-In default, MicroBatchFramework does not prevent double startup but if create interceptor, can do. 
+In default, ConsoleAppFramework does not prevent double startup but if create interceptor, can do. 
 
 ```csharp
-public class MutexInterceptor : IBatchInterceptor
+public class MutexInterceptor : IConsoleAppInterceptor
 {
     Mutex mutex;
     bool hasHandle = false;
 
-    public ValueTask OnBatchEngineBeginAsync(IServiceProvider serviceProvider, ILogger<BatchEngine> logger)
+    public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
     {
         mutex = new Mutex(false, Assembly.GetEntryAssembly().GetName().Name);
         if (!mutex.WaitOne(0, false))
@@ -361,7 +368,7 @@ public class MutexInterceptor : IBatchInterceptor
         return default;
     }
 
-    public ValueTask OnBatchEngineEndAsync()
+    public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
     {
         if (hasHandle)
         {
@@ -371,12 +378,12 @@ public class MutexInterceptor : IBatchInterceptor
         return default;
     }
 
-    public ValueTask OnBatchRunBeginAsync(BatchContext context)
+    public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
     {
         return default;
     }
 
-    public ValueTask OnBatchRunCompleteAsync(BatchContext context, string errorMessageIfFailed, Exception exceptionIfExists)
+    public ValueTask OnMethodEndAsync()
     {
         return default;
     }
@@ -390,21 +397,21 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        await BatchHost.CreateDefaultBuilder()
-            .RunBatchEngineAsync(args, new LogRunningTimeInterceptor());
+        await Host.CreateDefaultBuilder()
+            .RunConsoleAppFrameworkAsync(args, new LogRunningTimeInterceptor());
     }
 }
 ```
 
-If you want to use multiple interceptor, you can use `CompositeBatchInterceptor`.
+If you want to use multiple interceptor, you can use `CompositeConsoleAppInterceptor`.
 
 ```csharp
 class Program
 {
     static async Task Main(string[] args)
     {
-        await BatchHost.CreateDefaultBuilder()
-            .RunBatchEngineAsync(args, new CompositeBatchInterceptor
+        await Host.CreateDefaultBuilder()
+            .RunConsoleAppFrameworkAsync(args, new CompositeConsoleAppInterceptor
             {
                 new LogRunningTimeInterceptor(),
                 new MutexInterceptor()
@@ -413,10 +420,33 @@ class Program
 }
 ```
 
-Configure Configuration
+Logging
 ---
-MicroBatchFramework is just a infrastructure. You can add appsettings.json or other configs as .NET Core offers via `ConfigureAppConfiguration`.
-You can add `appsettings.json` and `appsettings.<env>.json` and typesafe load via map config to Class w/IOption.
+In default, `Context.Logger` has `ILogger<ConsoleAppEngine>` and `ILogger<T>` can inject to constructor. Default `ConsoleLogger` format in `Host.CreateDefaultBuilder` is supernumerary and not suitable for console application. ConsoleAppFramework provides `SimpleConsoleLogger` to replace default ConsoleLogger.
+
+```csharp
+static async Task Main(string[] args)
+{
+    await Host.CreateDefaultBuilder()
+        .ConfigureLogging(logging =>
+        {
+            // Replacing default console logger to SimpleConsoleLogger.
+            logging.ReplaceToSimpleConsole();
+
+            // Add ConsoleAppFramework.Logging.SimpleConsoleLogger.
+            // logging.AddSimpleConsole();
+
+            // Configure MinimumLogLevel(CreaterDefaultBuilder's default is Warning).
+            logging.SetMinimumLevel(LogLevel.Trace);
+        })
+        .RunConsoleAppFrameworkAsync<Program>(args);
+}
+```
+
+Configuration
+---
+ConsoleAppFramework is just an infrastructure. You can add `appsettings.json` or other configs as .NET Core offers via `Microsoft.Extensions.Options`.
+You can add `appsettings.json` and `appsettings.{environment}.json` and typesafe load via map config to Class w/IOption.
 
 Here's single contained batch with Config loading sample.
 
@@ -433,23 +463,23 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        await BatchHost.CreateDefaultBuilder()
+        await Host.CreateDefaultBuilder()
             .ConfigureServices((hostContext, services) =>
             {
                 // mapping config json to IOption<MyConfig>
                 // requires "Microsoft.Extensions.Options.ConfigurationExtensions" package
                 services.Configure<MyConfig>(hostContext.Configuration);
             })
-            .RunBatchEngineAsync<MyFirstBatch>(args);
+            .RunConsoleAppFrameworkAsync<ConfigAppSample>(args);
     }
 }
 
-public class MyFirstBatch : BatchBase
+public class ConfigAppSample : ConsoleAppBase
 {
     IOptions<MyConfig> config;
 
     // get configuration from DI.
-    public MyFirstBatch(IOptions<MyConfig> config)
+    public Program(IOptions<MyConfig> config)
     {
         this.config = config;
     }
@@ -462,72 +492,7 @@ public class MyFirstBatch : BatchBase
 }
 ```
 
-`BatchHost.CreateDefaultBuilder()` is similar as `WebHost.CreateDefaultBuilder` on ASP.NET Core, that setup like below.
-
-```csharp
-var builder = new HostBuilder();
-
-// set the content root to executing assembly's location.
-builder.UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-
-// set the host configuration
-builder.ConfigureHostConfiguration(config =>
-{
-    config.AddEnvironmentVariables(prefix: "DOTNET_");
-    config.AddInMemoryCollection(new[] { new KeyValuePair<string, string>(HostDefaults.ApplicationKey, Assembly.GetExecutingAssembly().GetName().Name) });
-});
-
-if (!string.IsNullOrWhiteSpace(hostEnvironmentVariable))
-{
-    builder.UseEnvironment(System.Environment.GetEnvironmentVariable(hostEnvironmentVariable) ?? "Production");
-}
-
-builder.ConfigureAppConfiguration((hostingContext, config) =>
-{
-    var env = hostingContext.HostingEnvironment;
-
-    // Load settings from JSON file.
-    config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-    config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
-
-    // If EnvironmentName is "Development", try to load UserSecrets.
-    if (env.IsDevelopment())
-    {
-        var appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
-        if (appAssembly != null)
-        {
-            config.AddUserSecrets(appAssembly, optional: true);
-        }
-    }
-
-    // Load settings from Environment variables.
-    config.AddEnvironmentVariables();
-});
-
-builder.ConfigureLogging(logging =>
-{
-    // if embeded SimpleConsoleLogger(default is true), setup logging(MinLogLevel's default is Debug).
-    if (useSimpleConosoleLogger)
-    {
-        builder.ConfigureLogging(logging =>
-        {
-            logging.AddSimpleConsole();
-            logging.AddFilter<SimpleConsoleLoggerProvider>((category, level) =>
-            {
-                // omit system message
-                if (category.StartsWith("Microsoft.Extensions.Hosting.Internal"))
-                {
-                    if (level <= LogLevel.Debug) return false;
-                }
-
-                return level >= minSimpleConsoleLoggerLogLevel;
-            });
-        });
-    }
-});
-
-return builder;
-```
+for the details, please see [.NET Core Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) documantation.
 
 DI
 ---
@@ -535,34 +500,34 @@ You can use DI(constructor injection) by GenericHost.
 
 ```csharp
 IOptions<MyConfig> config;
-ILogger<MyFirstBatch> logger;
+ILogger<MyApp> logger;
 
-public MyFirstBatch(IOptions<MyConfig> config, ILogger<MyFirstBatch> logger)
+public MyApp(IOptions<MyConfig> config, ILogger<MyApp> logger)
 {
     this.config = config;
     this.logger = logger;
 }
 ```
 
-BatchContext
+ConsoleAppContext
 ---
-BatchContext is injected to property on method executing. It has four properties.
+ConsoleAppContext is injected to property on method executing. It has four properties.
 
 ```csharp
-public string[] Arguments { get; private set; }
-public DateTime Timestamp { get; private set; }
-public CancellationToken CancellationToken { get; private set; }
-public ILogger<BatchEngine> Logger { get; private set; }
+public string[] Arguments { get; }
+public DateTime Timestamp { get; }
+public CancellationToken CancellationToken { get; }
+public ILogger<ConsoleAppEngine> Logger { get; }
 ```
 
 Web Interface with Swagger
 ---
-MicroBatchFramework.WebHosting is support to expose web interface and swagger(with executable api document). It is useful for debugging.
+ConsoleAppFramework.WebHosting is support to expose web interface and swagger(with executable api document). It is useful for debugging.
 
-NuGet: [MicroBatchFramework.WebHosting](https://www.nuget.org/packages/MicroBatchFramework.WebHosting)
+NuGet: [ConsoleAppFramework.WebHosting](https://www.nuget.org/packages/ConsoleAppFramework.WebHosting)
 
 ```
-Install-Package MicroBatchFramework.WebHosting
+Install-Package ConsoleAppFramework.WebHosting
 ```
 
 ```csharp
@@ -570,7 +535,8 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        await new WebHostBuilder().RunBatchEngineWebHosting("http://localhost:12345");
+        await Host.CreateDefaultBuilder(args)
+            .RunConsoleAppFrameworkWebHostingAsync("http://localhost:12345");
     }
 }
 ```
@@ -581,7 +547,7 @@ in browser `http://localhost:12345`, launch swagger ui.
 
 Publish to executable file
 ---
-[dotnet publish](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish) to create executable file.
+[dotnet publish](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish) to create executable file. [.NET Core 3.0 offers Single Executable File](https://docs.microsoft.com/ja-jp/dotnet/core/whats-new/dotnet-core-3-0) via `PublishSingleFile`.
 
 Here is the sample `.config.yml` of [CircleCI](http://circleci.com).
 
@@ -590,7 +556,7 @@ version: 2.1
 executors:
   dotnet:
     docker:
-      - image: mcr.microsoft.com/dotnet/core/sdk:2.2
+      - image: mcr.microsoft.com/dotnet/core/sdk:3.0
     environment:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
       NUGET_XMLDOC_MODE: skip
@@ -599,9 +565,9 @@ jobs:
     executor: dotnet
     steps:
       - checkout
-      - run: dotnet publish -c Release --self-contained -r win-x64 -o ./bin/win-x64
-      - run: dotnet publish -c Release --self-contained -r linux-x64 -o ./bin/linux-x64
-      - run: dotnet publish -c Release --self-contained -r osx-x64 -o ./bin/osx-x64
+      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r win-x64 -o ./bin/win-x64
+      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r linux-x64 -o ./bin/linux-x64
+      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r osx-x64 -o ./bin/osx-x64
       - store_artifacts:
           path: ./bin/
           destination: ./bin/
@@ -612,55 +578,7 @@ workflows:
       - publish-all
 ```
 
-CLI tool can use [.NET Core Global Tools](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools). If you want to create it, check the [Global Tools how to create](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools-how-to-create).
-
-Pack to Docker and deploy
----
-If you hosting the batch to server, recommend to use container. Add Dockerfile like below.
-
-```dockerfile
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2 AS sdk
-WORKDIR /workspace
-COPY . .
-RUN dotnet publish ./MicroBatchFrameworkSample.csproj -c Release -o /app
-
-FROM mcr.microsoft.com/dotnet/core/runtime:2.2
-COPY --from=sdk /app .
-ENTRYPOINT ["dotnet", "MicroBatchFrameworkSample.dll"]
-```
-
-And docker build, send to any container registory. Here is the sample of deploy AWS ECR by CircleCI.
-
-```yml
-version: 2.1
-orbs:
-  aws-ecr: circleci/aws-ecr@3.1.0
-workflows:
-  build-push:
-    jobs:
-      # see: https://circleci.com/orbs/registry/orb/circleci/aws-ecr
-      - aws-ecr/build_and_push_image:
-          repo: "microbatchsample"
-```
-
-and set the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ECR_ACCOUNT_URL, AWS_REGION` environment variables on CircleCI.
-
-for example, run by [AWS Batch](https://aws.amazon.com/jp/batch/), you can host easily and log can view on CloudWatch.
-
-![image](https://user-images.githubusercontent.com/46207/55616375-a6821a80-57cc-11e9-9d3a-a0691e631f28.png)
-
-If you want to create complex workflow, you can use any worlkflow engine like [luigi](https://github.com/spotify/luigi), [Apache Airflow](https://github.com/apache/airflow), etc.
-
-Scheduling(cron, taskscheduler)
----
-If you host on AWS Batch, you can use CloudWatch Events to simple event scheduling trigger. If hosting to kubernetes, you can use Kubernetes CronJob.
-
-Author Info
----
-This library is mainly developed by Yoshifumi Kawai(a.k.a. neuecc).  
-He is the CEO/CTO of Cysharp which is a subsidiary of [Cygames](https://www.cygames.co.jp/en/).  
-He is awarding Microsoft MVP for Developer Technologies(C#) since 2011.  
-He is known as the creator of [UniRx](https://github.com/neuecc/UniRx/) and [MessagePack for C#](https://github.com/neuecc/MessagePack-CSharp/).
+CLI tool can use [.NET Core Local/Global Tools](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools). If you want to create it, check the [Global Tools how to create](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools-how-to-create) or [Local Tools introduction](https://andrewlock.net/new-in-net-core-3-local-tools/).
 
 License
 ---

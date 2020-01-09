@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MicroBatchFramework.WebHosting\MicroBatchFramework.WebHosting.csproj" />
-    <ProjectReference Include="..\..\src\MicroBatchFramework\MicroBatchFramework.csproj" />
+    <ProjectReference Include="..\..\src\ConsoleAppFramework.WebHosting\ConsoleAppFramework.WebHosting.csproj" />
+    <ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj" />
   </ItemGroup>
 
   <ItemGroup>

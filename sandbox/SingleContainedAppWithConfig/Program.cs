@@ -1,10 +1,11 @@
-﻿using MicroBatchFramework;
+﻿using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading.Tasks;
 
-public class Baz : BatchBase
+public class Baz : ConsoleAppBase
 {
     private readonly IOptions<SingleContainedAppWithConfig.AppConfig> config;
     // Batche inject Config on constructor.
@@ -35,8 +36,8 @@ namespace SingleContainedAppWithConfig
     {
         static async Task Main(string[] args)
         {
-            // using MicroBatchFramework.Configuration;
-            await MicroBatchFramework.BatchHost.CreateDefaultBuilder()
+            // using ConsoleAppFramework.Configuration;
+            await Host.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
@@ -47,7 +48,7 @@ namespace SingleContainedAppWithConfig
                     services.AddTransient<MyServiceB>();
                     services.AddSingleton<MyServiceC>();
                 })
-                .RunBatchEngineAsync<Baz>(args);
+                .RunConsoleAppFrameworkAsync<Baz>(args);
         }
     }
 
