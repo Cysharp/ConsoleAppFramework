@@ -554,7 +554,7 @@ in browser `http://localhost:12345`, launch swagger ui.
 
 Publish to executable file
 ---
-[dotnet publish](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish) to create executable file. [.NET Core 3.0 offers Single Executable File](https://docs.microsoft.com/ja-jp/dotnet/core/whats-new/dotnet-core-3-0) via `PublishSingleFile`.
+[dotnet publish](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish) to create executable file. [.NET Core 3.0 offers Single Executable File](https://docs.microsoft.com/en-us/dotnet/core/whats-new/dotnet-core-3-0) via `PublishSingleFile`.
 
 Here is the sample `.config.yml` of [CircleCI](http://circleci.com).
 
