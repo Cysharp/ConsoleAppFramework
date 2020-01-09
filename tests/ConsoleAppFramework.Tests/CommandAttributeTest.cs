@@ -28,12 +28,12 @@ namespace ConsoleAppFramework.Tests
         [Fact]
         public async Task TestCommandName()
         {
-            var host = ConsoleAppHost.CreateDefaultBuilder()
+            var host = Host.CreateDefaultBuilder()
                 .ConfigureServices((c, services) =>
                 {
                     services.AddSingleton<ResultContainer>();
                 })
-                .UseConsoleAppEngine<CommandAttributeTestCommand>(new string[]{ "test", "-value", "1" })
+                .UseConsoleAppFramework<CommandAttributeTestCommand>(new string[]{ "test", "-value", "1" })
                 .Build();
             var result = host.Services.GetService<ResultContainer>();
             await host.RunAsync();

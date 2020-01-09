@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
+using ConsoleAppFramework.Logging;
 
 namespace ConsoleAppFramework.Logging
 {
@@ -76,12 +78,36 @@ namespace ConsoleAppFramework.Logging
             }
         }
     }
+}
 
+namespace ConsoleAppFramework
+{
     public static class SimpleConsoleLoggerExtensions
     {
+        /// <summary>
+        /// use ConsoleAppFramework.Logging.SimpleConsoleLogger.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <returns></returns>
         public static ILoggingBuilder AddSimpleConsole(this ILoggingBuilder builder)
         {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, SimpleConsoleLoggerProvider>());
+            return builder;
+        }
+
+        /// <summary>
+        /// Remove default ConsoleLoggerProvider and replace to SimpleConsoleLogger.
+        /// </summary>
+        public static ILoggingBuilder ReplaceToSimpleConsole(this ILoggingBuilder builder)
+        {
+            // Use SimpleConsoleLogger instead of the default ConsoleLogger.
+            var consoleLogger = builder.Services.FirstOrDefault(x => x.ImplementationType?.FullName == "Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider");
+            if (consoleLogger != null)
+            {
+                builder.Services.Remove(consoleLogger);
+            }
+
+            builder.AddSimpleConsole();
             return builder;
         }
     }

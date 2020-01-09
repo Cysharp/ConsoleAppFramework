@@ -31,7 +31,7 @@ namespace ConsoleAppFramework.Tests
             var log = new LogStack();
             await new HostBuilder()
                 .ConfigureTestLogging(testOutput, log, true)
-                .RunConsoleAppEngineAsync<SimpleZeroArgs>(new string[0]);
+                .RunConsoleAppFrameworkAsync<SimpleZeroArgs>(new string[0]);
             log.InfoLogShouldBe(0, "ok");
         }
 
@@ -54,7 +54,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<SimpleTwoArgs>(args);
+                    .RunConsoleAppFrameworkAsync<SimpleTwoArgs>(args);
                 log.InfoLogShouldBe(0, "name:foo");
                 log.InfoLogShouldBe(1, "repeat:3");
             }
@@ -65,7 +65,7 @@ namespace ConsoleAppFramework.Tests
                 {
                     await new HostBuilder()
                         .ConfigureTestLogging(testOutput, log, true)
-                        .RunConsoleAppEngineAsync<SimpleTwoArgs>(args);
+                        .RunConsoleAppFrameworkAsync<SimpleTwoArgs>(args);
                 });
 
                 ex.Flatten().InnerException.Should().BeAssignableTo<TestLogException>()
@@ -76,7 +76,7 @@ namespace ConsoleAppFramework.Tests
                 using (TextWriterBridge.BeginSetConsoleOut(testOutput, log))
                 {
                     var args = new string[0];
-                    await new HostBuilder().RunConsoleAppEngineAsync<SimpleTwoArgs>(args);
+                    await new HostBuilder().RunConsoleAppFrameworkAsync<SimpleTwoArgs>(args);
                     log.ToStringInfo().Should().Contain("Options:"); // ok to show help
                 }
             }
@@ -107,7 +107,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<SimpleComplexArgs>(args);
+                    .RunConsoleAppFrameworkAsync<SimpleComplexArgs>(args);
                 log.InfoLogShouldBe(0, "person.Age:10 person.Name:foo");
                 log.InfoLogShouldBe(1, "repeat:3");
             }
@@ -132,7 +132,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<TwoArgsWithOption>(args);
+                    .RunConsoleAppFrameworkAsync<TwoArgsWithOption>(args);
                 log.InfoLogShouldBe(0, "name:foo");
                 log.InfoLogShouldBe(1, "repeat:3");
             }
@@ -141,7 +141,7 @@ namespace ConsoleAppFramework.Tests
                 using (TextWriterBridge.BeginSetConsoleOut(testOutput, log))
                 {
                     var args = new string[0];
-                    await new HostBuilder().RunConsoleAppEngineAsync<TwoArgsWithOption>(args);
+                    await new HostBuilder().RunConsoleAppFrameworkAsync<TwoArgsWithOption>(args);
                     var strAssertion = log.ToStringInfo().Should();
                     strAssertion.Contain("Options:"); // ok to show help
                     strAssertion.Contain("-n");
@@ -170,7 +170,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<TwoArgsWithDefault>(args);
+                    .RunConsoleAppFrameworkAsync<TwoArgsWithDefault>(args);
                 log.InfoLogShouldBe(0, "name:foo");
                 log.InfoLogShouldBe(1, "repeat:100");
                 log.InfoLogShouldBe(2, "hoo:");
@@ -195,7 +195,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<AllDefaultParameters>(args);
+                    .RunConsoleAppFrameworkAsync<AllDefaultParameters>(args);
                 log.InfoLogShouldBe(0, "name:aaa");
                 log.InfoLogShouldBe(1, "repeat:100");
                 log.InfoLogShouldBe(2, "hoo:");
@@ -220,7 +220,7 @@ namespace ConsoleAppFramework.Tests
                 var args = "-x foo -foo -yeah".Split(' ');
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<BooleanSwitch>(args);
+                    .RunConsoleAppFrameworkAsync<BooleanSwitch>(args);
                 log.InfoLogShouldBe(0, "x:foo");
                 log.InfoLogShouldBe(1, "foo:True");
                 log.InfoLogShouldBe(2, "yeah:True");
@@ -230,7 +230,7 @@ namespace ConsoleAppFramework.Tests
                 var args = "-x foo -foo".Split(' ');
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<BooleanSwitch>(args);
+                    .RunConsoleAppFrameworkAsync<BooleanSwitch>(args);
                 log.InfoLogShouldBe(0, "x:foo");
                 log.InfoLogShouldBe(1, "foo:True");
                 log.InfoLogShouldBe(2, "yeah:False");

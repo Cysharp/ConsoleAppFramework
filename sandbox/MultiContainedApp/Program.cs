@@ -10,8 +10,8 @@ namespace MultiContainedApp
     {
         static async Task Main(string[] args)
         {
-            await ConsoleAppHost.CreateDefaultBuilder()
-                .RunConsoleAppEngineAsync(args);
+            await Host.CreateDefaultBuilder()
+                .RunConsoleAppFrameworkAsync(args);
         }
     }
 

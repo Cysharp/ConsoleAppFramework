@@ -13,7 +13,10 @@ namespace ConsoleAppFramework
         const string HelpCommand = "help";
         const string VersionCommand = "version";
 
-        public static IHostBuilder UseConsoleAppEngine(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        /// <summary>
+        /// Setup multiple ConsoleApp that are searched from all assemblies.
+        /// </summary>
+        public static IHostBuilder UseConsoleAppFramework(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
         {
             IHostBuilder ConfigureEmptyService()
             {
@@ -105,12 +108,18 @@ namespace ConsoleAppFramework
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunConsoleAppEngineAsync(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        /// <summary>
+        /// Run multiple ConsoleApp that are searched from all assemblies.
+        /// </summary>
+        public static Task RunConsoleAppFrameworkAsync(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
         {
-            return UseConsoleAppEngine(hostBuilder, args, interceptor).Build().RunAsync();
+            return UseConsoleAppFramework(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
-        public static IHostBuilder UseConsoleAppEngine<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        /// <summary>
+        /// Setup a single ConsoleApp type that is targeted by type argument.
+        /// </summary>
+        public static IHostBuilder UseConsoleAppFramework<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
             where T : ConsoleAppBase
         {
             IHostBuilder ConfigureEmptyService()
@@ -200,10 +209,13 @@ namespace ConsoleAppFramework
             return hostBuilder.UseConsoleLifetime();
         }
 
-        public static Task RunConsoleAppEngineAsync<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        /// <summary>
+        /// Run a single ConsoleApp type that is targeted by type argument.
+        /// </summary>
+        public static Task RunConsoleAppFrameworkAsync<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
             where T : ConsoleAppBase
         {
-            return UseConsoleAppEngine<T>(hostBuilder, args, interceptor).Build().RunAsync();
+            return UseConsoleAppFramework<T>(hostBuilder, args, interceptor).Build().RunAsync();
         }
 
         static bool TrimEquals(string arg, string command)

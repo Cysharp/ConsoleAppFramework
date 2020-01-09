@@ -1,5 +1,6 @@
 ﻿using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ namespace SingleContainedAppWithConfig
         static async Task Main(string[] args)
         {
             // using ConsoleAppFramework.Configuration;
-            await ConsoleAppFramework.ConsoleAppHost.CreateDefaultBuilder()
+            await Host.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
@@ -47,7 +48,7 @@ namespace SingleContainedAppWithConfig
                     services.AddTransient<MyServiceB>();
                     services.AddSingleton<MyServiceC>();
                 })
-                .RunConsoleAppEngineAsync<Baz>(args);
+                .RunConsoleAppFrameworkAsync<Baz>(args);
         }
     }
 

@@ -49,7 +49,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync(args);
+                    .RunConsoleAppFrameworkAsync(args);
                 log.InfoLogShouldBe(0, "ok");
             }
             {
@@ -57,7 +57,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync(args);
+                    .RunConsoleAppFrameworkAsync(args);
                 log.InfoLogShouldBe(0, "yeah");
             }
             {
@@ -65,7 +65,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync(args);
+                    .RunConsoleAppFrameworkAsync(args);
                 log.InfoLogShouldBe(0, "20:30");
             }
             {
@@ -73,7 +73,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync(args);
+                    .RunConsoleAppFrameworkAsync(args);
                 log.InfoLogShouldBe(0, "True:True:yeah:999");
             }
         }

@@ -117,8 +117,8 @@ namespace SingleContainedApp
     {
         public void Foo(int[] array, Person person)
         {
-            Console.WriteLine(array.Length + ":" + string.Join(", ", array));
-            Console.WriteLine(person.Age + ":" + person.Name);
+            Context.Logger.LogTrace(array.Length + ":" + string.Join(", ", array));
+            Context.Logger.LogInformation(person.Age + ":" + person.Name);
         }
     }
 
@@ -126,7 +126,7 @@ namespace SingleContainedApp
     {
         public void Run([Option(0, "message of x.")]string x)
         {
-            Console.WriteLine("1." + x);
+            // Console.WriteLine("1." + x);
             //Console.WriteLine("2." + y);
         }
     }
@@ -141,15 +141,22 @@ namespace SingleContainedApp
     {
         static async Task Main(string[] args)
         {
-            // args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
+            args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
 
-            await ConsoleAppHost.CreateDefaultBuilder()
-                .ConfigureServices((hostContext, services) =>
+
+            await Host.CreateDefaultBuilder()
+                .ConfigureLogging(logging =>
                 {
-                    // mapping config json to IOption<MyConfig>
-                    services.Configure<MyConfig>(hostContext.Configuration);
+                    logging.SetMinimumLevel(LogLevel.Trace).ReplaceToSimpleConsole();
                 })
-                .RunConsoleAppEngineAsync<StandardArgTest>(args);
+                .RunConsoleAppFrameworkAsync<ComplexArgTest>(args);
+            // .RunConsoleAppEngineAsync
+            //.ConfigureServices((hostContext, services) =>
+            //{
+            //    // mapping config json to IOption<MyConfig>
+            //    services.Configure<MyConfig>(hostContext.Configuration);
+            //})
+            //.RunConsoleAppEngineAsync<StandardArgTest>(args);
         }
     }
 }

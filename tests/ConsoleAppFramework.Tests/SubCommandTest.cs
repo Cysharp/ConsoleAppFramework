@@ -55,7 +55,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppFrameworkAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "d:12345.12345");
             }
             {
@@ -63,7 +63,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppFrameworkAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "path:foo");
                 log.InfoLogShouldBe(1, "pfx:bar");
             }
@@ -72,7 +72,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppFrameworkAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "x:10");
                 log.InfoLogShouldBe(1, "y:20");
             }
@@ -81,7 +81,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<TwoSubCommand>(args);
+                    .RunConsoleAppFrameworkAsync<TwoSubCommand>(args);
                 log.InfoLogShouldBe(0, "input:foobarbaz");
                 log.InfoLogShouldBe(1, "x:10");
                 log.InfoLogShouldBe(2, "y:20");
@@ -117,7 +117,7 @@ namespace ConsoleAppFramework.Tests
                     var log = new LogStack();
                     await new HostBuilder()
                         .ConfigureTestLogging(testOutput, log, true)
-                        .RunConsoleAppEngineAsync<AliasCommand>(args);
+                        .RunConsoleAppFrameworkAsync<AliasCommand>(args);
                     log.InfoLogShouldBe(0, "path:foo");
                     log.InfoLogShouldBe(1, "pfx:bar");
                 }
@@ -128,7 +128,7 @@ namespace ConsoleAppFramework.Tests
                     var log = new LogStack();
                     await new HostBuilder()
                         .ConfigureTestLogging(testOutput, log, true)
-                        .RunConsoleAppEngineAsync<AliasCommand>(args);
+                        .RunConsoleAppFrameworkAsync<AliasCommand>(args);
                     log.InfoLogShouldBe(0, "30");
                 }
                 {
@@ -136,7 +136,7 @@ namespace ConsoleAppFramework.Tests
                     var log = new LogStack();
                     await new HostBuilder()
                         .ConfigureTestLogging(testOutput, log, true)
-                        .RunConsoleAppEngineAsync<AliasCommand>(args);
+                        .RunConsoleAppFrameworkAsync<AliasCommand>(args);
                     log.InfoLogShouldBe(0, "199");
                 }
             }
@@ -165,7 +165,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<OverrideDefaultCommand>(args);
+                    .RunConsoleAppFrameworkAsync<OverrideDefaultCommand>(args);
                 log.InfoLogShouldBe(0, "lst");
             }
             {
@@ -173,7 +173,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<OverrideDefaultCommand>(args);
+                    .RunConsoleAppFrameworkAsync<OverrideDefaultCommand>(args);
                 log.InfoLogShouldBe(0, "hlp");
             }
             {
@@ -181,7 +181,7 @@ namespace ConsoleAppFramework.Tests
                 var log = new LogStack();
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<OverrideDefaultCommand>(args);
+                    .RunConsoleAppFrameworkAsync<OverrideDefaultCommand>(args);
                 log.InfoLogShouldBe(0, "hlp");
             }
         }
@@ -209,7 +209,7 @@ namespace ConsoleAppFramework.Tests
             {
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppEngineAsync<NotFoundPath>(args);
+                    .RunConsoleAppFrameworkAsync<NotFoundPath>(args);
             });
         }
     }
