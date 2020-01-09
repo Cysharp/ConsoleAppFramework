@@ -4,7 +4,7 @@ ConsoleAppFramework
 
 ConsoleAppFramework is an infrastructure of creating CLI(Command-line interface) tools, daemon, and multi batch application.
 
-// image
+![image](https://user-images.githubusercontent.com/46207/72047323-a08e0c80-32fd-11ea-850a-7f926adf3d22.png)
 
 ConsoleAppFramework is built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host), you can use configuration, logging, DI, lifetime management by Microsoft.Extensions packages. ConsoleAppFramework do parameter binding from string args, routing multi command, dotnet style help builder, etc.
 
