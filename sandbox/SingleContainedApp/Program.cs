@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SingleContainedApp
@@ -137,11 +138,28 @@ namespace SingleContainedApp
         public string Name { get; set; }
     }
 
+
+    public class ThrowOperationCanceledException : ConsoleAppBase
+    {
+        public async Task Throw()
+        {
+            //while (true)
+            //{
+            //    await Task.Delay(10);
+            //    Context.CancellationToken.ThrowIfCancellationRequested();
+            //}
+
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+            cts.Token.ThrowIfCancellationRequested();
+        }
+    }
+
     class Program
     {
         static async Task Main(string[] args)
         {
-            args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
+            //args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
 
 
             await Host.CreateDefaultBuilder()
@@ -149,7 +167,7 @@ namespace SingleContainedApp
                 {
                     logging.SetMinimumLevel(LogLevel.Trace).ReplaceToSimpleConsole();
                 })
-                .RunConsoleAppFrameworkAsync<ComplexArgTest>(args);
+                .RunConsoleAppFrameworkAsync<ThrowOperationCanceledException>(args);
             // .RunConsoleAppEngineAsync
             //.ConfigureServices((hostContext, services) =>
             //{

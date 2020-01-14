@@ -164,9 +164,11 @@ namespace ConsoleAppFramework
             }
             catch (Exception ex)
             {
-                if (ex is OperationCanceledException || ex is TaskCanceledException)
+                if (ex is OperationCanceledException operationCanceledException && operationCanceledException.CancellationToken == cancellationToken)
                 {
-                    return; // do nothing
+                    // NOTE: Do nothing if the exception has thrown by the CancellationToken of ConsoleAppEngine.
+                    // If the user code throws OperationCanceledException, ConsoleAppEngine should not handle that.
+                    return;
                 }
 
                 if (ex is TargetInvocationException tex)
