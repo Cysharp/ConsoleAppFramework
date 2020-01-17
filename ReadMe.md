@@ -194,6 +194,7 @@ Commands:
 
 `[command] -help` shows command details.
 
+```
 > SampleApp.exe Foo.Echo -help
 Usage: SampleApp Foo.Echo [options...]
 
