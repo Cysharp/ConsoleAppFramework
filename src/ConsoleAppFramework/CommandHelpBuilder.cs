@@ -46,7 +46,7 @@ namespace ConsoleAppFramework
                 sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultMethod), showCommandName: false));
             }
 
-            if (methodInfo.Length > 1)
+            if ((defaultMethod == null && methodInfo.Length == 1) || methodInfo.Length > 1)
             {
                 // Display sub commands list.
                 sb.Append(BuildUsageMessage());
@@ -79,6 +79,12 @@ namespace ConsoleAppFramework
             {
                 sb.Append(BuildArgumentsMessage(definition));
                 sb.Append(BuildOptionsMessage(definition));
+            }
+            else
+            {
+                sb.AppendLine("Options:");
+                sb.AppendLine("  ()");
+                sb.AppendLine();
             }
 
             return sb.ToString();
