@@ -155,6 +155,18 @@ namespace SingleContainedApp
         }
     }
 
+
+    public class SimpleTwoArgs : ConsoleAppBase
+    {
+        public void Hello(
+            string name,
+            int repeat)
+        {
+            Context.Logger.LogInformation($"name:{name}");
+            Context.Logger.LogInformation($"repeat:{repeat}");
+        }
+    }
+
     class Program
     {
         static async Task Main(string[] args)
@@ -167,7 +179,7 @@ namespace SingleContainedApp
                 {
                     logging.SetMinimumLevel(LogLevel.Trace).ReplaceToSimpleConsole();
                 })
-                .RunConsoleAppFrameworkAsync<ThrowOperationCanceledException>(args);
+                .RunConsoleAppFrameworkAsync<SimpleTwoArgs>(args);
             // .RunConsoleAppEngineAsync
             //.ConfigureServices((hostContext, services) =>
             //{

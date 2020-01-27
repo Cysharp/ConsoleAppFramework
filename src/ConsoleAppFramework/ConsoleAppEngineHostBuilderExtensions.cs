@@ -143,7 +143,7 @@ namespace ConsoleAppFramework
                 {
                     if (!hasHelp)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, null));
+                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
                         ConfigureEmptyService();
                         return hostBuilder;
                     }
