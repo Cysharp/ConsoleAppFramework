@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.168
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29728.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1F399F98-7439-4F05-847B-CC1267B4B7F2}"
 EndProject
@@ -24,9 +24,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".circleci", ".circleci", "{
 		.circleci\config.yml = .circleci\config.yml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppFramework.WebHosting", "src\ConsoleAppFramework.WebHosting\ConsoleAppFramework.WebHosting.csproj", "{9AC1CAE2-E717-472A-BBFB-0FE5590E5C7A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.WebHosting", "src\ConsoleAppFramework.WebHosting\ConsoleAppFramework.WebHosting.csproj", "{9AC1CAE2-E717-472A-BBFB-0FE5590E5C7A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebHostingApp", "sandbox\WebHostingApp\WebHostingApp.csproj", "{2B7CDEFC-3D92-4B72-8898-2494D7B087AD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebHostingApp", "sandbox\WebHostingApp\WebHostingApp.csproj", "{2B7CDEFC-3D92-4B72-8898-2494D7B087AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppFramework.Integration.Test", "tests\ConsoleAppFramework.Integration.Test\ConsoleAppFramework.Integration.Test.csproj", "{6A39E146-8CDF-4B04-88ED-395C56A32722}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -62,6 +64,10 @@ Global
 		{2B7CDEFC-3D92-4B72-8898-2494D7B087AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B7CDEFC-3D92-4B72-8898-2494D7B087AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B7CDEFC-3D92-4B72-8898-2494D7B087AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A39E146-8CDF-4B04-88ED-395C56A32722}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A39E146-8CDF-4B04-88ED-395C56A32722}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A39E146-8CDF-4B04-88ED-395C56A32722}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A39E146-8CDF-4B04-88ED-395C56A32722}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -74,6 +80,7 @@ Global
 		{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629} = {AAD2D900-C305-4449-A9FC-6C7696FFEDFA}
 		{9AC1CAE2-E717-472A-BBFB-0FE5590E5C7A} = {1F399F98-7439-4F05-847B-CC1267B4B7F2}
 		{2B7CDEFC-3D92-4B72-8898-2494D7B087AD} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
+		{6A39E146-8CDF-4B04-88ED-395C56A32722} = {AAD2D900-C305-4449-A9FC-6C7696FFEDFA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7F3E353A-C125-4020-8481-11DC6496358C}

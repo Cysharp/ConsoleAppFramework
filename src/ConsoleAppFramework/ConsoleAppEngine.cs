@@ -82,7 +82,7 @@ namespace ConsoleAppFramework
                     {
                         if (method != null)
                         {
-                            await SetFailAsync(ctx, "Found two public methods(wihtout command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
+                            await SetFailAsync(ctx, "Found more than one public methods(without command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
                             return;
                         }
                         method = item; // found single public(non-command) method.
@@ -205,18 +205,36 @@ namespace ConsoleAppFramework
         {
             var jsonOption = (JsonSerializerOptions)provider.GetService(typeof(JsonSerializerOptions));
 
-            var argumentDictionary = ParseArgument(args, argsOffset);
+            // Collect option types for parsing command-line arguments.
+            var optionTypeByOptionName = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var item = parameters[i];
+                var option = item.GetCustomAttribute<OptionAttribute>();
+
+                optionTypeByOptionName[item.Name] = item.ParameterType;
+                if (!string.IsNullOrWhiteSpace(option?.ShortName))
+                {
+                    optionTypeByOptionName[option!.ShortName!] = item.ParameterType;
+                }
+            }
+
+            var argumentDictionary = ParseArgument(args, argsOffset, optionTypeByOptionName);
             invokeArgs = new object[parameters.Length];
 
             for (int i = 0; i < parameters.Length; i++)
             {
                 var item = parameters[i];
                 var option = item.GetCustomAttribute<OptionAttribute>();
+                if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{item.Name}' has a short name, but the short name must start with A-Z or a-z.");
 
                 var value = default(OptionParameter);
                 if (option != null && option.Index != -1)
                 {
-                    value = new OptionParameter { Value = args[argsOffset + i] };
+                    if (argsOffset + i < args.Length)
+                    {
+                        value = new OptionParameter { Value = args[argsOffset + i] };
+                    }
                 }
 
                 if (value.Value != null || argumentDictionary.TryGetValue(item.Name, out value) || argumentDictionary.TryGetValue(option?.ShortName?.TrimStart('-') ?? "", out value))
@@ -277,7 +295,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape or add double-quotation.";
+                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
                                 return false;
                             }
                         }
@@ -290,7 +308,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, plaease check type or JSON escape or add double-quotation.";
+                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
                                 return false;
                             }
                         }
@@ -335,7 +353,7 @@ namespace ConsoleAppFramework
             return null;
         }
 
-        static ReadOnlyDictionary<string, OptionParameter> ParseArgument(string?[] args, int argsOffset)
+        static ReadOnlyDictionary<string, OptionParameter> ParseArgument(string?[] args, int argsOffset, IReadOnlyDictionary<string, Type> optionTypeByName)
         {
             var dict = new Dictionary<string, OptionParameter>(args.Length, StringComparer.OrdinalIgnoreCase);
             for (int i = argsOffset; i < args.Length;)
@@ -347,21 +365,19 @@ namespace ConsoleAppFramework
                 }
 
                 key = key.TrimStart('-');
-                if (i >= args.Length)
-                {
-                    dict.Add(key, new OptionParameter { BooleanSwitch = true }); // Last parameter
-                    break;
-                }
 
-                var value = args[i];
-                if (value != null && !value.StartsWith("-"))
+                if (optionTypeByName.TryGetValue(key, out var optionType))
                 {
-                    dict.Add(key, new OptionParameter { Value = value });
-                    i++;
-                }
-                else
-                {
-                    dict.Add(key, new OptionParameter { BooleanSwitch = true });
+                    if (optionType == typeof(bool))
+                    {
+                        dict.Add(key, new OptionParameter { BooleanSwitch = true });
+                    }
+                    else
+                    {
+                        var value = args[i];
+                        dict.Add(key, new OptionParameter { Value = value });
+                        i++;
+                    }
                 }
             }
 
