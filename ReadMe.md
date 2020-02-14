@@ -58,10 +58,10 @@ public void Hello(
 {
 ```
 
-`help` command(or no argument to pass) shows there detail. This help format is same as `dotnet` command.
+`-help` option (or no argument to pass) shows there detail. This help format is same as `dotnet` command.
 
 ```
-> SampleApp.exe help
+> SampleApp.exe -help
 Usage: SampleApp [options...]
 
 Options:
@@ -69,10 +69,10 @@ Options:
   -r, -repeat <Int32>    repeat count. (Default: 3)
 ```
 
-`version` command shows `AssemblyInformationalVersion` or `AssemblylVersion`.
+`-version` option shows `AssemblyInformationalVersion` or `AssemblylVersion`.
 
 ```
-> SampleApp.exe version
+> SampleApp.exe -version
 1.0.0
 ```
 

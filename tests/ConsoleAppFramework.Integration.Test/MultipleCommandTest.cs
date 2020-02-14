@@ -87,12 +87,55 @@ namespace ConsoleAppFramework.Integration.Test
         }
 
         [Fact]
+        public void OptionAndArg_Help()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new string[] { "hello", "help" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_OptionAndArg>(args);
+            console.Output.Should().Contain("Hello help (18)");
+        }
+
+        [Fact]
+        public void OptionAndArg_HelpAndOtherArgs()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new string[] { "hello", "help", "-age", "-128" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_OptionAndArg>(args);
+
+            console.Output.Should().Contain("Hello help (-128)");
+        }
+
+        [Fact]
         public void OptionAndArg_HelpOptionLike()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new string[] { "hello", "-help" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_OptionAndArg>(args);
+            console.Output.Should().Contain("Usage:");
+            console.Output.Should().Contain("Arguments:");
+
+            // NOTE: Currently, ConsoleAppFramework treats the first argument as special. If the argument is '-help', it is same as '-help' option.
+            //console.Output.Should().Contain("Hello -help (-128)");
+        }
+
+        [Fact]
+        public void OptionAndArg_HelpOptionLikeAndOtherOptions()
         {
             using var console = new CaptureConsoleOutput();
             var args = new string[] { "hello", "-help", "-age", "-128" };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_OptionAndArg>(args);
+
             console.Output.Should().Contain("Hello -help (-128)");
+        }
+
+        [Fact]
+        public void CommandHelp_OptionAndArg()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new string[] { "help", "hello" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_OptionAndArg>(args);
+            console.Output.Should().Contain("Usage:");
+            console.Output.Should().Contain("Arguments:");
         }
 
         public class CommandTests_Multiple_OptionAndArg : ConsoleAppBase
@@ -102,5 +145,27 @@ namespace ConsoleAppFramework.Integration.Test
             [Command("konnichiwa")]
             public void Konnichiwa() => Console.WriteLine("Konnichiwa");
         }
+
+        [Fact]
+        public void OptionHelp()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new string[] { "-help" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_Commands>(args);
+            console.Output.Should().Contain("Usage:");
+            console.Output.Should().Contain("Commands:");
+            console.Output.Should().Contain("hello");
+            console.Output.Should().Contain("konnichiwa");
+        }
+
+        [Fact]
+        public void OptionVersion()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new string[] { "-version" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_Commands>(args);
+            console.Output.Should().MatchRegex(@"\d.\d.\d"); // NOTE: When running with unit test runner, it returns a version of the runner.
+        }
+
     }
 }

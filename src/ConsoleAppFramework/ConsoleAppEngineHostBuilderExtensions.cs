@@ -150,26 +150,26 @@ namespace ConsoleAppFramework
                     else
                     {
                         // override default Help
-                        args = new string[] { "help" };
+                        args = new string[] { "--help" };
                     }
                 }
             }
 
-            if (!hasHelp && args.Length == 1 && TrimEquals(args[0], HelpCommand))
+            if (!hasHelp && args.Length == 1 && OptionEquals(args[0], HelpCommand))
             {
                 Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
                 ConfigureEmptyService();
                 return hostBuilder;
             }
 
-            if (args.Length == 1 && TrimEquals(args[0], VersionCommand))
+            if (args.Length == 1 && OptionEquals(args[0], VersionCommand))
             {
                 ShowVersion();
                 ConfigureEmptyService();
                 return hostBuilder;
             }
 
-            if (args.Length == 2 && methods.Length != 1)
+            if (args.Length == 2 && methods.Length > 0 && defaultMethod == null)
             {
                 int methodIndex = -1;
 
@@ -179,7 +179,7 @@ namespace ConsoleAppFramework
                     methodIndex = 1;
                 }
                 // command -help
-                else if (TrimEquals(args[1], HelpCommand))
+                else if (OptionEquals(args[1], HelpCommand))
                 {
                     methodIndex = 0;
                 }
@@ -221,6 +221,11 @@ namespace ConsoleAppFramework
         static bool TrimEquals(string arg, string command)
         {
             return arg.Trim('-').Equals(command, StringComparison.OrdinalIgnoreCase);
+        }
+
+        static bool OptionEquals(string arg, string command)
+        {
+            return arg.StartsWith("-") && arg.Trim('-').Equals(command, StringComparison.OrdinalIgnoreCase);
         }
 
         static void ShowVersion()

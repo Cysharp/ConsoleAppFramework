@@ -116,8 +116,8 @@ namespace ConsoleAppFramework.Tests
         public class TwoArgsWithOption : ConsoleAppBase
         {
             public void Hello(
-                [Option("-n", "name of this")]string name,
-                [Option("-r", "repeat msg")]int repeat)
+                [Option("n", "name of this")]string name,
+                [Option("r", "repeat msg")]int repeat)
             {
                 Context.Logger.LogInformation($"name:{name}");
                 Context.Logger.LogInformation($"repeat:{repeat}");

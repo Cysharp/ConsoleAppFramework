@@ -25,8 +25,6 @@ namespace ConsoleAppFramework.Integration.Test
             var args = new[] { "help" };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneRequiredArg>(args);
             console.Output.Should().Contain("Hello help");
-            // console.GetOutputText().Should().Contain("Usage:");
-            // console.GetOutputText().Should().Contain("Arguments:");
         }
 
         [Fact]
@@ -47,6 +45,21 @@ namespace ConsoleAppFramework.Integration.Test
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneRequiredArg>(args);
             console.Output.Should().Contain("Usage:");
             console.Output.Should().Contain("Arguments:");
+
+            // NOTE: Currently, ConsoleAppFramework treats the first argument as special. If the argument is '-help', it is same as '-help' option.
+            //console.Output.Should().Contain("Hello -version");
+        }
+
+        [Fact]
+        public void NoOptions_OneRequiredArg_Version()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new[] { "-version" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneRequiredArg>(args);
+            console.Output.Should().MatchRegex(@"\d.\d.\d"); // NOTE: When running with unit test runner, it returns a version of the runner.
+
+            // NOTE: Currently, ConsoleAppFramework treats the first argument as special. If the argument is '-help', it is same as '-help' option.
+            //console.Output.Should().Contain("Hello -version");
         }
 
         public class CommandTests_Single_NoOptions_OneRequiredArg : ConsoleAppBase
@@ -70,8 +83,6 @@ namespace ConsoleAppFramework.Integration.Test
             var args = new[] { "help" };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneOptionalArgs>(args);
             console.Output.Should().Contain("Hello help");
-            // console.GetOutputText().Should().Contain("Usage:");
-            // console.GetOutputText().Should().Contain("Arguments:");
         }
 
         [Fact]
@@ -91,6 +102,21 @@ namespace ConsoleAppFramework.Integration.Test
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneOptionalArgs>(args);
             console.Output.Should().Contain("Usage:");
             console.Output.Should().Contain("Arguments:");
+
+            // NOTE: Currently, ConsoleAppFramework treats the first argument as special. If the argument is '-help', it is same as '-help' option.
+            //console.Output.Should().Contain("Hello -help");
+        }
+
+        [Fact]
+        public void NoOptions_OneOptionalArg_Version()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new[] { "-version" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneOptionalArgs>(args);
+            console.Output.Should().MatchRegex(@"\d.\d.\d"); // NOTE: When running with unit test runner, it returns a version of the runner.
+
+            // NOTE: Currently, ConsoleAppFramework treats the first argument as special. If the argument is '-help', it is same as '-help' option.
+            //console.Output.Should().Contain("Hello -version");
         }
 
         public class CommandTests_Single_NoOptions_OneOptionalArgs : ConsoleAppBase
