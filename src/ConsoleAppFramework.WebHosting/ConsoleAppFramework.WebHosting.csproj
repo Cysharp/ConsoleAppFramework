@@ -26,4 +26,7 @@
         <ProjectReference Include="..\ConsoleAppFramework\ConsoleAppFramework.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="..\ConsoleAppFramework\Icon.png" Pack="true" PackagePath="/" />
+    </ItemGroup>
 </Project>

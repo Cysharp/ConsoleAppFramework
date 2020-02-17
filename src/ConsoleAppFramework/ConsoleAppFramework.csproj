@@ -23,4 +23,8 @@
         <PackageReference Include="System.Text.Json" Version="4.7.0" />
         <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.3" />
     </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Icon.png" Pack="true" PackagePath="/" />
+    </ItemGroup>
 </Project>
