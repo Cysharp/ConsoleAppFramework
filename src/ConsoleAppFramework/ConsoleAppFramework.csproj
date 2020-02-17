@@ -6,20 +6,12 @@
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>release.snk</AssemblyOriginatorKeyFile>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <Company>Cysharp</Company>
         <!-- Version is passed from CircleCI -->
         <!--<Version>1</Version>-->
 
         <!-- NuGet -->
         <PackageId>ConsoleAppFramework</PackageId>
-        <PackageVersion>$(Version)</PackageVersion>
-        <Authors>Cysharp</Authors>
-        <Copyright>Cysharp</Copyright>
         <Description>Micro-framework for console applications.</Description>
-        <PackageProjectUrl>https://github.com/Cysharp/ConsoleAppFramework</PackageProjectUrl>
-        <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <PackageTags>batch,console</PackageTags>
     </PropertyGroup>
 
     <PropertyGroup>
