@@ -10,6 +10,6 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>batch,console,cli,consoleappframework</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageIcon>icon.png</PackageIcon>
+    <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
 </Project>
