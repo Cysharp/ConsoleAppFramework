@@ -28,7 +28,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.WebHost
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebHostingApp", "sandbox\WebHostingApp\WebHostingApp.csproj", "{2B7CDEFC-3D92-4B72-8898-2494D7B087AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppFramework.Integration.Test", "tests\ConsoleAppFramework.Integration.Test\ConsoleAppFramework.Integration.Test.csproj", "{6A39E146-8CDF-4B04-88ED-395C56A32722}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.Integration.Test", "tests\ConsoleAppFramework.Integration.Test\ConsoleAppFramework.Integration.Test.csproj", "{6A39E146-8CDF-4B04-88ED-395C56A32722}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6DF6534A-0F9D-44A4-BF89-AE1F3B243914}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		.gitignore = .gitignore
+		.circleci\config.yml = .circleci\config.yml
+		ReadMe.md = ReadMe.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
