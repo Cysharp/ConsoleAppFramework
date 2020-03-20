@@ -30,6 +30,7 @@ namespace ConsoleAppFramework
         {
             logger.LogTrace("ConsoleAppEngine.Run Start");
             var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger);
+            await interceptor.OnMethodBeginAsync(ctx); 
             await RunCore(ctx, type, method, args, 1); // 0 is type selector
         }
 
