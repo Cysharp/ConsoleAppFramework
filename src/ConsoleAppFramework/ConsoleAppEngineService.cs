@@ -84,7 +84,7 @@ namespace ConsoleAppFramework
             }
             finally
             {
-                await interceptor.OnMethodEndAsync();
+                await interceptor.OnEngineCompleteAsync(this.scope.ServiceProvider, logger);
                 scope.Dispose();
             }
         }
