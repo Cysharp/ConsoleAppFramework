@@ -27,9 +27,12 @@ namespace ConsoleAppFramework.WebHosting
             return innerInterceptor.OnEngineBeginAsync(serviceProvider, logger);
         }
 
-        public ValueTask OnMethodEndAsync()
+        public ValueTask OnMethodEndAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
-            return innerInterceptor.OnMethodEndAsync();
+            this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
+            this.ErrorMessage = errorMessageIfFailed;
+            this.Exception = exceptionIfExists;
+            return innerInterceptor.OnMethodEndAsync(context, errorMessageIfFailed, exceptionIfExists);
         }
 
         public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
@@ -37,12 +40,9 @@ namespace ConsoleAppFramework.WebHosting
             return innerInterceptor.OnMethodBeginAsync(context);
         }
 
-        public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public ValueTask OnEngineCompleteAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
-            this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
-            this.ErrorMessage = errorMessageIfFailed;
-            this.Exception = exceptionIfExists;
-            return innerInterceptor.OnEngineCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
+            return innerInterceptor.OnEngineCompleteAsync(serviceProvider, logger);
         }
     }
 

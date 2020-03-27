@@ -88,7 +88,7 @@ namespace ConsoleAppFramework // .WebHosting
                 {
                     try
                     {
-                        await interceptor.OnMethodEndAsync();
+                        await interceptor.OnEngineCompleteAsync(provider, logger);
                     }
                     catch { }
                 });

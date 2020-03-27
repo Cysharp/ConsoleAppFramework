@@ -30,6 +30,7 @@ namespace ConsoleAppFramework
         {
             logger.LogTrace("ConsoleAppEngine.Run Start");
             var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger);
+            await interceptor.OnMethodBeginAsync(ctx);
             await RunCore(ctx, type, method, args, 1); // 0 is type selector
         }
 
@@ -103,6 +104,7 @@ namespace ConsoleAppFramework
                 else
                 {
                     Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, null));
+                    await interceptor.OnMethodEndAsync(ctx, null, null);
                     return;
                 }
             }
@@ -183,7 +185,7 @@ namespace ConsoleAppFramework
                 }
             }
 
-            await interceptor.OnEngineCompleteAsync(ctx, null, null);
+            await interceptor.OnMethodEndAsync(ctx, null, null);
             logger.LogTrace("ConsoleAppEngine.Run Complete Successfully");
         }
 
@@ -191,14 +193,14 @@ namespace ConsoleAppFramework
         {
             Environment.ExitCode = 1;
             logger.LogError(message);
-            await interceptor.OnEngineCompleteAsync(context, message, null);
+            await interceptor.OnMethodEndAsync(context, message, null);
         }
 
         async ValueTask SetFailAsync(ConsoleAppContext context, string message, Exception ex)
         {
             Environment.ExitCode = 1;
             logger.LogError(ex, message);
-            await interceptor.OnEngineCompleteAsync(context, message, ex);
+            await interceptor.OnMethodEndAsync(context, message, ex);
         }
 
         bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)

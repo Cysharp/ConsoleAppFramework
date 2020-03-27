@@ -33,14 +33,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnMethodEndAsync()
+        public async ValueTask OnMethodEndAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnMethodEndAsync();
+                    await item.OnMethodEndAsync(context, errorMessageIfFailed, exceptionIfExists);
                 }
                 catch (Exception e)
                 {
@@ -67,14 +67,14 @@ namespace ConsoleAppFramework
             exceptions.ThrowIfExists();
         }
 
-        public async ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public async ValueTask OnEngineCompleteAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
             var exceptions = new AggregateExceptionHolder();
             foreach (var item in interceptors)
             {
                 try
                 {
-                    await item.OnEngineCompleteAsync(context, errorMessageIfFailed, exceptionIfExists);
+                    await item.OnEngineCompleteAsync(serviceProvider, logger);
                 }
                 catch (Exception e)
                 {

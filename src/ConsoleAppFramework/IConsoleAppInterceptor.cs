@@ -19,12 +19,12 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Called once when ConsoleAppMethod is finished.
         /// </summary>
-        ValueTask OnMethodEndAsync();
+        ValueTask OnMethodEndAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists);
 
         /// <summary>
         /// Called when ConsoleAppFramework is error or completed.
         /// </summary>
-        ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists);
+        ValueTask OnEngineCompleteAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger);
     }
 
     public class NullConsoleAppInterceptor : IConsoleAppInterceptor
@@ -37,7 +37,7 @@ namespace ConsoleAppFramework
             return Empty;
         }
 
-        public ValueTask OnMethodEndAsync()
+        public ValueTask OnMethodEndAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
         {
             return Empty;
         }
@@ -47,7 +47,7 @@ namespace ConsoleAppFramework
             return Empty;
         }
 
-        public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+        public ValueTask OnEngineCompleteAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
         {
             return Empty;
         }
