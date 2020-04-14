@@ -16,7 +16,7 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Setup multiple ConsoleApp that are searched from all assemblies.
         /// </summary>
-        public static IHostBuilder UseConsoleAppFramework(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        public static IHostBuilder UseConsoleAppFramework(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
         {
             IHostBuilder ConfigureEmptyService()
             {
@@ -28,10 +28,12 @@ namespace ConsoleAppFramework
                 return hostBuilder;
             }
 
+            searchAssemblies ??= AppDomain.CurrentDomain.GetAssemblies();
+
             // () or -help
             if (args.Length == 0 || (args.Length == 1 && TrimEquals(args[0], HelpCommand)))
             {
-                ShowMethodList();
+                ShowMethodList(searchAssemblies);
                 ConfigureEmptyService();
                 return hostBuilder;
             }
@@ -61,7 +63,7 @@ namespace ConsoleAppFramework
 
                 if (methodIndex != -1)
                 {
-                    var (t, mi) = GetTypeFromAssemblies(args[methodIndex], null);
+                    var (t, mi) = GetTypeFromAssemblies(args[methodIndex], null, searchAssemblies);
                     if (mi != null)
                     {
                         Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
@@ -79,7 +81,7 @@ namespace ConsoleAppFramework
             MethodInfo? methodInfo = null;
             if (args.Length >= 1)
             {
-                (type, methodInfo) = GetTypeFromAssemblies(args[0], null);
+                (type, methodInfo) = GetTypeFromAssemblies(args[0], null, searchAssemblies);
             }
 
             hostBuilder = hostBuilder
@@ -111,15 +113,15 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Run multiple ConsoleApp that are searched from all assemblies.
         /// </summary>
-        public static Task RunConsoleAppFrameworkAsync(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        public static Task RunConsoleAppFrameworkAsync(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
         {
-            return UseConsoleAppFramework(hostBuilder, args, interceptor).Build().RunAsync();
+            return UseConsoleAppFramework(hostBuilder, args, interceptor, searchAssemblies).Build().RunAsync();
         }
 
         /// <summary>
         /// Setup a single ConsoleApp type that is targeted by type argument.
         /// </summary>
-        public static IHostBuilder UseConsoleAppFramework<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        public static IHostBuilder UseConsoleAppFramework<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
             where T : ConsoleAppBase
         {
             IHostBuilder ConfigureEmptyService()
@@ -131,6 +133,8 @@ namespace ConsoleAppFramework
                 });
                 return hostBuilder;
             }
+
+            searchAssemblies ??= AppDomain.CurrentDomain.GetAssemblies();
 
             var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             var defaultMethod = methods.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
@@ -186,7 +190,7 @@ namespace ConsoleAppFramework
 
                 if (methodIndex != -1)
                 {
-                    var (_, mi) = GetTypeFromAssemblies(args[methodIndex], typeof(T));
+                    var (_, mi) = GetTypeFromAssemblies(args[methodIndex], typeof(T), searchAssemblies);
                     if (mi != null)
                     {
                         Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
@@ -248,16 +252,16 @@ namespace ConsoleAppFramework
             Console.WriteLine(version);
         }
 
-        static void ShowMethodList()
+        static void ShowMethodList(Assembly[] searchAssemblies)
         {
-            Console.Write(new CommandHelpBuilder().BuildHelpMessage(GetConsoleAppTypes()));
+            Console.Write(new CommandHelpBuilder().BuildHelpMessage(GetConsoleAppTypes(searchAssemblies)));
         }
 
-        static List<Type> GetConsoleAppTypes()
+        static List<Type> GetConsoleAppTypes(Assembly[] searchAssemblies)
         {
             List<Type> consoleAppBaseTypes = new List<Type>();
 
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var asm in searchAssemblies)
             {
                 if (asm.FullName.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions")) continue;
 
@@ -283,10 +287,10 @@ namespace ConsoleAppFramework
             return consoleAppBaseTypes;
         }
 
-        static (Type?, MethodInfo?) GetTypeFromAssemblies(string arg0, Type? defaultBaseType)
+        static (Type?, MethodInfo?) GetTypeFromAssemblies(string arg0, Type? defaultBaseType, Assembly[] searchAssemblies)
         {
             var consoleAppBaseTypes = (defaultBaseType == null)
-                ? GetConsoleAppTypes()
+                ? GetConsoleAppTypes(searchAssemblies)
                 : new List<Type> { defaultBaseType };
 
             if (consoleAppBaseTypes == null)
