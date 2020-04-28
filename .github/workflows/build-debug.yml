@@ -1,0 +1,28 @@
+name: Build-Debug
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "!*" # not a tag push
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  build-dotnet:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      NUGET_XMLDOC_MODE: skip
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.101
+
+      - run: dotnet build -c Debug
+      - run: dotnet test -c Debug --no-build < /dev/null

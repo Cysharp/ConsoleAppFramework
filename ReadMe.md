@@ -1,6 +1,6 @@
 ConsoleAppFramework
 ===
-[![CircleCI](https://circleci.com/gh/Cysharp/ConsoleAppFramework.svg?style=svg)](https://circleci.com/gh/Cysharp/ConsoleAppFramework)
+[![GitHub Actions](https://github.com/Cysharp/ConsoleAppFramework/workflows/Build-Debug/badge.svg)](https://github.com/Cysharp/ConsoleAppFramework/actions) [![Releases](https://img.shields.io/github/release/Cysharp/ConsoleAppFramework.svg)](https://github.com/Cysharp/ConsoleAppFramework/releases)
 
 ConsoleAppFramework is an infrastructure of creating CLI(Command-line interface) tools, daemon, and multi batch application.
 
