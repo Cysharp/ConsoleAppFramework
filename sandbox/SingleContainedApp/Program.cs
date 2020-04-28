@@ -1,4 +1,6 @@
-﻿using ConsoleAppFramework;
+﻿#pragma warning disable CS1998 
+
+using ConsoleAppFramework;
 using ConsoleAppFramework.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -158,12 +160,16 @@ namespace SingleContainedApp
 
     public class SimpleTwoArgs : ConsoleAppBase
     {
-        public void Hello(
-            string name,
-            int repeat)
+        public async ValueTask<int> Hello(string name, int repeat)
         {
             Context.Logger.LogInformation($"name:{name}");
+
+            Context.Logger.LogInformation($"Wait {repeat} Seconds.");
+            await Task.Delay(TimeSpan.FromSeconds(repeat));
+
             Context.Logger.LogInformation($"repeat:{repeat}");
+
+            return 100;
         }
     }
 
@@ -172,6 +178,8 @@ namespace SingleContainedApp
         static async Task Main(string[] args)
         {
             //args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
+
+            args = new[] { "-name", "aaa", "-repeat", "3" };
 
 
             await Host.CreateDefaultBuilder()

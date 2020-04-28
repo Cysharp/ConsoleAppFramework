@@ -162,6 +162,12 @@ namespace ConsoleAppFramework
                     case Task task:
                         await task;
                         break;
+                    case ValueTask<int> valueTaskWithExitCode:
+                        Environment.ExitCode = await valueTaskWithExitCode;
+                        break;
+                    case ValueTask valueTask:
+                        await valueTask;
+                        break;
                 }
             }
             catch (Exception ex)
