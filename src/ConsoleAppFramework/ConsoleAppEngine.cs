@@ -227,7 +227,7 @@ namespace ConsoleAppFramework
                 }
             }
 
-            var argumentDictionary = ParseArgument(args, argsOffset, optionTypeByOptionName);
+            var (argumentDictionary, optionByIndex) = ParseArgument(args, argsOffset, optionTypeByOptionName);
             invokeArgs = new object[parameters.Length];
 
             for (int i = 0; i < parameters.Length; i++)
@@ -237,14 +237,24 @@ namespace ConsoleAppFramework
                 if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{item.Name}' has a short name, but the short name must start with A-Z or a-z.");
 
                 var value = default(OptionParameter);
+
+                // Indexed arguments (e.g. [Option(0)])
                 if (option != null && option.Index != -1)
                 {
-                    if (argsOffset + i < args.Length)
+                    if (optionByIndex.Count <= option.Index)
                     {
-                        value = new OptionParameter { Value = args[argsOffset + i] };
+                        if (!item.HasDefaultValue)
+                        {
+                            throw new InvalidOperationException($"Required argument {option.Index} was not found in specified arguments.");
+                        }
+                    }
+                    else
+                    {
+                        value = optionByIndex[option.Index];
                     }
                 }
 
+                // Keyed options (e.g. -foo -bar )
                 if (value.Value != null || argumentDictionary.TryGetValue(item.Name, out value) || argumentDictionary.TryGetValue(option?.ShortName?.TrimStart('-') ?? "", out value))
                 {
                     if (parameters[i].ParameterType == typeof(bool) && value.Value == null)
@@ -361,18 +371,20 @@ namespace ConsoleAppFramework
             return null;
         }
 
-        static ReadOnlyDictionary<string, OptionParameter> ParseArgument(string?[] args, int argsOffset, IReadOnlyDictionary<string, Type> optionTypeByName)
+        static (ReadOnlyDictionary<string, OptionParameter> OptionByKey, IReadOnlyList<OptionParameter> OptionByIndex) ParseArgument(string?[] args, int argsOffset, IReadOnlyDictionary<string, Type> optionTypeByName)
         {
             var dict = new Dictionary<string, OptionParameter>(args.Length, StringComparer.OrdinalIgnoreCase);
+            var options = new List<OptionParameter>();
             for (int i = argsOffset; i < args.Length;)
             {
-                var key = args[i++];
-                if (key is null || !key.StartsWith("-"))
+                var arg = args[i++];
+                if (arg is null || !arg.StartsWith("-"))
                 {
+                    options.Add(new OptionParameter() { Value = arg });
                     continue; // not key
                 }
 
-                key = key.TrimStart('-');
+                var key = arg.TrimStart('-');
 
                 if (optionTypeByName.TryGetValue(key, out var optionType))
                 {
@@ -387,9 +399,14 @@ namespace ConsoleAppFramework
                         i++;
                     }
                 }
+                else
+                {
+                    // not key
+                    options.Add(new OptionParameter() { Value = arg });
+                }
             }
 
-            return new ReadOnlyDictionary<string, OptionParameter>(dict);
+            return (new ReadOnlyDictionary<string, OptionParameter>(dict), options);
         }
 
         struct OptionParameter
