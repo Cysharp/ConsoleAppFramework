@@ -487,7 +487,7 @@ public class ConfigAppSample : ConsoleAppBase
     IOptions<MyConfig> config;
 
     // get configuration from DI.
-    public Program(IOptions<MyConfig> config)
+    public ConfigAppSample(IOptions<MyConfig> config)
     {
         this.config = config;
     }
