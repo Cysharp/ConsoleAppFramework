@@ -325,7 +325,7 @@ public class Daemon : ConsoleAppBase
 
 Interceptor
 ---
-Interceptor can hook before/after batch running event. You can imprement `IConsoleAppInterceptor` for it.
+Interceptor can hook before/after batch running event. You can implement `IConsoleAppInterceptor` for it.
 
 `ConsoleAppContext.Timestamp` has start time so if subtraction from now, get elapsed time.
 
@@ -500,7 +500,7 @@ public class ConfigAppSample : ConsoleAppBase
 }
 ```
 
-for the details, please see [.NET Core Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) documantation.
+for the details, please see [.NET Core Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) documentation.
 
 DI
 ---
