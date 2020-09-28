@@ -16,7 +16,6 @@ namespace ConsoleAppFramework
         IHostApplicationLifetime appLifetime;
         ILogger<ConsoleAppEngine> logger;
         IServiceScope scope;
-        IConsoleAppInterceptor interceptor;
         Task? runningTask;
         CancellationTokenSource cancellationTokenSource;
 
@@ -33,21 +32,18 @@ namespace ConsoleAppFramework
             this.appLifetime = appLifetime;
             this.scope = provider.CreateScope();
             this.logger = logger;
-            this.interceptor = (provider.GetService(typeof(IConsoleAppInterceptor)) as IConsoleAppInterceptor) ?? NullConsoleAppInterceptor.Default;
             this.cancellationTokenSource = new CancellationTokenSource();
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            await interceptor.OnEngineBeginAsync(scope.ServiceProvider, logger);
-
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
             {
                 var self = (ConsoleAppEngineService)state;
                 try
                 {
-                    var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, self.interceptor, self.cancellationTokenSource.Token);
+                    var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ConsoleAppFrameworkOptions>(), self.cancellationTokenSource.Token);
                     if (self.methodInfo != null)
                     {
                         self.runningTask = engine.RunAsync(self.type, self.methodInfo, self.args);
@@ -60,12 +56,17 @@ namespace ConsoleAppFramework
                     await self.runningTask;
                     self.runningTask = null;
                 }
-                catch { } // don't do anything.
+                catch
+                {
+                    // don't do anything.
+                }
                 finally
                 {
                     self.appLifetime.StopApplication();
                 }
             }, this);
+
+            return Task.CompletedTask;
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -84,7 +85,6 @@ namespace ConsoleAppFramework
             }
             finally
             {
-                await interceptor.OnEngineCompleteAsync(this.scope.ServiceProvider, logger);
                 scope.Dispose();
             }
         }

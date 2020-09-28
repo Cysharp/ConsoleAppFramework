@@ -15,23 +15,23 @@ namespace ConsoleAppFramework
     {
         readonly ILogger<ConsoleAppEngine> logger;
         readonly IServiceProvider provider;
-        readonly IConsoleAppInterceptor interceptor;
         readonly CancellationToken cancellationToken;
+        readonly ConsoleAppFrameworkOptions options;
+        readonly bool isStrict;
 
-        public ConsoleAppEngine(ILogger<ConsoleAppEngine> logger, IServiceProvider provider, IConsoleAppInterceptor interceptor, CancellationToken cancellationToken)
+        public ConsoleAppEngine(ILogger<ConsoleAppEngine> logger, IServiceProvider provider, ConsoleAppFrameworkOptions options, CancellationToken cancellationToken)
         {
             this.logger = logger;
             this.provider = provider;
-            this.interceptor = interceptor;
             this.cancellationToken = cancellationToken;
+            this.options = options;
+            this.isStrict = this.options.StrictOption;
         }
 
         public async Task RunAsync(Type type, MethodInfo method, string?[] args)
         {
             logger.LogTrace("ConsoleAppEngine.Run Start");
-            var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger);
-            await interceptor.OnMethodBeginAsync(ctx);
-            await RunCore(ctx, type, method, args, 1); // 0 is type selector
+            await RunCore(type, method, args, 1); // 0 is type selector
         }
 
         public async Task RunAsync(Type type, string[] args)
@@ -40,21 +40,18 @@ namespace ConsoleAppFramework
 
             int argsOffset = 0;
             MethodInfo? method = null;
-            var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger);
             try
             {
-                await interceptor.OnMethodBeginAsync(ctx);
-
                 if (type == typeof(void))
                 {
-                    await SetFailAsync(ctx, "Type or method does not found on this Program. args: " + string.Join(" ", args));
+                    await SetFailAsync("Type or method does not found on this Program. args: " + string.Join(" ", args));
                     return;
                 }
 
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 if (methods.Length == 0)
                 {
-                    await SetFailAsync(ctx, "Method can not select. T of Run/UseConsoleAppEngine<T> have to be contain single method or command. Type:" + type.FullName);
+                    await SetFailAsync("Method can not select. T of Run/UseConsoleAppEngine<T> have to be contain single method or command. Type:" + type.FullName);
                     return;
                 }
 
@@ -83,7 +80,7 @@ namespace ConsoleAppFramework
                     {
                         if (method != null)
                         {
-                            await SetFailAsync(ctx, "Found more than one public methods(without command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
+                            await SetFailAsync("Found more than one public methods(without command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
                             return;
                         }
                         method = item; // found single public(non-command) method.
@@ -103,22 +100,21 @@ namespace ConsoleAppFramework
                 }
                 else
                 {
-                    Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, null));
-                    await interceptor.OnMethodEndAsync(ctx, null, null);
+                    Console.Write(new CommandHelpBuilder(null, false, false).BuildHelpMessage(methods, null));
                     return;
                 }
             }
             catch (Exception ex)
             {
-                await SetFailAsync(ctx, "Fail to get method. Type:" + type.FullName, ex);
+                await SetFailAsync("Fail to get method. Type:" + type.FullName, ex);
                 return;
             }
 
             RUN:
-            await RunCore(ctx, type, method, args, argsOffset);
+            await RunCore(type, method, args, argsOffset);
         }
 
-        async Task RunCore(ConsoleAppContext ctx, Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
+        async Task RunCore(Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
         {
             object instance;
             object[] invokeArgs;
@@ -127,16 +123,17 @@ namespace ConsoleAppFramework
             {
                 if (!TryGetInvokeArguments(methodInfo.GetParameters(), args, argsOffset, out invokeArgs, out var errorMessage))
                 {
-                    await SetFailAsync(ctx, errorMessage + " args: " + string.Join(" ", args));
+                    await SetFailAsync(errorMessage + " args: " + string.Join(" ", args));
                     return;
                 }
             }
             catch (Exception ex)
             {
-                await SetFailAsync(ctx, "Fail to match method parameter on " + type.Name + "." + methodInfo.Name + ". args: " + string.Join(" ", args), ex);
+                await SetFailAsync("Fail to match method parameter on " + type.Name + "." + methodInfo.Name + ". args: " + string.Join(" ", args), ex);
                 return;
             }
 
+            var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger, methodInfo, provider);
             try
             {
                 instance = provider.GetService(type);
@@ -144,30 +141,34 @@ namespace ConsoleAppFramework
             }
             catch (Exception ex)
             {
-                await SetFailAsync(ctx, "Fail to create ConsoleAppBase instance. Type:" + type.FullName, ex);
+                await SetFailAsync("Fail to create ConsoleAppBase instance. Type:" + type.FullName, ex);
                 return;
             }
 
             try
             {
-                var result = methodInfo.Invoke(instance, invokeArgs);
-                switch (result)
+                var invoker = new WithFilterInvoker(methodInfo, instance, invokeArgs, provider, options.GlobalFilters ?? Array.Empty<IConsoleAppFrameworkFilter>(), ctx);
+                var result = await invoker.InvokeAsync();
+                if (result != null)
                 {
-                    case int exitCode:
-                        Environment.ExitCode = exitCode;
-                        break;
-                    case Task<int> taskWithExitCode:
-                        Environment.ExitCode = await taskWithExitCode;
-                        break;
-                    case Task task:
-                        await task;
-                        break;
-                    case ValueTask<int> valueTaskWithExitCode:
-                        Environment.ExitCode = await valueTaskWithExitCode;
-                        break;
-                    case ValueTask valueTask:
-                        await valueTask;
-                        break;
+                    switch (result)
+                    {
+                        case int exitCode:
+                            Environment.ExitCode = exitCode;
+                            break;
+                        case Task<int> taskWithExitCode:
+                            Environment.ExitCode = await taskWithExitCode;
+                            break;
+                        case Task task:
+                            await task;
+                            break;
+                        case ValueTask<int> valueTaskWithExitCode:
+                            Environment.ExitCode = await valueTaskWithExitCode;
+                            break;
+                        case ValueTask valueTask:
+                            await valueTask;
+                            break;
+                    }
                 }
             }
             catch (Exception ex)
@@ -181,32 +182,31 @@ namespace ConsoleAppFramework
 
                 if (ex is TargetInvocationException tex)
                 {
-                    await SetFailAsync(ctx, "Fail in console app running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
+                    await SetFailAsync("Fail in console app running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
                     return;
                 }
                 else
                 {
-                    await SetFailAsync(ctx, "Fail in console app running on " + type.Name + "." + methodInfo.Name, ex);
+                    await SetFailAsync("Fail in console app running on " + type.Name + "." + methodInfo.Name, ex);
                     return;
                 }
             }
 
-            await interceptor.OnMethodEndAsync(ctx, null, null);
             logger.LogTrace("ConsoleAppEngine.Run Complete Successfully");
         }
 
-        async ValueTask SetFailAsync(ConsoleAppContext context, string message)
+        ValueTask SetFailAsync(string message)
         {
             Environment.ExitCode = 1;
             logger.LogError(message);
-            await interceptor.OnMethodEndAsync(context, message, null);
+            return default;
         }
 
-        async ValueTask SetFailAsync(ConsoleAppContext context, string message, Exception ex)
+        ValueTask SetFailAsync(string message, Exception ex)
         {
             Environment.ExitCode = 1;
             logger.LogError(ex, message);
-            await interceptor.OnMethodEndAsync(context, message, ex);
+            return default;
         }
 
         bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)
@@ -220,14 +220,14 @@ namespace ConsoleAppFramework
                 var item = parameters[i];
                 var option = item.GetCustomAttribute<OptionAttribute>();
 
-                optionTypeByOptionName[item.Name] = item.ParameterType;
+                optionTypeByOptionName[(isStrict ? "--" : "") + item.Name] = item.ParameterType;
                 if (!string.IsNullOrWhiteSpace(option?.ShortName))
                 {
-                    optionTypeByOptionName[option!.ShortName!] = item.ParameterType;
+                    optionTypeByOptionName[(isStrict ? "-" : "") + option!.ShortName!] = item.ParameterType;
                 }
             }
 
-            var (argumentDictionary, optionByIndex) = ParseArgument(args, argsOffset, optionTypeByOptionName);
+            var (argumentDictionary, optionByIndex) = ParseArgument(args, argsOffset, optionTypeByOptionName, isStrict);
             invokeArgs = new object[parameters.Length];
 
             for (int i = 0; i < parameters.Length; i++)
@@ -255,7 +255,10 @@ namespace ConsoleAppFramework
                 }
 
                 // Keyed options (e.g. -foo -bar )
-                if (value.Value != null || argumentDictionary.TryGetValue(item.Name, out value) || argumentDictionary.TryGetValue(option?.ShortName?.TrimStart('-') ?? "", out value))
+                var longName = (isStrict) ? ("--" + item.Name) : item.Name;
+                var shortName = (isStrict) ? ("-" + option?.ShortName?.TrimStart('-')) : option?.ShortName?.TrimStart('-');
+
+                if (value.Value != null || argumentDictionary.TryGetValue(longName, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
                 {
                     if (parameters[i].ParameterType == typeof(bool) && value.Value == null)
                     {
@@ -371,7 +374,7 @@ namespace ConsoleAppFramework
             return null;
         }
 
-        static (ReadOnlyDictionary<string, OptionParameter> OptionByKey, IReadOnlyList<OptionParameter> OptionByIndex) ParseArgument(string?[] args, int argsOffset, IReadOnlyDictionary<string, Type> optionTypeByName)
+        static (ReadOnlyDictionary<string, OptionParameter> OptionByKey, IReadOnlyList<OptionParameter> OptionByIndex) ParseArgument(string?[] args, int argsOffset, IReadOnlyDictionary<string, Type> optionTypeByName, bool isStrict)
         {
             var dict = new Dictionary<string, OptionParameter>(args.Length, StringComparer.OrdinalIgnoreCase);
             var options = new List<OptionParameter>();
@@ -384,7 +387,7 @@ namespace ConsoleAppFramework
                     continue; // not key
                 }
 
-                var key = arg.TrimStart('-');
+                var key = (isStrict) ? arg : arg.TrimStart('-');
 
                 if (optionTypeByName.TryGetValue(key, out var optionType))
                 {

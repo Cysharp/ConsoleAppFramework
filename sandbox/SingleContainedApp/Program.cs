@@ -160,7 +160,7 @@ namespace SingleContainedApp
 
     public class SimpleTwoArgs : ConsoleAppBase
     {
-        public async ValueTask<int> Hello(string name, int repeat)
+        public async ValueTask<int> Hello([Option("n")]string name, [Option("r")]int repeat)
         {
             Context.Logger.LogInformation($"name:{name}");
 
@@ -179,15 +179,17 @@ namespace SingleContainedApp
         {
             //args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
 
-            args = new[] { "-name", "aaa", "-repeat", "3" };
+             //args = new[] { "--name", "aaa", "--repeat", "3" };
 
+            //args = new[] { "--help" };
+            args = new[] { "encode", "--help" };
 
             await Host.CreateDefaultBuilder()
                 .ConfigureLogging(logging =>
                 {
                     logging.SetMinimumLevel(LogLevel.Trace).ReplaceToSimpleConsole();
                 })
-                .RunConsoleAppFrameworkAsync<SimpleTwoArgs>(args);
+                .RunConsoleAppFrameworkAsync<OverrideCheck>(args);
             // .RunConsoleAppEngineAsync
             //.ConfigureServices((hostContext, services) =>
             //{

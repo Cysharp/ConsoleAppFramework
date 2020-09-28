@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -9,42 +10,43 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.WebHosting
 {
-    internal class WebHostingInterceptor : IConsoleAppInterceptor
-    {
-        readonly IConsoleAppInterceptor innerInterceptor;
+    // TODO: Add Interceptor.
+    //internal class WebHostingInterceptor : IConsoleAppInterceptor
+    //{
+    //    readonly IConsoleAppInterceptor innerInterceptor;
 
-        public bool CompleteSuccessfully { get; private set; }
-        public string? ErrorMessage { get; private set; }
-        public Exception? Exception { get; private set; }
+    //    public bool CompleteSuccessfully { get; private set; }
+    //    public string? ErrorMessage { get; private set; }
+    //    public Exception? Exception { get; private set; }
 
-        public WebHostingInterceptor(IConsoleAppInterceptor innerInterceptor)
-        {
-            this.innerInterceptor = innerInterceptor;
-        }
+    //    public WebHostingInterceptor(IConsoleAppInterceptor innerInterceptor)
+    //    {
+    //        this.innerInterceptor = innerInterceptor;
+    //    }
 
-        public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
-        {
-            return innerInterceptor.OnEngineBeginAsync(serviceProvider, logger);
-        }
+    //    public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
+    //    {
+    //        return innerInterceptor.OnEngineBeginAsync(serviceProvider, logger);
+    //    }
 
-        public ValueTask OnMethodEndAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
-        {
-            this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
-            this.ErrorMessage = errorMessageIfFailed;
-            this.Exception = exceptionIfExists;
-            return innerInterceptor.OnMethodEndAsync(context, errorMessageIfFailed, exceptionIfExists);
-        }
+    //    public ValueTask OnMethodEndAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
+    //    {
+    //        this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
+    //        this.ErrorMessage = errorMessageIfFailed;
+    //        this.Exception = exceptionIfExists;
+    //        return innerInterceptor.OnMethodEndAsync(context, errorMessageIfFailed, exceptionIfExists);
+    //    }
 
-        public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
-        {
-            return innerInterceptor.OnMethodBeginAsync(context);
-        }
+    //    public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
+    //    {
+    //        return innerInterceptor.OnMethodBeginAsync(context);
+    //    }
 
-        public ValueTask OnEngineCompleteAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
-        {
-            return innerInterceptor.OnEngineCompleteAsync(serviceProvider, logger);
-        }
-    }
+    //    public ValueTask OnEngineCompleteAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
+    //    {
+    //        return innerInterceptor.OnEngineCompleteAsync(serviceProvider, logger);
+    //    }
+    //}
 
     internal class LogCollector : ILogger<ConsoleAppEngine>
     {
@@ -93,15 +95,17 @@ namespace ConsoleAppFramework.WebHosting
         readonly IServiceProvider provider;
         readonly ILogger<ConsoleAppEngine> logger;
         readonly IConsoleAppInterceptor interceptor;
+        readonly ConsoleAppFrameworkOptions options;
 
         readonly Dictionary<string, MethodInfo> methodLookup;
 
-        public ConsoleAppFrameworkMiddleware(RequestDelegate next, ILogger<ConsoleAppEngine> logger, IConsoleAppInterceptor interceptor, IServiceProvider provider, TargetConsoleAppTypeCollection targetTypes)
+        public ConsoleAppFrameworkMiddleware(RequestDelegate next, ILogger<ConsoleAppEngine> logger, IConsoleAppInterceptor interceptor, IServiceProvider provider, TargetConsoleAppTypeCollection targetTypes, IOptionsSnapshot<ConsoleAppFrameworkOptions> options)
         {
             this.next = next;
             this.logger = logger;
             this.interceptor = interceptor;
             this.provider = provider;
+            this.options = options.Value;
             this.methodLookup = BuildMethodLookup(targetTypes);
         }
 
@@ -152,7 +156,7 @@ namespace ConsoleAppFramework.WebHosting
             var hostingInterceptor = new WebHostingInterceptor(interceptor);
             var collectLogger = new LogCollector(logger);
 
-            var engine = new ConsoleAppEngine(collectLogger, provider, hostingInterceptor, httpContext.RequestAborted);
+            var engine = new ConsoleAppEngine(collectLogger, provider, options, httpContext.RequestAborted);
             await engine.RunAsync(methodInfo.DeclaringType, methodInfo, args);
 
             // out result

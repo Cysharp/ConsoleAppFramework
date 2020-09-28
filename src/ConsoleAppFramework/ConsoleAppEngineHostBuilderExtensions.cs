@@ -16,7 +16,7 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Setup multiple ConsoleApp that are searched from all assemblies.
         /// </summary>
-        public static IHostBuilder UseConsoleAppFramework(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
+        public static IHostBuilder UseConsoleAppFramework(this IHostBuilder hostBuilder, string[] args, ConsoleAppFrameworkOptions? options = null, Assembly[]? searchAssemblies = null)
         {
             IHostBuilder ConfigureEmptyService()
             {
@@ -46,6 +46,15 @@ namespace ConsoleAppFramework
                 return hostBuilder;
             }
 
+            // backward compatibility, logic use Class.Method
+            if (!args[0].Contains(".") && args.Length >= 2)
+            {
+                var newArgs = new string[args.Length - 1];
+                newArgs[0] = args[0] + "." + args[1];
+                Array.Copy(args, 2, newArgs, 1, newArgs.Length - 1);
+                args = newArgs;
+            }
+
             if (args.Length == 2)
             {
                 int methodIndex = -1;
@@ -66,7 +75,7 @@ namespace ConsoleAppFramework
                     var (t, mi) = GetTypeFromAssemblies(args[methodIndex], null, searchAssemblies);
                     if (mi != null)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
+                        Console.Write(new CommandHelpBuilder(null, false, false).BuildHelpMessage(mi, showCommandName: true, true));
                     }
                     else
                     {
@@ -86,26 +95,26 @@ namespace ConsoleAppFramework
 
             hostBuilder = hostBuilder
                 .ConfigureServices(services =>
-                {
-                    services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
-                    services.AddSingleton<string[]>(args);
-                    services.AddSingleton<IHostedService, ConsoleAppEngineService>();
-                    services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
-                    if (type != null)
-                    {
-                        services.AddSingleton<Type>(type);
-                        services.AddTransient(type);
-                    }
-                    else
-                    {
-                        services.AddSingleton<Type>(typeof(void));
-                    }
+                        {
+                            services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
+                            services.AddSingleton<string[]>(args);
+                            services.AddSingleton<IHostedService, ConsoleAppEngineService>();
+                            services.AddSingleton<ConsoleAppFrameworkOptions>(options ?? new ConsoleAppFrameworkOptions());
+                            if (type != null)
+                            {
+                                services.AddSingleton<Type>(type);
+                                services.AddTransient(type);
+                            }
+                            else
+                            {
+                                services.AddSingleton<Type>(typeof(void));
+                            }
 
-                    if (methodInfo != null)
-                    {
-                        services.AddSingleton<MethodInfo>(methodInfo);
-                    }
-                });
+                            if (methodInfo != null)
+                            {
+                                services.AddSingleton<MethodInfo>(methodInfo);
+                            }
+                        });
 
             return hostBuilder.UseConsoleLifetime();
         }
@@ -113,15 +122,15 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Run multiple ConsoleApp that are searched from all assemblies.
         /// </summary>
-        public static Task RunConsoleAppFrameworkAsync(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
+        public static Task RunConsoleAppFrameworkAsync(this IHostBuilder hostBuilder, string[] args, ConsoleAppFrameworkOptions? options = null, Assembly[]? searchAssemblies = null)
         {
-            return UseConsoleAppFramework(hostBuilder, args, interceptor, searchAssemblies).Build().RunAsync();
+            return UseConsoleAppFramework(hostBuilder, args, options, searchAssemblies).Build().RunAsync();
         }
 
         /// <summary>
         /// Setup a single ConsoleApp type that is targeted by type argument.
         /// </summary>
-        public static IHostBuilder UseConsoleAppFramework<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
+        public static IHostBuilder UseConsoleAppFramework<T>(this IHostBuilder hostBuilder, string[] args, ConsoleAppFrameworkOptions? options = null, Assembly[]? searchAssemblies = null)
             where T : ConsoleAppBase
         {
             IHostBuilder ConfigureEmptyService()
@@ -147,7 +156,7 @@ namespace ConsoleAppFramework
                 {
                     if (!hasHelp)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
+                        Console.Write(new CommandHelpBuilder(null, false, false).BuildHelpMessage(methods, defaultMethod));
                         ConfigureEmptyService();
                         return hostBuilder;
                     }
@@ -161,7 +170,7 @@ namespace ConsoleAppFramework
 
             if (!hasHelp && args.Length == 1 && OptionEquals(args[0], HelpCommand))
             {
-                Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
+                Console.Write(new CommandHelpBuilder(null, false, false).BuildHelpMessage(methods, defaultMethod));
                 ConfigureEmptyService();
                 return hostBuilder;
             }
@@ -193,7 +202,7 @@ namespace ConsoleAppFramework
                     var (_, mi) = GetTypeFromAssemblies(args[methodIndex], typeof(T), searchAssemblies);
                     if (mi != null)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
+                        Console.Write(new CommandHelpBuilder(null, false, false).BuildHelpMessage(mi, showCommandName: true, fromMultiCommand: false));
                         ConfigureEmptyService();
                         return hostBuilder;
                     }
@@ -206,7 +215,7 @@ namespace ConsoleAppFramework
                 services.AddSingleton<string[]>(args);
                 services.AddSingleton<Type>(typeof(T));
                 services.AddSingleton<IHostedService, ConsoleAppEngineService>();
-                services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
+                services.AddSingleton<ConsoleAppFrameworkOptions>(options ?? new ConsoleAppFrameworkOptions());
                 services.AddTransient<T>();
             });
 
@@ -216,10 +225,10 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Run a single ConsoleApp type that is targeted by type argument.
         /// </summary>
-        public static Task RunConsoleAppFrameworkAsync<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        public static Task RunConsoleAppFrameworkAsync<T>(this IHostBuilder hostBuilder, string[] args, ConsoleAppFrameworkOptions? options = null)
             where T : ConsoleAppBase
         {
-            return UseConsoleAppFramework<T>(hostBuilder, args, interceptor).Build().RunAsync();
+            return UseConsoleAppFramework<T>(hostBuilder, args, options).Build().RunAsync();
         }
 
         static bool TrimEquals(string arg, string command)
@@ -254,7 +263,7 @@ namespace ConsoleAppFramework
 
         static void ShowMethodList(Assembly[] searchAssemblies)
         {
-            Console.Write(new CommandHelpBuilder().BuildHelpMessage(GetConsoleAppTypes(searchAssemblies)));
+            Console.Write(new CommandHelpBuilder(null, false, false).BuildHelpMessage(GetConsoleAppTypes(searchAssemblies)));
         }
 
         static List<Type> GetConsoleAppTypes(Assembly[] searchAssemblies)
@@ -304,8 +313,7 @@ namespace ConsoleAppFramework
             foreach (var baseType in consoleAppBaseTypes)
             {
                 bool isFound = false;
-                foreach (var (method, cmdattr) in baseType.GetMethods().
-                    Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
+                foreach (var (method, cmdattr) in baseType.GetMethods().Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
                 {
                     if (cmdattr.CommandNames.Any(x => TrimEquals(arg0, x)))
                     {
@@ -327,7 +335,20 @@ namespace ConsoleAppFramework
                             throw new InvalidOperationException("Duplicate ConsoleApp TypeName is not allowed, " + foundType.FullName + " and " + baseType.FullName);
                         }
                         foundType = baseType;
-                        foundMethod = baseType.GetMethod(split[1]);
+
+                        foreach (var m in baseType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.IgnoreCase))
+                        {
+                            var commandAliases = m.GetCustomAttribute<CommandAttribute>()?.CommandNames ?? new[] { m.Name };
+                            foreach (var ca in commandAliases)
+                            {
+                                if (ca.Equals(split[1], StringComparison.OrdinalIgnoreCase))
+                                {
+                                    foundMethod = m;
+                                    break;
+                                }
+                            }
+                            if (foundMethod != null) break;
+                        }
                     }
                 }
             }
