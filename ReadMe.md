@@ -58,7 +58,7 @@ public void Hello(
 {
 ```
 
-`-help` option (or no argument to pass) shows there detail. This help format is same as `dotnet` command.
+`help` command (or no argument to pass) shows there detail. This help format is same as `dotnet` command.
 
 ```
 > SampleApp.exe -help
@@ -67,12 +67,16 @@ Usage: SampleApp [options...]
 Options:
   -n, -name <String>     name of send user. (Required)
   -r, -repeat <Int32>    repeat count. (Default: 3)
+
+Commands:
+  help          Display help.
+  version       Display version.
 ```
 
-`-version` option shows `AssemblyInformationalVersion` or `AssemblylVersion`.
+`version` option shows `AssemblyInformationalVersion` or `AssemblylVersion`.
 
 ```
-> SampleApp.exe -version
+> SampleApp.exe version
 1.0.0
 ```
 
@@ -129,9 +133,9 @@ SampleApp.exe escape http://foo.bar/
 SampleApp.exe timer 10
 ```
 
-Multi Batch Application
+Automatically Class/Method command routing
 ---
-ConsoleAppFramework allows the multi batch application. You can write many class, methods and select by first-argument. It is useful to manage application specified batch programs. Uploading single binary and execute it, or git pull and run by `dotnet run [command] [option]` on CI.
+ConsoleAppFramework can create easily to many command application. You can write many class, methods and select by `class method` command like MVC application. It is useful to manage application specified batch programs. Uploading single binary and execute it, or git pull and run by `dotnet run -- [command] [option]` on CI.
 
 ```csharp
 using ConsoleAppFramework;
@@ -172,12 +176,12 @@ public class Bar : ConsoleAppBase
 }
 ```
 
-You can call `{TypeName}.{MethodName}` like
+You can call `{TypeName} {MethodName}` like
 
 ```
-SampleApp.exe Foo.Echo -msg "aaaaa"
-SampleApp.exe Foo.Sum -x 100 -y 200
-SampleApp.exe Bar.Hello2
+SampleApp.exe foo echo -msg "aaaaa"
+SampleApp.exe foo sum -x 100 -y 200
+SampleApp.exe bar hello2
 ```
 
 `help` describe the method list
@@ -187,12 +191,12 @@ SampleApp.exe Bar.Hello2
 Usage: SampleApp <Command>
 
 Commands:
-  Foo.Echo
-  Foo.Sum
-  Bar.Hello2
+  foo echo
+  foo sum
+  bar hello2
 ```
 
-`[command] -help` shows command details.
+`[command] help` shows command details.
 
 ```
 > SampleApp.exe Foo.Echo -help
@@ -231,8 +235,6 @@ You can call like here.
 
 > be careful with JSON string double quotation.
 
-> JSON serializer is `System.Text.Json`. You can pass `JsonSerializerOptions` to SerivceProvider when you want to configure serializer behavior.
-
 For the array handling, it can be a treat without correct JSON.
 e.g. one-length argument can handle without `[]`.
 
@@ -262,7 +264,7 @@ Foo(string[] array)
 
 Exit Code
 ---
-If the method returns `int` or `Task<int>` value, ConsoleAppFramework will set the return value to the exit code.
+If the method returns `int` or `Task<int>` or `ValueTask<int> value, ConsoleAppFramework will set the return value to the exit code.
 
 ```csharp
 public class ExampleApp : ConsoleAppBase
@@ -295,7 +297,7 @@ public class Daemon : ConsoleAppBase
         // you can write infinite-loop while stop request(Ctrl+C or docker terminate).
         try
         {
-            while (!Context.CancellationToken.IsCancellationRequested)
+            while (!this.Context.CancellationToken.IsCancellationRequested)
             {
                 try
                 {
@@ -308,7 +310,7 @@ public class Daemon : ConsoleAppBase
                 }
 
                 // wait for next time
-                await Task.Delay(TimeSpan.FromMinutes(1), Context.CancellationToken);
+                await Task.Delay(TimeSpan.FromMinutes(1), this.Context.CancellationToken);
             }
         }
         catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -323,110 +325,113 @@ public class Daemon : ConsoleAppBase
 }
 ```
 
-Interceptor
+Filter
 ---
-Interceptor can hook before/after batch running event. You can implement `IConsoleAppInterceptor` for it.
+Filter can hook before/after batch running event. You can implement `ConsoleAppFilter` for it and attach to global/class/method.
+
+```csharp
+public class MyFilter : ConsoleAppFilter
+{
+    // Filter is instantiated by DI so you can get parameter by constructor injection.
+
+    public async override ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
+    {
+        try
+        {
+            /* on before */
+            await next(context); // next
+        }
+        catch
+        {
+            /* on after */
+            throw;
+        }
+        finally
+        {
+            /* on finally */
+        }
+    }
+}
+```
 
 `ConsoleAppContext.Timestamp` has start time so if subtraction from now, get elapsed time.
 
 ```csharp
-public class LogRunningTimeInterceptor : IConsoleAppInterceptor
+public class LogRunningTimeFilter : ConsoleAppFilter
 {
-    public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
-    {
-        return default;
-    }
-
-    public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
-    {
-        return default;
-    }
-
-    public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
+    public override async ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
     {
         context.Logger.LogInformation("Call method at " + context.Timestamp.ToLocalTime()); // LocalTime for human readable time
-        return default;
-    }
-
-    public ValueTask OnMethodEndAsync()
-    {
-        context.Logger.LogInformation("Call method Completed, Elapsed:" + (DateTimeOffset.UtcNow - context.Timestamp));
-        return default;
-    }
-}
-```
-
-In default, ConsoleAppFramework does not prevent double startup but if create interceptor, can do. 
-
-```csharp
-public class MutexInterceptor : IConsoleAppInterceptor
-{
-    Mutex mutex;
-    bool hasHandle = false;
-
-    public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
-    {
-        mutex = new Mutex(false, Assembly.GetEntryAssembly().GetName().Name);
-        if (!mutex.WaitOne(0, false))
+        try
         {
-            hasHandle = true;
-            throw new Exception("already running another process.");
+            await next(context);
+            context.Logger.LogInformation("Call method Completed successfully, Elapsed:" + (DateTimeOffset.UtcNow - context.Timestamp));
         }
-
-        return default;
-    }
-
-    public ValueTask OnEngineCompleteAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
-    {
-        if (hasHandle)
+        catch
         {
-            mutex.ReleaseMutex();
+            context.Logger.LogInformation("Call method Completed Failed, Elapsed:" + (DateTimeOffset.UtcNow - context.Timestamp));
+            throw;
         }
-        mutex.Dispose();
-        return default;
-    }
-
-    public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
-    {
-        return default;
-    }
-
-    public ValueTask OnMethodEndAsync()
-    {
-        return default;
     }
 }
 ```
 
-There interceptor can pass to startup.
+In default, ConsoleAppFramework does not prevent double startup but if create filter, can do. 
 
 ```csharp
-class Program
+public class MutexFilter : ConsoleAppFilter
 {
-    static async Task Main(string[] args)
+    public override async ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
     {
-        await Host.CreateDefaultBuilder()
-            .RunConsoleAppFrameworkAsync(args, new LogRunningTimeInterceptor());
-    }
-}
-```
-
-If you want to use multiple interceptor, you can use `CompositeConsoleAppInterceptor`.
-
-```csharp
-class Program
-{
-    static async Task Main(string[] args)
-    {
-        await Host.CreateDefaultBuilder()
-            .RunConsoleAppFrameworkAsync(args, new CompositeConsoleAppInterceptor
+        using (var mutex = new Mutex(false, context.MethodInfo.Name))
+        {
+            if (!mutex.WaitOne(0, false))
             {
-                new LogRunningTimeInterceptor(),
-                new MutexInterceptor()
+                throw new Exception($"already running {context.MethodInfo.Name} in another process.");
+            }
+
+            try
+            {
+                await next(context);
+            }
+            finally
+            {
+                mutex.ReleaseMutex();
+            }
+        }
+    }
+}
+```
+
+There filters can pass to `ConsoleAppOptions.GlobalFilters` on startup or attach by attribute on class, method.
+
+```csharp
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        await Host.CreateDefaultBuilder()
+            .RunConsoleAppFrameworkAsync(args, new ConsoleAppOptions()
+            {
+                GlobalFilters = new ConsoleAppFilter[]{ 
+                    new MutextFilter() { Order = -9999 } ,
+                    new LogRunningTimeFilter() { Oder = -9998 }, 
             });
     }
 }
+
+[ConsoleAppFilter(typeof(MyFilter3))]
+public class MyBatch : ConsoleAppBase
+{
+    [ConsoleAppFilter(typeof(MyFilter4), Order = -9999)]
+    [ConsoleAppFilter(typeof(MyFilter5), Order = 9999)]
+    public void Do()
+    {
+    }
+}
 ```
+
+Execution order can control by `int Order` property.
 
 Logging
 ---
@@ -449,6 +454,20 @@ static async Task Main(string[] args)
         })
         .RunConsoleAppFrameworkAsync<Program>(args);
 }
+```
+
+If you want to use high performance logger/output to file, also use [Cysharp/ZLogger](https://github.com/Cysharp/ZLogger/) that easy to integrate ConsoleAppFramework.
+
+```csharp
+await Host.CreateDefaultBuilder()
+    .ConfigureLogging(x =>
+    {
+        x.ClearProviders();
+        x.SetMinimumLevel(LogLevel.Trace);
+        x.AddZLoggerConsole();
+        x.AddZLoggerFile("fileName.log");
+    })
+    .RunConsoleAppFrameworkAsync(args);
 ```
 
 Configuration
@@ -517,16 +536,73 @@ public MyApp(IOptions<MyConfig> config, ILogger<MyApp> logger)
 }
 ```
 
+DI also inject to filter.
+
 ConsoleAppContext
 ---
-ConsoleAppContext is injected to property on method executing. It has four properties.
+ConsoleAppContext is injected to property on method executing.
 
 ```csharp
-public string[] Arguments { get; }
-public DateTime Timestamp { get; }
-public CancellationToken CancellationToken { get; }
-public ILogger<ConsoleAppEngine> Logger { get; }
+public class ConsoleAppContext
+{
+    public string?[] Arguments { get; }
+    public DateTime Timestamp { get; }
+    public CancellationToken CancellationToken { get; }
+    public ILogger<ConsoleAppEngine> Logger { get; }
+    public MethodInfo MethodInfo { get; }
+    public IServiceProvider ServiceProvider { get; }
+    public IDictionary<string, object> Items { get; }
+}
 ```
+
+ConsoleAppOptions
+---
+You can configure framework behaviour by ConsoleAppOptions.
+
+```csharp
+static async Task Main(string[] args)
+{
+    await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args, new ConsoleAppOptions
+    {
+        StrictOption = true, // default is false.
+        ShowDefaultCommand = false, // default is true
+    });
+}
+```
+
+```csharp
+public class ConsoleAppOptions
+{
+    /// <summary>Argument parser uses strict(-short, --long) option. Default is false.</summary>
+    public bool StrictOption { get; set; } = false;
+
+    /// <summary>Show default command(help/version) to help. Default is true.</summary>
+    public bool ShowDefaultCommand { get; set; } = true;
+
+    public JsonSerializerOptions? JsonSerializerOptions { get; set; }
+
+    public ConsoleAppFilter[]? GlobalFilters { get; set; }
+}
+```
+
+In defauolt, The ConsoleAppFramework does not distinguish between the number of `-`.  For example, this method
+
+```
+public void Hello([Option("m", "Message to display.")]string message)
+```
+
+can pass argument by `-m`, `--message` and `-message`. This is styled like a go lang command. But if you want to strictly distinguish argument of `-`, set `StrcitOption = true`.
+
+```
+> SampleApp.exe help
+
+Usage: SampleApp [options...]
+
+Options:
+  -m, --message <String>    Message to display. (Required)
+```
+
+Also, by default, the `help` and `version` commands appear as help, which can be hidden by setting `ShowDefaultCommand = false`.
 
 Web Interface with Swagger
 ---
@@ -557,7 +633,7 @@ Publish to executable file
 ---
 [dotnet publish](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish) to create executable file. [.NET Core 3.0 offers Single Executable File](https://docs.microsoft.com/en-us/dotnet/core/whats-new/dotnet-core-3-0) via `PublishSingleFile`.
 
-Here is the sample `.config.yml` of [CircleCI](http://circleci.com).
+Here is the sample `.github/workflows/build-release.yml` of GitHub Actions.
 
 ```yml
 version: 2.1
@@ -584,6 +660,37 @@ workflows:
   publish:
     jobs:
       - publish-all
+
+name: Build-Release
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build-dotnet:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      NUGET_XMLDOC_MODE: skip
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.101
+
+      # Build
+      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r win-x64 -o ./bin/win-x64
+      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r linux-x64 -o ./bin/linux-x64
+      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r osx-x64 -o ./bin/osx-x64
+
+      # Store artifacts.
+      - uses: actions/upload-artifact@v2
+        with:
+          name: SampleApp
+          path: ./src/SampleApp/bin/Release/
 ```
 
 CLI tool can use [.NET Core Local/Global Tools](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools). If you want to create it, check the [Global Tools how to create](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools-how-to-create) or [Local Tools introduction](https://andrewlock.net/new-in-net-core-3-local-tools/).

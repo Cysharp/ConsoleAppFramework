@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -9,40 +10,23 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.WebHosting
 {
-    internal class WebHostingInterceptor : IConsoleAppInterceptor
+    internal class WebHostingFilter : ConsoleAppFilter
     {
-        readonly IConsoleAppInterceptor innerInterceptor;
-
         public bool CompleteSuccessfully { get; private set; }
-        public string? ErrorMessage { get; private set; }
         public Exception? Exception { get; private set; }
 
-        public WebHostingInterceptor(IConsoleAppInterceptor innerInterceptor)
+        public override async ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
         {
-            this.innerInterceptor = innerInterceptor;
-        }
-
-        public ValueTask OnEngineBeginAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
-        {
-            return innerInterceptor.OnEngineBeginAsync(serviceProvider, logger);
-        }
-
-        public ValueTask OnMethodEndAsync(ConsoleAppContext context, string? errorMessageIfFailed, Exception? exceptionIfExists)
-        {
-            this.CompleteSuccessfully = (errorMessageIfFailed == null && exceptionIfExists == null);
-            this.ErrorMessage = errorMessageIfFailed;
-            this.Exception = exceptionIfExists;
-            return innerInterceptor.OnMethodEndAsync(context, errorMessageIfFailed, exceptionIfExists);
-        }
-
-        public ValueTask OnMethodBeginAsync(ConsoleAppContext context)
-        {
-            return innerInterceptor.OnMethodBeginAsync(context);
-        }
-
-        public ValueTask OnEngineCompleteAsync(IServiceProvider serviceProvider, ILogger<ConsoleAppEngine> logger)
-        {
-            return innerInterceptor.OnEngineCompleteAsync(serviceProvider, logger);
+            try
+            {
+                await next(context);
+                this.CompleteSuccessfully = true;
+            }
+            catch (Exception ex)
+            {
+                this.CompleteSuccessfully = false;
+                this.Exception = ex;
+            }
         }
     }
 
@@ -92,16 +76,16 @@ namespace ConsoleAppFramework.WebHosting
         readonly RequestDelegate next;
         readonly IServiceProvider provider;
         readonly ILogger<ConsoleAppEngine> logger;
-        readonly IConsoleAppInterceptor interceptor;
+        readonly ConsoleAppOptions options;
 
         readonly Dictionary<string, MethodInfo> methodLookup;
 
-        public ConsoleAppFrameworkMiddleware(RequestDelegate next, ILogger<ConsoleAppEngine> logger, IConsoleAppInterceptor interceptor, IServiceProvider provider, TargetConsoleAppTypeCollection targetTypes)
+        public ConsoleAppFrameworkMiddleware(RequestDelegate next, ILogger<ConsoleAppEngine> logger, IServiceProvider provider, TargetConsoleAppTypeCollection targetTypes, ConsoleAppOptions options)
         {
             this.next = next;
             this.logger = logger;
-            this.interceptor = interceptor;
             this.provider = provider;
+            this.options = options;
             this.methodLookup = BuildMethodLookup(targetTypes);
         }
 
@@ -149,14 +133,22 @@ namespace ConsoleAppFramework.WebHosting
             }
 
             // run with collect statuses
-            var hostingInterceptor = new WebHostingInterceptor(interceptor);
             var collectLogger = new LogCollector(logger);
+            var hostingFilter = new WebHostingFilter();
+            if (options.GlobalFilters == null)
+            {
+                options.GlobalFilters = new[] { hostingFilter };
+            }
+            else
+            {
+                options.GlobalFilters = options.GlobalFilters.Prepend(hostingFilter).ToArray();
+            }
 
-            var engine = new ConsoleAppEngine(collectLogger, provider, hostingInterceptor, httpContext.RequestAborted);
+            var engine = new ConsoleAppEngine(collectLogger, provider, options, httpContext.RequestAborted);
             await engine.RunAsync(methodInfo.DeclaringType, methodInfo, args);
 
             // out result
-            if (hostingInterceptor.CompleteSuccessfully)
+            if (hostingFilter.CompleteSuccessfully)
             {
                 httpContext.Response.ContentType = "text/plain";
                 httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
@@ -164,8 +156,7 @@ namespace ConsoleAppFramework.WebHosting
             }
             else
             {
-                var errorMsg = ((hostingInterceptor.ErrorMessage != null) ? hostingInterceptor.ErrorMessage + Environment.NewLine : "")
-                             + ((hostingInterceptor.Exception != null) ? hostingInterceptor.Exception.ToString() : "");
+                var errorMsg = (hostingFilter.Exception != null) ? hostingFilter.Exception.ToString() : "";
                 httpContext.Response.ContentType = "text/plain";
                 httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 await httpContext.Response.WriteAsync(errorMsg);

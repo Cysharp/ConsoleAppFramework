@@ -16,7 +16,7 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Setup multiple ConsoleApp that are searched from all assemblies.
         /// </summary>
-        public static IHostBuilder UseConsoleAppFramework(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
+        public static IHostBuilder UseConsoleAppFramework(this IHostBuilder hostBuilder, string[] args, ConsoleAppOptions? options = null, Assembly[]? searchAssemblies = null)
         {
             IHostBuilder ConfigureEmptyService()
             {
@@ -29,11 +29,12 @@ namespace ConsoleAppFramework
             }
 
             searchAssemblies ??= AppDomain.CurrentDomain.GetAssemblies();
+            if (options == null) options = new ConsoleAppOptions();
 
             // () or -help
             if (args.Length == 0 || (args.Length == 1 && TrimEquals(args[0], HelpCommand)))
             {
-                ShowMethodList(searchAssemblies);
+                ShowMethodList(searchAssemblies, options);
                 ConfigureEmptyService();
                 return hostBuilder;
             }
@@ -44,6 +45,15 @@ namespace ConsoleAppFramework
                 ShowVersion();
                 ConfigureEmptyService();
                 return hostBuilder;
+            }
+
+            // backward compatibility, logic use Class.Method
+            if (!args[0].Contains(".") && args.Length >= 2)
+            {
+                var newArgs = new string[args.Length - 1];
+                newArgs[0] = args[0] + "." + args[1];
+                Array.Copy(args, 2, newArgs, 1, newArgs.Length - 1);
+                args = newArgs;
             }
 
             if (args.Length == 2)
@@ -66,7 +76,7 @@ namespace ConsoleAppFramework
                     var (t, mi) = GetTypeFromAssemblies(args[methodIndex], null, searchAssemblies);
                     if (mi != null)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
+                        Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(mi, showCommandName: true, true));
                     }
                     else
                     {
@@ -90,7 +100,7 @@ namespace ConsoleAppFramework
                     services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
                     services.AddSingleton<string[]>(args);
                     services.AddSingleton<IHostedService, ConsoleAppEngineService>();
-                    services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
+                    services.AddSingleton<ConsoleAppOptions>(options ?? new ConsoleAppOptions());
                     if (type != null)
                     {
                         services.AddSingleton<Type>(type);
@@ -105,23 +115,52 @@ namespace ConsoleAppFramework
                     {
                         services.AddSingleton<MethodInfo>(methodInfo);
                     }
+
+                    foreach (var item in CollectFilterType(type, methodInfo))
+                    {
+                        services.AddTransient(item);
+                    }
                 });
 
             return hostBuilder.UseConsoleLifetime();
         }
 
+        static IEnumerable<Type> CollectFilterType(Type? type, MethodInfo? methodInfo)
+        {
+            var set = new HashSet<Type>();
+            IEnumerable<ConsoleAppFilterAttribute> filters = Array.Empty<ConsoleAppFilterAttribute>();
+            if (type != null)
+            {
+                var filtersA = type.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
+                var filtersB = type.GetMethods(BindingFlags.Public | BindingFlags.Instance).SelectMany(x => x.GetCustomAttributes<ConsoleAppFilterAttribute>(true));
+                filters = filtersA.Concat(filtersB);
+            }
+
+            if (methodInfo != null)
+            {
+                filters = filters.Concat(methodInfo.GetCustomAttributes<ConsoleAppFilterAttribute>(true));
+            }
+
+            foreach (var item in filters)
+            {
+                set.Add(item.Type);
+            }
+
+            return set;
+        }
+
         /// <summary>
         /// Run multiple ConsoleApp that are searched from all assemblies.
         /// </summary>
-        public static Task RunConsoleAppFrameworkAsync(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
+        public static Task RunConsoleAppFrameworkAsync(this IHostBuilder hostBuilder, string[] args, ConsoleAppOptions? options = null, Assembly[]? searchAssemblies = null)
         {
-            return UseConsoleAppFramework(hostBuilder, args, interceptor, searchAssemblies).Build().RunAsync();
+            return UseConsoleAppFramework(hostBuilder, args, options, searchAssemblies).Build().RunAsync();
         }
 
         /// <summary>
         /// Setup a single ConsoleApp type that is targeted by type argument.
         /// </summary>
-        public static IHostBuilder UseConsoleAppFramework<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null, Assembly[]? searchAssemblies = null)
+        public static IHostBuilder UseConsoleAppFramework<T>(this IHostBuilder hostBuilder, string[] args, ConsoleAppOptions? options = null, Assembly[]? searchAssemblies = null)
             where T : ConsoleAppBase
         {
             IHostBuilder ConfigureEmptyService()
@@ -135,6 +174,7 @@ namespace ConsoleAppFramework
             }
 
             searchAssemblies ??= AppDomain.CurrentDomain.GetAssemblies();
+            if (options == null) options = new ConsoleAppOptions();
 
             var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             var defaultMethod = methods.FirstOrDefault(x => x.GetCustomAttribute<CommandAttribute>() == null);
@@ -147,7 +187,7 @@ namespace ConsoleAppFramework
                 {
                     if (!hasHelp)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
+                        Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(methods, defaultMethod));
                         ConfigureEmptyService();
                         return hostBuilder;
                     }
@@ -161,7 +201,7 @@ namespace ConsoleAppFramework
 
             if (!hasHelp && args.Length == 1 && OptionEquals(args[0], HelpCommand))
             {
-                Console.Write(new CommandHelpBuilder().BuildHelpMessage(methods, defaultMethod));
+                Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(methods, defaultMethod));
                 ConfigureEmptyService();
                 return hostBuilder;
             }
@@ -193,7 +233,7 @@ namespace ConsoleAppFramework
                     var (_, mi) = GetTypeFromAssemblies(args[methodIndex], typeof(T), searchAssemblies);
                     if (mi != null)
                     {
-                        Console.Write(new CommandHelpBuilder().BuildHelpMessage(mi, showCommandName: true));
+                        Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(mi, showCommandName: true, fromMultiCommand: false));
                         ConfigureEmptyService();
                         return hostBuilder;
                     }
@@ -206,8 +246,13 @@ namespace ConsoleAppFramework
                 services.AddSingleton<string[]>(args);
                 services.AddSingleton<Type>(typeof(T));
                 services.AddSingleton<IHostedService, ConsoleAppEngineService>();
-                services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
+                services.AddSingleton<ConsoleAppOptions>(options ?? new ConsoleAppOptions());
                 services.AddTransient<T>();
+
+                foreach (var item in CollectFilterType(typeof(T), null))
+                {
+                    services.AddTransient(item);
+                }
             });
 
             return hostBuilder.UseConsoleLifetime();
@@ -216,10 +261,10 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Run a single ConsoleApp type that is targeted by type argument.
         /// </summary>
-        public static Task RunConsoleAppFrameworkAsync<T>(this IHostBuilder hostBuilder, string[] args, IConsoleAppInterceptor? interceptor = null)
+        public static Task RunConsoleAppFrameworkAsync<T>(this IHostBuilder hostBuilder, string[] args, ConsoleAppOptions? options = null)
             where T : ConsoleAppBase
         {
-            return UseConsoleAppFramework<T>(hostBuilder, args, interceptor).Build().RunAsync();
+            return UseConsoleAppFramework<T>(hostBuilder, args, options).Build().RunAsync();
         }
 
         static bool TrimEquals(string arg, string command)
@@ -229,7 +274,9 @@ namespace ConsoleAppFramework
 
         static bool OptionEquals(string arg, string command)
         {
-            return arg.StartsWith("-") && arg.Trim('-').Equals(command, StringComparison.OrdinalIgnoreCase);
+            // v3, same as TrimEquals.
+            // return arg.StartsWith("-") && arg.Trim('-').Equals(command, StringComparison.OrdinalIgnoreCase);
+            return arg.Trim('-').Equals(command, StringComparison.OrdinalIgnoreCase);
         }
 
         static void ShowVersion()
@@ -252,9 +299,9 @@ namespace ConsoleAppFramework
             Console.WriteLine(version);
         }
 
-        static void ShowMethodList(Assembly[] searchAssemblies)
+        static void ShowMethodList(Assembly[] searchAssemblies, ConsoleAppOptions options)
         {
-            Console.Write(new CommandHelpBuilder().BuildHelpMessage(GetConsoleAppTypes(searchAssemblies)));
+            Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(GetConsoleAppTypes(searchAssemblies)));
         }
 
         static List<Type> GetConsoleAppTypes(Assembly[] searchAssemblies)
@@ -304,8 +351,7 @@ namespace ConsoleAppFramework
             foreach (var baseType in consoleAppBaseTypes)
             {
                 bool isFound = false;
-                foreach (var (method, cmdattr) in baseType.GetMethods().
-                    Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
+                foreach (var (method, cmdattr) in baseType.GetMethods().Select(m => (MethodInfo: m, Attr: m.GetCustomAttribute<CommandAttribute>())).Where(x => x.Attr != null))
                 {
                     if (cmdattr.CommandNames.Any(x => TrimEquals(arg0, x)))
                     {
@@ -327,7 +373,20 @@ namespace ConsoleAppFramework
                             throw new InvalidOperationException("Duplicate ConsoleApp TypeName is not allowed, " + foundType.FullName + " and " + baseType.FullName);
                         }
                         foundType = baseType;
-                        foundMethod = baseType.GetMethod(split[1]);
+
+                        foreach (var m in baseType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.IgnoreCase))
+                        {
+                            var commandAliases = m.GetCustomAttribute<CommandAttribute>()?.CommandNames ?? new[] { m.Name };
+                            foreach (var ca in commandAliases)
+                            {
+                                if (ca.Equals(split[1], StringComparison.OrdinalIgnoreCase))
+                                {
+                                    foundMethod = m;
+                                    break;
+                                }
+                            }
+                            if (foundMethod != null) break;
+                        }
                     }
                 }
             }

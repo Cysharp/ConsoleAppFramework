@@ -15,7 +15,7 @@ namespace ConsoleAppFramework // .WebHosting
 {
     public static class ConsoleAppFrameworkHostingExtensions
     {
-        public static IWebHostBuilder PrepareConsoleAppFrameworkMiddleware(this IWebHostBuilder builder, IConsoleAppInterceptor? interceptor = null)
+        public static IWebHostBuilder PrepareConsoleAppFrameworkMiddleware(this IWebHostBuilder builder, ConsoleAppOptions? options = null)
         {
             var consoleAppTypes = CollectConsoleAppTypes();
             var target = new TargetConsoleAppTypeCollection(consoleAppTypes);
@@ -23,7 +23,7 @@ namespace ConsoleAppFramework // .WebHosting
             return builder
                 .ConfigureServices(services =>
                 {
-                    services.AddSingleton<IConsoleAppInterceptor>(interceptor ?? NullConsoleAppInterceptor.Default);
+                    services.AddSingleton<ConsoleAppOptions>(options ?? new ConsoleAppOptions());
                     services.AddSingleton<TargetConsoleAppTypeCollection>(target);
                     foreach (var item in target)
                     {
@@ -32,11 +32,11 @@ namespace ConsoleAppFramework // .WebHosting
                 });
         }
 
-        public static async Task RunConsoleAppFrameworkWebHostingAsync(this IHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, IConsoleAppInterceptor? interceptor = null)
+        public static async Task RunConsoleAppFrameworkWebHostingAsync(this IHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, ConsoleAppOptions? options = null)
         {
             var host = builder.ConfigureWebHost(webHost =>
             {
-                webHost.PrepareConsoleAppFrameworkMiddleware(interceptor)
+                webHost.PrepareConsoleAppFrameworkMiddleware(options)
                     .ConfigureServices(services =>
                     {
                         if (swaggerOptions == null)
@@ -71,27 +71,27 @@ namespace ConsoleAppFramework // .WebHosting
         {
             public void Configure(IApplicationBuilder app, IHostApplicationLifetime lifetime)
             {
-                var interceptor = app.ApplicationServices.GetService<IConsoleAppInterceptor>();
+                // var interceptor = app.ApplicationServices.GetService<IConsoleAppInterceptor>();
                 var provider = app.ApplicationServices.GetService<IServiceProvider>();
                 var logger = app.ApplicationServices.GetService<ILogger<ConsoleAppEngine>>();
 
-                lifetime.ApplicationStarted.Register(async () =>
-                {
-                    try
-                    {
-                        await interceptor.OnEngineBeginAsync(provider, logger);
-                    }
-                    catch { }
-                });
+                //lifetime.ApplicationStarted.Register(async () =>
+                //{
+                //    try
+                //    {
+                //        // await interceptor.OnEngineBeginAsync(provider, logger);
+                //    }
+                //    catch { }
+                //});
 
-                lifetime.ApplicationStopped.Register(async () =>
-                {
-                    try
-                    {
-                        await interceptor.OnEngineCompleteAsync(provider, logger);
-                    }
-                    catch { }
-                });
+                //lifetime.ApplicationStopped.Register(async () =>
+                //{
+                //    try
+                //    {
+                //        // await interceptor.OnEngineCompleteAsync(provider, logger);
+                //    }
+                //    catch { }
+                //});
 
                 var swaggerOption = app.ApplicationServices.GetService<SwaggerOptions>() ?? new SwaggerOptions("ConsoleAppFramework", "", "/");
                 app.UseConsoleAppFrameworkSwaggerMiddleware(swaggerOption);
