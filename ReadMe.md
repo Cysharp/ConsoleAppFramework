@@ -636,31 +636,6 @@ Publish to executable file
 Here is the sample `.github/workflows/build-release.yml` of GitHub Actions.
 
 ```yml
-version: 2.1
-executors:
-  dotnet:
-    docker:
-      - image: mcr.microsoft.com/dotnet/core/sdk:3.0
-    environment:
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-      NUGET_XMLDOC_MODE: skip
-jobs:
-  publish-all:
-    executor: dotnet
-    steps:
-      - checkout
-      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r win-x64 -o ./bin/win-x64
-      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r linux-x64 -o ./bin/linux-x64
-      - run: dotnet publish -c Release --self-contained /p:PublishSingleFile=true /p:IncludeSymbolsInSingleFile=true -r osx-x64 -o ./bin/osx-x64
-      - store_artifacts:
-          path: ./bin/
-          destination: ./bin/
-workflows:
-  version: 2
-  publish:
-    jobs:
-      - publish-all
-
 name: Build-Release
 
 on:
