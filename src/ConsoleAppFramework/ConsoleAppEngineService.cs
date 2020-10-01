@@ -43,7 +43,7 @@ namespace ConsoleAppFramework
                 var self = (ConsoleAppEngineService)state;
                 try
                 {
-                    var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ConsoleAppFrameworkOptions>(), self.cancellationTokenSource.Token);
+                    var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ConsoleAppOptions>(), self.cancellationTokenSource.Token);
                     if (self.methodInfo != null)
                     {
                         self.runningTask = engine.RunAsync(self.type, self.methodInfo, self.args);

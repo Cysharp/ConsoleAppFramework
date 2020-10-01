@@ -15,7 +15,7 @@ namespace ConsoleAppFramework // .WebHosting
 {
     public static class ConsoleAppFrameworkHostingExtensions
     {
-        public static IWebHostBuilder PrepareConsoleAppFrameworkMiddleware(this IWebHostBuilder builder, ConsoleAppFrameworkOptions? options = null)
+        public static IWebHostBuilder PrepareConsoleAppFrameworkMiddleware(this IWebHostBuilder builder, ConsoleAppOptions? options = null)
         {
             var consoleAppTypes = CollectConsoleAppTypes();
             var target = new TargetConsoleAppTypeCollection(consoleAppTypes);
@@ -23,7 +23,7 @@ namespace ConsoleAppFramework // .WebHosting
             return builder
                 .ConfigureServices(services =>
                 {
-                    services.AddSingleton<ConsoleAppFrameworkOptions>(options ?? new ConsoleAppFrameworkOptions());
+                    services.AddSingleton<ConsoleAppOptions>(options ?? new ConsoleAppOptions());
                     services.AddSingleton<TargetConsoleAppTypeCollection>(target);
                     foreach (var item in target)
                     {
@@ -32,7 +32,7 @@ namespace ConsoleAppFramework // .WebHosting
                 });
         }
 
-        public static async Task RunConsoleAppFrameworkWebHostingAsync(this IHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, ConsoleAppFrameworkOptions? options = null)
+        public static async Task RunConsoleAppFrameworkWebHostingAsync(this IHostBuilder builder, string urls, SwaggerOptions? swaggerOptions = null, ConsoleAppOptions? options = null)
         {
             var host = builder.ConfigureWebHost(webHost =>
             {

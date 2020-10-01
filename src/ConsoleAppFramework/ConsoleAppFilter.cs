@@ -4,43 +4,34 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    public class ConsoleAppFrameworkOptions
+    public abstract class ConsoleAppFilter
     {
-        public bool StrictOption { get; set; }
-        public bool ShowDefaultCommand { get; set; }
-
-        public IConsoleAppFrameworkFilter[]? GlobalFilters { get; set; }
+        public int Order { get; set; }
+        public abstract ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next);
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
-    public class ConsoleAppFrameworkFilterAttribute : Attribute
+    public class ConsoleAppFilterAttribute : Attribute
     {
         public Type Type { get; }
         public int Order { get; set; }
 
-        public ConsoleAppFrameworkFilterAttribute(Type type)
+        public ConsoleAppFilterAttribute(Type type)
         {
             this.Type = type;
         }
     }
 
-    public interface IConsoleAppFrameworkFilter
-    {
-        public int Order { get; set; }
-        ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next);
-    }
-
     internal class FilterRunner
     {
-        readonly IConsoleAppFrameworkFilter filter;
+        readonly ConsoleAppFilter filter;
         readonly Func<ConsoleAppContext, ValueTask> next;
 
-        public FilterRunner(IConsoleAppFrameworkFilter filter, Func<ConsoleAppContext, ValueTask> next)
+        public FilterRunner(ConsoleAppFilter filter, Func<ConsoleAppContext, ValueTask> next)
         {
             this.filter = filter;
             this.next = next;
@@ -61,12 +52,12 @@ namespace ConsoleAppFramework
         readonly object instance;
         readonly object[] invokeArgs;
         readonly IServiceProvider serviceProvider;
-        readonly IConsoleAppFrameworkFilter[] globalFilters;
+        readonly ConsoleAppFilter[] globalFilters;
         readonly ConsoleAppContext context;
 
-        object? invokeResult;
+        int? invokeResult;
 
-        public WithFilterInvoker(MethodInfo methodInfo, object instance, object[] invokeArgs, IServiceProvider serviceProvider, IConsoleAppFrameworkFilter[] globalFilters, ConsoleAppContext context)
+        public WithFilterInvoker(MethodInfo methodInfo, object instance, object[] invokeArgs, IServiceProvider serviceProvider, ConsoleAppFilter[] globalFilters, ConsoleAppContext context)
         {
             this.methodInfo = methodInfo;
             this.instance = instance;
@@ -76,15 +67,15 @@ namespace ConsoleAppFramework
             this.context = context;
         }
 
-        public async ValueTask<object?> InvokeAsync()
+        public async ValueTask<int?> InvokeAsync()
         {
-            var list = new List<IConsoleAppFrameworkFilter>(globalFilters);
+            var list = new List<ConsoleAppFilter>(globalFilters);
 
-            var classFilters = methodInfo.DeclaringType.GetCustomAttributes<ConsoleAppFrameworkFilterAttribute>(true);
-            var methodFilters = methodInfo.GetCustomAttributes<ConsoleAppFrameworkFilterAttribute>(true);
+            var classFilters = methodInfo.DeclaringType.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
+            var methodFilters = methodInfo.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
             foreach (var item in classFilters.Concat(methodFilters))
             {
-                var filter = serviceProvider.GetRequiredService(item.Type) as IConsoleAppFrameworkFilter;
+                var filter = serviceProvider.GetRequiredService(item.Type) as ConsoleAppFilter;
                 if (filter != null)
                 {
                     filter.Order = item.Order;
@@ -105,11 +96,30 @@ namespace ConsoleAppFramework
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        ValueTask RunCore(ConsoleAppContext _)
+        async ValueTask RunCore(ConsoleAppContext _)
         {
             var result = methodInfo.Invoke(instance, invokeArgs);
-            invokeResult = result;
-            return default;
+            if (result != null)
+            {
+                switch (result)
+                {
+                    case int exitCode:
+                        invokeResult = exitCode;
+                        break;
+                    case Task<int> taskWithExitCode:
+                        invokeResult = await taskWithExitCode;
+                        break;
+                    case Task task:
+                        await task;
+                        break;
+                    case ValueTask<int> valueTaskWithExitCode:
+                        invokeResult = await valueTaskWithExitCode;
+                        break;
+                    case ValueTask valueTask:
+                        await valueTask;
+                        break;
+                }
+            }
         }
     }
 }

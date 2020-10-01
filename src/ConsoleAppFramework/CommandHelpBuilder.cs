@@ -37,7 +37,7 @@ namespace ConsoleAppFramework
             sb.Append(BuildMethodListMessage(types, out var maxWidth));
             if (_isShowDefaultOption)
             {
-                BuildDefaultHelp(sb, maxWidth, null);
+                BuildDefaultHelp(sb, maxWidth, false);
             }
 
             return sb.ToString();
@@ -47,6 +47,7 @@ namespace ConsoleAppFramework
         {
             var sb = new StringBuilder();
 
+            bool showHeader = (defaultMethod != null);
             if (defaultMethod != null)
             {
                 // Display a help messages for default method
@@ -62,21 +63,22 @@ namespace ConsoleAppFramework
 
                 var list = methodInfo.Where(x => x != defaultMethod).Select(x => CreateCommandHelpDefinition(x)).ToArray();
                 sb.Append(BuildMethodListMessage(list, false, out maxWidth));
+                showHeader = false;
             }
 
             if (_isShowDefaultOption)
             {
-                BuildDefaultHelp(sb, maxWidth, defaultMethod);
+                BuildDefaultHelp(sb, maxWidth, showHeader);
             }
 
             return sb.ToString();
         }
 
-        static void BuildDefaultHelp(StringBuilder sb, int maxWidth, MethodInfo? defaultMethod)
+        static void BuildDefaultHelp(StringBuilder sb, int maxWidth, bool showHeader)
         {
-            if (defaultMethod != null)
+            if (showHeader)
             {
-                sb.AppendLine("Command:");
+                sb.AppendLine("Commands:");
             }
 
             var padding = Math.Max(0, maxWidth - "help".Length);
@@ -89,7 +91,7 @@ namespace ConsoleAppFramework
         public string BuildHelpMessage(MethodInfo methodInfo, bool showCommandName, bool fromMultiCommand)
             => BuildHelpMessage(CreateCommandHelpDefinition(methodInfo), showCommandName, fromMultiCommand);
 
-        public string BuildHelpMessage(CommandHelpDefinition definition, bool showCommandName,bool fromMultiCommand)
+        public string BuildHelpMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
         {
             var sb = new StringBuilder();
 

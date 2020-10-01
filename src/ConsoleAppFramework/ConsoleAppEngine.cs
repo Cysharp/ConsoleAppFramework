@@ -16,10 +16,10 @@ namespace ConsoleAppFramework
         readonly ILogger<ConsoleAppEngine> logger;
         readonly IServiceProvider provider;
         readonly CancellationToken cancellationToken;
-        readonly ConsoleAppFrameworkOptions options;
+        readonly ConsoleAppOptions options;
         readonly bool isStrict;
 
-        public ConsoleAppEngine(ILogger<ConsoleAppEngine> logger, IServiceProvider provider, ConsoleAppFrameworkOptions options, CancellationToken cancellationToken)
+        public ConsoleAppEngine(ILogger<ConsoleAppEngine> logger, IServiceProvider provider, ConsoleAppOptions options, CancellationToken cancellationToken)
         {
             this.logger = logger;
             this.provider = provider;
@@ -100,7 +100,7 @@ namespace ConsoleAppFramework
                 }
                 else
                 {
-                    Console.Write(new CommandHelpBuilder(null, false, false).BuildHelpMessage(methods, null));
+                    Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(methods, null));
                     return;
                 }
             }
@@ -147,28 +147,11 @@ namespace ConsoleAppFramework
 
             try
             {
-                var invoker = new WithFilterInvoker(methodInfo, instance, invokeArgs, provider, options.GlobalFilters ?? Array.Empty<IConsoleAppFrameworkFilter>(), ctx);
+                var invoker = new WithFilterInvoker(methodInfo, instance, invokeArgs, provider, options.GlobalFilters ?? Array.Empty<ConsoleAppFilter>(), ctx);
                 var result = await invoker.InvokeAsync();
                 if (result != null)
                 {
-                    switch (result)
-                    {
-                        case int exitCode:
-                            Environment.ExitCode = exitCode;
-                            break;
-                        case Task<int> taskWithExitCode:
-                            Environment.ExitCode = await taskWithExitCode;
-                            break;
-                        case Task task:
-                            await task;
-                            break;
-                        case ValueTask<int> valueTaskWithExitCode:
-                            Environment.ExitCode = await valueTaskWithExitCode;
-                            break;
-                        case ValueTask valueTask:
-                            await valueTask;
-                            break;
-                    }
+                    Environment.ExitCode = result.Value;
                 }
             }
             catch (Exception ex)
@@ -211,7 +194,7 @@ namespace ConsoleAppFramework
 
         bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)
         {
-            var jsonOption = (JsonSerializerOptions)provider.GetService(typeof(JsonSerializerOptions));
+            var jsonOption = options.JsonSerializerOptions;
 
             // Collect option types for parsing command-line arguments.
             var optionTypeByOptionName = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
@@ -393,7 +376,22 @@ namespace ConsoleAppFramework
                 {
                     if (optionType == typeof(bool))
                     {
-                        dict.Add(key, new OptionParameter { BooleanSwitch = true });
+                        var boolValue = true;
+                        if (i < args.Length)
+                        {
+                            var isTrue = args[i]?.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            var isFalse = args[i]?.Equals("false", StringComparison.OrdinalIgnoreCase);
+                            if (isTrue != null && isTrue.Value)
+                            {
+                                boolValue = true;
+                            }
+                            else if (isFalse != null && isFalse.Value)
+                            {
+                                boolValue = false;
+                            }
+                        }
+
+                        dict.Add(key, new OptionParameter { BooleanSwitch = boolValue });
                     }
                     else
                     {

@@ -173,30 +173,65 @@ namespace SingleContainedApp
         }
     }
 
-    class Program
+    public class Issue46 : ConsoleAppBase, IDisposable
+    {
+
+        public void Run(string str, bool b = false)
+        {
+            Console.WriteLine("str:" + str + " b:" + b);
+        }
+
+        void IDisposable.Dispose()
+        {
+            Console.WriteLine("DISPOSE!");
+        }
+    }
+
+    //class Program
+    //{
+    //    static async Task Main(string[] args)
+    //    {
+    //        //args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
+
+    //        //args = new[] { "--name", "aaa", "--repeat", "3" };
+
+    //        //args = new[] { "--help" };
+    //        //args = new[] { "encode", "--help" };
+    //        //args = new[] { "-str", "input" };
+    //        //args = new[] { "-str", "input", "-b"};
+    //        //args = new[] { "-str" };
+
+    //        await Host.CreateDefaultBuilder()
+    //            .ConfigureLogging(logging =>
+    //            {
+    //                logging.SetMinimumLevel(LogLevel.Trace).ReplaceToSimpleConsole();
+    //            })
+    //            .RunConsoleAppFrameworkAsync<Issue46>(args);
+    //        // .RunConsoleAppEngineAsync
+    //        //.ConfigureServices((hostContext, services) =>
+    //        //{
+    //        //    // mapping config json to IOption<MyConfig>
+    //        //    services.Configure<MyConfig>(hostContext.Configuration);
+    //        //})
+    //        //.RunConsoleAppEngineAsync<StandardArgTest>(args);
+    //    }
+    //}
+
+    public class Program : ConsoleAppBase
     {
         static async Task Main(string[] args)
         {
-            //args = new[] { "-array", "10,20,30", "-person", @"{""Age"":10,""Name"":""foo""}" };
+            await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<MyFirstBatch>(args, new ConsoleAppOptions
+            {
+                //StrictOption = true, // default is false.
+                //ShowDefaultCommand = false, // default is true
+            });
 
-             //args = new[] { "--name", "aaa", "--repeat", "3" };
+        }
 
-            //args = new[] { "--help" };
-            args = new[] { "encode", "--help" };
-
-            await Host.CreateDefaultBuilder()
-                .ConfigureLogging(logging =>
-                {
-                    logging.SetMinimumLevel(LogLevel.Trace).ReplaceToSimpleConsole();
-                })
-                .RunConsoleAppFrameworkAsync<OverrideCheck>(args);
-            // .RunConsoleAppEngineAsync
-            //.ConfigureServices((hostContext, services) =>
-            //{
-            //    // mapping config json to IOption<MyConfig>
-            //    services.Configure<MyConfig>(hostContext.Configuration);
-            //})
-            //.RunConsoleAppEngineAsync<StandardArgTest>(args);
+        public void Hello([Option("m", "Message to display.")]string message)
+        {
+            Console.WriteLine(message);
         }
     }
 }
