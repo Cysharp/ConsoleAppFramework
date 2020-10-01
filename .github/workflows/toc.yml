@@ -3,7 +3,7 @@ name: TOC Generator
 on:
   push:
     paths:
-      - 'README.md'
+      - 'ReadMe.md'
 
 jobs:
   generateTOC:
