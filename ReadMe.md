@@ -404,21 +404,14 @@ public class MutexFilter : ConsoleAppFilter
 {
     public override async ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
     {
-        using (var mutex = new Mutex(false, context.MethodInfo.Name))
+        using (var mutex = new Mutex(true, context.MethodInfo.Name, out var createdNew))
         {
-            if (!mutex.WaitOne(0, false))
+            if (!createdNew)
             {
                 throw new Exception($"already running {context.MethodInfo.Name} in another process.");
             }
-
-            try
-            {
-                await next(context);
-            }
-            finally
-            {
-                mutex.ReleaseMutex();
-            }
+            
+            await next(context);
         }
     }
 }
