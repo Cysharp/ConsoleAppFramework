@@ -17,7 +17,24 @@ Install-Package ConsoleAppFramework
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE... -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+## Table of Contents
+
+- [CLI Tools](#cli-tools)
+- [Automatically Class/Method command routing](#automatically-classmethod-command-routing)
+- [Complex Argument](#complex-argument)
+- [Exit Code](#exit-code)
+- [Daemon](#daemon)
+- [Filter](#filter)
+- [Logging](#logging)
+- [Configuration](#configuration)
+- [DI](#di)
+- [ConsoleAppContext](#consoleappcontext)
+- [ConsoleAppOptions](#consoleappoptions)
+- [Web Interface with Swagger](#web-interface-with-swagger)
+- [Publish to executable file](#publish-to-executable-file)
+- [License](#license)
+
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 CLI Tools
