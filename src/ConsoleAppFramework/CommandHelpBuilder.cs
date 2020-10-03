@@ -154,7 +154,7 @@ namespace ConsoleAppFramework
         {
             var argumentsFormatted = definition.Options
                 .Where(x => x.Index.HasValue)
-                .Select(x => (Argument: $"[{x.Index}] {x.FormattedValueTypeName}", x.Description, x.IsRequired, x.DefaultValue))
+                .Select(x => (Argument: $"[{x.Index}] {x.FormattedValueTypeName}", x.Description))
                 .ToArray();
 
             if (!argumentsFormatted.Any()) return string.Empty;
@@ -398,14 +398,14 @@ namespace ConsoleAppFramework
             public string[] Options { get; }
             public string Description { get; }
             public string? DefaultValue { get; }
-            public string? ValueTypeName { get; }
+            public string ValueTypeName { get; }
             public int? Index { get; }
 
             public bool IsRequired => DefaultValue == null;
             public bool IsFlag { get; }
-            public string FormattedValueTypeName => (ValueTypeName == null) ? "" : "<" + ValueTypeName + ">";
+            public string FormattedValueTypeName => "<" + ValueTypeName + ">";
 
-            public CommandOptionHelpDefinition(string[] options, string description, string? valueTypeName, string? defaultValue, int? index, bool isFlag)
+            public CommandOptionHelpDefinition(string[] options, string description, string valueTypeName, string? defaultValue, int? index, bool isFlag)
             {
                 Options = options;
                 Description = description;
