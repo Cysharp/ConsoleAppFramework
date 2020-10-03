@@ -188,7 +188,7 @@ namespace ConsoleAppFramework
         {
             var optionsFormatted = definition.Options
                 .Where(x => !x.Index.HasValue)
-                .Select(x => (Options: string.Join(", ", x.Options) + $" {x.FormattedValueTypeName}", x.Description, x.IsRequired, x.DefaultValue))
+                .Select(x => (Options: string.Join(", ", x.Options) + (x.IsFlag ? string.Empty : $" {x.FormattedValueTypeName}"), x.Description, x.IsRequired, x.IsFlag, x.DefaultValue))
                 .ToArray();
 
             if (!optionsFormatted.Any()) return string.Empty;
@@ -213,11 +213,15 @@ namespace ConsoleAppFramework
                 sb.Append("    ");
                 sb.Append(opt.Description);
 
-                if (opt.DefaultValue != null)
+                if (opt.IsFlag)
+				{
+                    sb.Append($" (Optional)");
+                }
+                else if (opt.DefaultValue != null)
                 {
                     sb.Append($" (Default: {opt.DefaultValue})");
                 }
-                if (opt.IsRequired)
+                else if (opt.IsRequired)
                 {
                     sb.Append($" (Required)");
                 }
@@ -316,13 +320,28 @@ namespace ConsoleAppFramework
                     description = string.Empty;
                 }
 
+                var isFlag = item.ParameterType == typeof(bool);
+
                 var defaultValue = default(string);
                 if (item.HasDefaultValue)
                 {
                     defaultValue = (item.DefaultValue?.ToString() ?? "null");
+                    if (isFlag)
+					{
+                        if (item.DefaultValue is true)
+                        {
+                            // bool option with true default value is not flag.
+                            isFlag = false;
+                        }
+						else if(item.DefaultValue is false)
+						{
+                            // false default value should be omitted for flag.
+                            defaultValue = null;
+						}
+                    }
                 }
 
-                parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, item.ParameterType.Name, defaultValue, index));
+                parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, item.ParameterType.Name, defaultValue, index, isFlag));
             }
 
             return new CommandHelpDefinition(
@@ -383,15 +402,17 @@ namespace ConsoleAppFramework
             public int? Index { get; }
 
             public bool IsRequired => DefaultValue == null;
+            public bool IsFlag { get; }
             public string FormattedValueTypeName => (ValueTypeName == null) ? "" : "<" + ValueTypeName + ">";
 
-            public CommandOptionHelpDefinition(string[] options, string description, string? valueTypeName, string? defaultValue, int? index)
+            public CommandOptionHelpDefinition(string[] options, string description, string? valueTypeName, string? defaultValue, int? index, bool isFlag)
             {
                 Options = options;
                 Description = description;
                 ValueTypeName = valueTypeName;
                 DefaultValue = defaultValue;
                 Index = index;
+                IsFlag = isFlag;
             }
         }
 

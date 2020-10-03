@@ -175,6 +175,48 @@ Options:
             builder.BuildOptionsMessage(def).Should().Be(expected);
         }
 
+        [Fact]
+        public void CreateCommandHelp_BooleanWithoutDefault_ShownWithoutValue()
+        {
+            var builder = CreateCommandHelpBuilder();
+            var def = builder.CreateCommandHelpDefinition(typeof(CommandHelpTestBatch).GetMethod(nameof(CommandHelpTestBatch.OptionBooleanSwitchWithoutDefault)));
+            var expected = @"
+Options:
+  -f, -flag    desc (Optional)
+
+".TrimStart();
+
+            builder.BuildOptionsMessage(def).Should().Be(expected);
+        }
+
+        [Fact]
+        public void CreateCommandHelp_BooleanWithTrueDefault_ShownWithValue()
+        {
+            var builder = CreateCommandHelpBuilder();
+            var def = builder.CreateCommandHelpDefinition(typeof(CommandHelpTestBatch).GetMethod(nameof(CommandHelpTestBatch.OptionBooleanSwitchWithTrueDefault)));
+            var expected = @"
+Options:
+  -f, -flag <Boolean>    desc (Default: True)
+
+".TrimStart();
+
+            builder.BuildOptionsMessage(def).Should().Be(expected);
+        }
+
+        [Fact]
+        public void CreateCommandHelp_BooleanWithTrueDefault_ShownWithoutValue()
+        {
+            var builder = CreateCommandHelpBuilder();
+            var def = builder.CreateCommandHelpDefinition(typeof(CommandHelpTestBatch).GetMethod(nameof(CommandHelpTestBatch.OptionBooleanSwitchWithFalseDefault)));
+            var expected = @"
+Options:
+  -f, -flag    desc (Optional)
+
+".TrimStart();
+
+            builder.BuildOptionsMessage(def).Should().Be(expected);
+        }
+
         //[Fact]
         //public void CreateCommandHelpDefinition()
         //{
@@ -355,6 +397,18 @@ Options:
         }
 
         public void OptionIndex([Option(2, "3rd")]int arg0, [Option(1, "2nd")]string arg1, [Option(0, "1st")]bool arg2)
+        {
+        }
+
+        public void OptionBooleanSwitchWithoutDefault([Option("f", "desc")]bool flag)
+        {
+        }
+
+        public void OptionBooleanSwitchWithTrueDefault([Option("f", "desc")] bool flag = true)
+        {
+        }
+
+        public void OptionBooleanSwitchWithFalseDefault([Option("f", "desc")] bool flag = false)
         {
         }
 
