@@ -294,7 +294,10 @@ namespace ConsoleAppFramework
                     else
                     {
                         // If Index is -1, ShortName is initialized at Constractor.
-                        options.Add($"-{option.ShortName!.Trim('-')}");
+                        if (option.ShortName != null)
+                        {
+                            options.Add($"-{option.ShortName.Trim('-')}");
+                        }
                     }
                 }
 

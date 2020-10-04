@@ -28,7 +28,7 @@ namespace ConsoleAppFramework
             this.Description = null;
         }
 
-        public OptionAttribute(string shortName, string description)
+        public OptionAttribute(string? shortName, string description)
         {
             this.Index = -1;
             this.ShortName = shortName;
