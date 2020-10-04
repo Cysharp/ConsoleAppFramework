@@ -24,6 +24,8 @@ Install-Package ConsoleAppFramework
 - [Automatically Class/Method command routing](#automatically-classmethod-command-routing)
 - [Complex Argument](#complex-argument)
 - [Exit Code](#exit-code)
+- [CommandAttribute](#commandattribute)
+- [OptionAttribute](#optionattribute)
 - [Daemon](#daemon)
 - [Filter](#filter)
 - [Logging](#logging)
