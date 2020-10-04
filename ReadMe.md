@@ -79,6 +79,8 @@ public void Hello(
 {
 ```
 
+Method parameter will be required parameter, optional parameter will be oprional parameter. Also support boolean flag, if parameter is bool, in default it will be optional parameter and with `-foo` set true to parameter.
+
 `help` command (or no argument to pass) shows there detail. This help format is same as `dotnet` command.
 
 ```
@@ -305,6 +307,74 @@ public class ExampleApp : ConsoleAppBase
 ```
 
 > **NOTE**: If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code.
+
+CommandAttribute
+---
+`CommandAttribute` enables subscommand on `RunConsoleAppFramework<T>()`(for single type CLI app), changes command name on `RunConsoleAppFramework()`(for muilti type command routing), also describes the description.
+
+```
+RunConsoleAppFramework<App>();
+
+public class App : ConsoleAppBase
+{
+    // as Root Command(no command argument)
+    public void Run()
+    {
+    }
+
+    [Command("sec", "sub comman of this app")]
+    public void Second()
+    {
+    }
+}
+```
+
+```
+RunConsoleAPpFramework();
+
+public class App2 : ConsoleAppBase
+{
+    // routing command: `app2 exec`
+    [Command("exec", "exec app.")]
+    public void Exec1()
+    {
+    }
+}
+
+
+public class App3 : ConsoleAppBase
+{
+     // routing command: `app3 e2`
+    [Command("e2", "exec app 2.")]
+    public void ExecExec()
+    {
+    }
+}
+```
+
+OptionAttribute
+---
+OptionAttribute configure parameter, it can set shortName or order index, and help description.
+
+If you want to add only description, set "" or null to shortName parameter.
+
+```csharp
+public void Hello(
+    [Option("n", "name of send user.")]string name,
+    [Option("r", "repeat count.")]int repeat = 3)
+{
+}
+
+[Command("escape")]
+public void UrlEscape([Option(0, "input of this command")]string input)
+{
+}
+
+[Command("unescape")]
+public void UrlUnescape([Option(null, "input of this command")]string input)
+{
+}
+```
 
 Daemon
 ---

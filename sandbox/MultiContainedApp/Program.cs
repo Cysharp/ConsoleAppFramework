@@ -13,7 +13,7 @@ namespace MultiContainedApp
         {
             //args = new string[] { "Bar.Hello3", "2" };
             //args = new string[] { "bar", "hello3", "-help" };
-            args = new string[] { "foo", "echo", "help"};
+            //args = new string[] { "foo", "echo", "help"};
             //args = new string[] { "bar.hello2", "help" };
 
             await Host.CreateDefaultBuilder()
@@ -40,6 +40,7 @@ namespace MultiContainedApp
     [ConsoleAppFilter(typeof(MyFilter2), Order = 9999)]
     public class Foo : ConsoleAppBase
     {
+        [Command("ec", "My echo")]
         public void Echo(string msg)
         {
             Console.WriteLine(msg);
