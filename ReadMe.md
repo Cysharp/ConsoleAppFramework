@@ -86,7 +86,7 @@ Method parameter will be required parameter, optional parameter will be oprional
 `help` command (or no argument to pass) shows there detail. This help format is same as `dotnet` command.
 
 ```
-> SampleApp.exe -help
+> SampleApp.exe help
 Usage: SampleApp [options...]
 
 Options:
