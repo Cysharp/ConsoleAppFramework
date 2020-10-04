@@ -231,6 +231,8 @@ Options:
   -msg <String>     (Required)
 ```
 
+> Commands are searched from loaded assemblies, when does not touch other assemblies type, it will be trimmed and can not load it. In that case, use `RunConsoleAppFrameworkAsync(searchAssemblies: )` option to pass target assembly, for example `searchAssemblies: new [] { typeof(Foo).Assembly }`.
+
 Complex Argument
 ---
 If the argument is not primitive, you can pass JSON string.
