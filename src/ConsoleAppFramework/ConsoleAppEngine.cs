@@ -323,6 +323,11 @@ namespace ConsoleAppFramework
                 {
                     invokeArgs[i] = item.DefaultValue;
                 }
+                else if (item.ParameterType == typeof(bool))
+				{
+                    // bool without default value should be considered that it has implicit default value of false.
+                    invokeArgs[i] = false;
+				}
                 else
                 {
                     var name = item.Name;

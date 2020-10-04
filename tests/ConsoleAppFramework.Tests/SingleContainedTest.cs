@@ -204,9 +204,10 @@ namespace ConsoleAppFramework.Tests
 
         public class BooleanSwitch : ConsoleAppBase
         {
-            public void Hello(string x, bool foo = false, bool yeah = false)
+            public void Hello(string x, bool bar, bool foo = false, bool yeah = false)
             {
                 Context.Logger.LogInformation($"x:{x}");
+                Context.Logger.LogInformation($"bar:{bar}");
                 Context.Logger.LogInformation($"foo:{foo}");
                 Context.Logger.LogInformation($"yeah:{yeah}");
             }
@@ -217,23 +218,36 @@ namespace ConsoleAppFramework.Tests
         {
             {
                 var log = new LogStack();
+                var args = "-x foo -bar -foo -yeah".Split(' ');
+                await new HostBuilder()
+                    .ConfigureTestLogging(testOutput, log, true)
+                    .RunConsoleAppFrameworkAsync<BooleanSwitch>(args);
+                log.InfoLogShouldBe(0, "x:foo");
+                log.InfoLogShouldBe(1, "bar:True");
+                log.InfoLogShouldBe(2, "foo:True");
+                log.InfoLogShouldBe(3, "yeah:True");
+            }
+            {
+                var log = new LogStack();
+                var args = "-x foo -bar -foo".Split(' ');
+                await new HostBuilder()
+                    .ConfigureTestLogging(testOutput, log, true)
+                    .RunConsoleAppFrameworkAsync<BooleanSwitch>(args);
+                log.InfoLogShouldBe(0, "x:foo");
+                log.InfoLogShouldBe(1, "bar:True");
+                log.InfoLogShouldBe(2, "foo:True");
+                log.InfoLogShouldBe(3, "yeah:False");
+            }
+            {
+                var log = new LogStack();
                 var args = "-x foo -foo -yeah".Split(' ');
                 await new HostBuilder()
                     .ConfigureTestLogging(testOutput, log, true)
                     .RunConsoleAppFrameworkAsync<BooleanSwitch>(args);
                 log.InfoLogShouldBe(0, "x:foo");
-                log.InfoLogShouldBe(1, "foo:True");
-                log.InfoLogShouldBe(2, "yeah:True");
-            }
-            {
-                var log = new LogStack();
-                var args = "-x foo -foo".Split(' ');
-                await new HostBuilder()
-                    .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppFrameworkAsync<BooleanSwitch>(args);
-                log.InfoLogShouldBe(0, "x:foo");
-                log.InfoLogShouldBe(1, "foo:True");
-                log.InfoLogShouldBe(2, "yeah:False");
+                log.InfoLogShouldBe(1, "bar:False");
+                log.InfoLogShouldBe(2, "foo:True");
+                log.InfoLogShouldBe(3, "yeah:True");
             }
         }
     }
