@@ -182,8 +182,8 @@ namespace ConsoleAppFramework.WebHosting.Swagger
                         @in = "formData",
                         type = swaggerDataType,
                         description = parameterXmlComment,
-                        required = !x.IsOptional,
-                        @default = defaultObjectExample ?? ((x.IsOptional) ? defaultValue : null),
+                        required = (x.ParameterType == typeof(bool)) ? false : !x.IsOptional,
+                        @default = defaultObjectExample ?? ((x.IsOptional) ? defaultValue : (x.ParameterType == typeof(bool) ? (object)false : null)),
                         items = items,
                         @enum = enums,
                         collectionFormat = "multi", // csv or multi

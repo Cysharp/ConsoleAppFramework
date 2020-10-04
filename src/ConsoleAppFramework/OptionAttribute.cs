@@ -24,14 +24,14 @@ namespace ConsoleAppFramework
         public OptionAttribute(string shortName)
         {
             this.Index = -1;
-            this.ShortName = shortName;
+            this.ShortName = string.IsNullOrWhiteSpace(shortName) ? null : shortName;
             this.Description = null;
         }
 
         public OptionAttribute(string? shortName, string description)
         {
             this.Index = -1;
-            this.ShortName = shortName;
+            this.ShortName = string.IsNullOrWhiteSpace(shortName) ? null : shortName;
             this.Description = description;
         }
     }

@@ -24,6 +24,12 @@ namespace WebHostingApp
             Context.Logger.LogInformation("foo bar baz");
         }
 
+        [Command("", "my descp")]
+        public void Bar(bool a, bool b = false, bool c = true)
+        {
+            Context.Logger.LogInformation((a, b, c).ToString());
+        }
+
         public void Sum(int x, int y)
         {
             Context.Logger.LogInformation((x + y).ToString());

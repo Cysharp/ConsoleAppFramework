@@ -221,7 +221,9 @@ namespace SingleContainedApp
     {
         static async Task Main(string[] args)
         {
-            await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<MyFirstBatch>(args, new ConsoleAppOptions
+            //args = new[] { "-m", "a ", "-b", "False" };
+
+            await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args, new ConsoleAppOptions
             {
                 //StrictOption = true, // default is false.
                 //ShowDefaultCommand = false, // default is true
@@ -229,9 +231,9 @@ namespace SingleContainedApp
 
         }
 
-        public void Hello([Option("m", "Message to display.")]string message)
+        public void Hello([Option(null, "Message to display.")]string message, bool b)
         {
-            Console.WriteLine(message);
+            Console.WriteLine(message + b);
         }
     }
 }
