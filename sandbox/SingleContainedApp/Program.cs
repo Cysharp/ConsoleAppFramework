@@ -222,6 +222,7 @@ namespace SingleContainedApp
         static async Task Main(string[] args)
         {
             //args = new[] { "-m", "a ", "-b", "False" };
+            args = new[] { "help" };
 
             await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args, new ConsoleAppOptions
             {
@@ -231,9 +232,12 @@ namespace SingleContainedApp
 
         }
 
-        public void Hello([Option(null, "Message to display.")]string message, bool b)
+        public void Hello(
+            int? foo = null,
+            [Option("", "", DefaultValue = "DateTime.Today")]DateTime? hello = null)
         {
-            Console.WriteLine(message + b);
+            if (hello == null) hello = DateTime.Now;
+            Console.WriteLine(hello);
         }
     }
 }

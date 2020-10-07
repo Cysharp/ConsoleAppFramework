@@ -9,6 +9,9 @@ namespace ConsoleAppFramework
         public string? ShortName { get; }
         public string? Description { get; }
 
+        /// <summary>Override default value on help.</summary>
+        public string? DefaultValue { get; set; }
+
         public OptionAttribute(int index)
         {
             this.Index = index;

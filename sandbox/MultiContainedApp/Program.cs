@@ -16,6 +16,7 @@ namespace MultiContainedApp
             //args = new string[] { "foo", "echo", "help"};
             //args = new string[] { "bar.hello2", "help" };
 
+
             await Host.CreateDefaultBuilder()
                 .ConfigureLogging(x => x.SetMinimumLevel(LogLevel.Trace))
                 .RunConsoleAppFrameworkAsync(args, options: new ConsoleAppOptions

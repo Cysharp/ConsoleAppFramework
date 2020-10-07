@@ -214,7 +214,7 @@ namespace ConsoleAppFramework
                 sb.Append(opt.Description);
 
                 if (opt.IsFlag)
-				{
+                {
                     sb.Append($" (Optional)");
                 }
                 else if (opt.DefaultValue != null)
@@ -328,23 +328,36 @@ namespace ConsoleAppFramework
                 var defaultValue = default(string);
                 if (item.HasDefaultValue)
                 {
-                    defaultValue = (item.DefaultValue?.ToString() ?? "null");
+                    if (option?.DefaultValue != null)
+                    {
+                        defaultValue = option.DefaultValue;
+                    }
+                    else
+                    {
+                        defaultValue = (item.DefaultValue?.ToString() ?? "null");
+                    }
                     if (isFlag)
-					{
+                    {
                         if (item.DefaultValue is true)
                         {
                             // bool option with true default value is not flag.
                             isFlag = false;
                         }
-						else if(item.DefaultValue is false)
-						{
+                        else if (item.DefaultValue is false)
+                        {
                             // false default value should be omitted for flag.
                             defaultValue = null;
-						}
+                        }
                     }
                 }
 
-                parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, item.ParameterType.Name, defaultValue, index, isFlag));
+                var paramTypeName = item.ParameterType.Name;
+                if (item.ParameterType.IsGenericType && item.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    paramTypeName = item.ParameterType.GetGenericArguments()[0].Name + "?";
+                }
+
+                parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, paramTypeName, defaultValue, index, isFlag));
             }
 
             return new CommandHelpDefinition(
