@@ -24,6 +24,8 @@ Install-Package ConsoleAppFramework
 - [Automatically Class/Method command routing](#automatically-classmethod-command-routing)
 - [Complex Argument](#complex-argument)
 - [Exit Code](#exit-code)
+- [CommandAttribute](#commandattribute)
+- [OptionAttribute](#optionattribute)
 - [Daemon](#daemon)
 - [Filter](#filter)
 - [Logging](#logging)
@@ -84,7 +86,7 @@ Method parameter will be required parameter, optional parameter will be oprional
 `help` command (or no argument to pass) shows there detail. This help format is same as `dotnet` command.
 
 ```
-> SampleApp.exe -help
+> SampleApp.exe help
 Usage: SampleApp [options...]
 
 Options:
@@ -228,6 +230,8 @@ Usage: SampleApp Foo.Echo [options...]
 Options:
   -msg <String>     (Required)
 ```
+
+> Commands are searched from loaded assemblies, when does not touch other assemblies type, it will be trimmed and can not load it. In that case, use `RunConsoleAppFrameworkAsync(searchAssemblies: )` option to pass target assembly, for example `searchAssemblies: new [] { typeof(Foo).Assembly }`.
 
 Complex Argument
 ---
