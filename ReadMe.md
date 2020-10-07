@@ -380,6 +380,22 @@ public void UrlUnescape([Option(null, "input of this command")]string input)
 }
 ```
 
+DefaultValue property override help message of default.
+
+```csharp
+public void Hello(
+    [Option("t", "Display time.", DefaultValue = "DateTime.Now")]DateTime? time = null)
+{
+    if (time == null) time = DateTime.Now;
+    Console.WriteLine(time);
+}
+
+// ---
+
+Options:
+  -t, -time <DateTime?>    Display time. (Default: DateTime.Now)
+```
+
 Daemon
 ---
 `ConsoleAppBase.Context.CancellationToken` is lifecycle token of application. In default, ConsoleAppFramework does not abort on received terminate request, you can check `CancellationToken.IsCancellationRequested` and shutdown gracefully. If use infinite-loop, it becomes daemon program.

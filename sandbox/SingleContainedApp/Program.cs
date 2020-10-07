@@ -233,11 +233,10 @@ namespace SingleContainedApp
         }
 
         public void Hello(
-            int? foo = null,
-            [Option("", "", DefaultValue = "DateTime.Today")]DateTime? hello = null)
+            [Option("t", "Display time.", DefaultValue = "DateTime.Now")]DateTime? time = null)
         {
-            if (hello == null) hello = DateTime.Now;
-            Console.WriteLine(hello);
+            if (time == null) time = DateTime.Now;
+            Console.WriteLine(time);
         }
     }
 }
