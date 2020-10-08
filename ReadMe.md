@@ -8,7 +8,7 @@ ConsoleAppFramework is an infrastructure of creating CLI(Command-line interface)
 
 ConsoleAppFramework is built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host), you can use configuration, logging, DI, lifetime management by Microsoft.Extensions packages. ConsoleAppFramework do parameter binding from string args, routing multi command, dotnet style help builder, etc.
 
-This concept is same as [Laravel Zero](https://laravel-zero.com/) of PHP. Similar competitor is [dotnet/command-line-api](https://github.com/dotnet/command-line-api)'s `System.CommandLine.Hosting` + `System.CommandLine.DragonFruit` but it is preview and currently not productivity.
+This concept is similar as [Laravel Zero](https://laravel-zero.com/) of PHP, share same configuration with server framework. dotnet's standard CommandLine api - [dotnet/command-line-api](https://github.com/dotnet/command-line-api) is low level, require many boilerplate codes. ConsoleAppFramework is like ASP.NET Core MVC in CLI Applications, no needs boilerplate.
 
 NuGet: [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
 
