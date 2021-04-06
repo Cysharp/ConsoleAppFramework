@@ -1,10 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
         <LangVersion>8.0</LangVersion>
         <Nullable>enable</Nullable>
 
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>..\ConsoleAppFramework\release.snk</AssemblyOriginatorKeyFile>
         <!-- NuGet -->
         <PackageId>ConsoleAppFramework.WebHosting</PackageId>
         <Description>Provides Swagger-based web front-end gateway for ConsoleAppFramework.</Description>
@@ -12,10 +14,6 @@
 
     <ItemGroup>
         <EmbeddedResource Include="Swagger\SwaggerUI\*" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
     <ItemGroup>
