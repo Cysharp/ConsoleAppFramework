@@ -85,7 +85,14 @@ namespace ConsoleAppFramework
             }
             finally
             {
-                scope.Dispose();
+                if (scope is IAsyncDisposable asyncDisposable)
+                {
+                    await asyncDisposable.DisposeAsync();
+                }
+                else
+                {
+                    scope.Dispose();
+                }
             }
         }
     }
