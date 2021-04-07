@@ -271,7 +271,7 @@ namespace ConsoleAppFramework
                                 return false;
                             }
                         }
-                        else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(parameters[i].ParameterType))
+                        else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(parameters[i].ParameterType) && !typeof(System.Collections.IDictionary).IsAssignableFrom(parameters[i].ParameterType))
                         {
                             var v = value.Value;
                             if (!(v.StartsWith("[") && v.EndsWith("]")))

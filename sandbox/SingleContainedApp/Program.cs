@@ -240,10 +240,10 @@ namespace SingleContainedApp
             if (hello == null) hello = DateTime.Now;
             Console.WriteLine(hello);
         }
-        public void Dispose()
-        {
-            Console.WriteLine("DISPOSE!");
-        }
 
+        void IDisposable.Dispose()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
