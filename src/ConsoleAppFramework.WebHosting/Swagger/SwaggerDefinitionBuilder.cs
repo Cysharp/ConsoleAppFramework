@@ -1,4 +1,7 @@
-﻿using ConsoleAppFramework.WebHosting.Swagger.Schemas;
+﻿#pragma warning disable CS8602 // Dereference of a possibly null reference.
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+
+using ConsoleAppFramework.WebHosting.Swagger.Schemas;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections;
@@ -422,6 +425,8 @@ namespace ConsoleAppFramework.WebHosting.Swagger
 
         class Item1EqualityCompaerer<T1, T2> : EqualityComparer<Tuple<T1, T2>> where T1 : class
         {
+#pragma warning disable CS8765 // Nullability of type of parameter doesn't match overridden member (possibly because of nullability attributes).
+
             public override bool Equals(Tuple<T1, T2> x, Tuple<T1, T2> y)
             {
                 return x.Item1.Equals(y.Item1);
@@ -431,6 +436,8 @@ namespace ConsoleAppFramework.WebHosting.Swagger
             {
                 return obj.Item1.GetHashCode();
             }
+
+#pragma warning restore CS8765 // Nullability of type of parameter doesn't match overridden member (possibly because of nullability attributes).
         }
 
         class XmlCommentStructure

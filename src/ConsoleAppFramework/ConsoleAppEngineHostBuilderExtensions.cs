@@ -283,14 +283,14 @@ namespace ConsoleAppFramework
         {
             var asm = Assembly.GetEntryAssembly();
             var version = "1.0.0";
-            var infoVersion = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            var infoVersion = asm!.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             if (infoVersion != null)
             {
                 version = infoVersion.InformationalVersion;
             }
             else
             {
-                var asmVersion = asm.GetCustomAttribute<AssemblyVersionAttribute>();
+                var asmVersion = asm!.GetCustomAttribute<AssemblyVersionAttribute>();
                 if (asmVersion != null)
                 {
                     version = asmVersion.Version;
@@ -310,9 +310,9 @@ namespace ConsoleAppFramework
 
             foreach (var asm in searchAssemblies)
             {
-                if (asm.FullName.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions")) continue;
+                if (asm.FullName!.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions")) continue;
 
-                Type[] types;
+                Type?[] types;
                 try
                 {
                     types = asm.GetTypes();
@@ -322,11 +322,11 @@ namespace ConsoleAppFramework
                     types = ex.Types;
                 }
 
-                foreach (var item in types)
+                foreach (var item in types.Where(x => x != null))
                 {
                     if (typeof(ConsoleAppBase).IsAssignableFrom(item) && item != typeof(ConsoleAppBase))
                     {
-                        consoleAppBaseTypes.Add(item);
+                        consoleAppBaseTypes.Add(item!);
                     }
                 }
             }

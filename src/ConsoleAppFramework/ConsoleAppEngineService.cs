@@ -40,7 +40,7 @@ namespace ConsoleAppFramework
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
             {
-                var self = (ConsoleAppEngineService)state;
+                var self = (ConsoleAppEngineService)state!;
                 try
                 {
                     var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ConsoleAppOptions>(), self.cancellationTokenSource.Token);

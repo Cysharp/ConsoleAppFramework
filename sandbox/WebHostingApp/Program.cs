@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.Extensions.Logging;
 using ConsoleAppFramework;
 using System;

@@ -1,4 +1,6 @@
-﻿using ConsoleAppFramework.WebHosting.Swagger;
+﻿#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
+using ConsoleAppFramework.WebHosting.Swagger;
 using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Linq;

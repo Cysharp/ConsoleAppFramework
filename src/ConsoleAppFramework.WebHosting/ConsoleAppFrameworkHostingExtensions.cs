@@ -108,7 +108,7 @@ namespace ConsoleAppFramework // .WebHosting
                 if (!(asm.FullName is null)
                     && (asm.FullName.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions"))) continue;
 
-                Type[]? types;
+                Type?[] types;
                 try
                 {
                     types = asm.GetTypes();

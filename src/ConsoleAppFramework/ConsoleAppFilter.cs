@@ -50,14 +50,14 @@ namespace ConsoleAppFramework
     {
         readonly MethodInfo methodInfo;
         readonly object instance;
-        readonly object[] invokeArgs;
+        readonly object?[] invokeArgs;
         readonly IServiceProvider serviceProvider;
         readonly ConsoleAppFilter[] globalFilters;
         readonly ConsoleAppContext context;
 
         int? invokeResult;
 
-        public WithFilterInvoker(MethodInfo methodInfo, object instance, object[] invokeArgs, IServiceProvider serviceProvider, ConsoleAppFilter[] globalFilters, ConsoleAppContext context)
+        public WithFilterInvoker(MethodInfo methodInfo, object instance, object?[] invokeArgs, IServiceProvider serviceProvider, ConsoleAppFilter[] globalFilters, ConsoleAppContext context)
         {
             this.methodInfo = methodInfo;
             this.instance = instance;
@@ -71,7 +71,7 @@ namespace ConsoleAppFramework
         {
             var list = new List<ConsoleAppFilter>(globalFilters);
 
-            var classFilters = methodInfo.DeclaringType.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
+            var classFilters = methodInfo.DeclaringType!.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
             var methodFilters = methodInfo.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
             foreach (var item in classFilters.Concat(methodFilters))
             {
