@@ -31,6 +31,7 @@ Install-Package ConsoleAppFramework
 - [Logging](#logging)
 - [Configuration](#configuration)
 - [DI](#di)
+- [Cleanup](#cleanup)
 - [ConsoleAppContext](#consoleappcontext)
 - [ConsoleAppOptions](#consoleappoptions)
 - [Web Interface with Swagger](#web-interface-with-swagger)
