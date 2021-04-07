@@ -317,7 +317,7 @@ CommandAttribute
 ---
 `CommandAttribute` enables subscommand on `RunConsoleAppFramework<T>()`(for single type CLI app), changes command name on `RunConsoleAppFramework()`(for muilti type command routing), also describes the description.
 
-```
+```csharp
 RunConsoleAppFramework<App>();
 
 public class App : ConsoleAppBase
@@ -334,7 +334,7 @@ public class App : ConsoleAppBase
 }
 ```
 
-```
+```csharp
 RunConsoleAppFramework();
 
 public class App2 : ConsoleAppBase
