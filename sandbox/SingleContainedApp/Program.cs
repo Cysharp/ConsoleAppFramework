@@ -20,8 +20,8 @@ namespace SingleContainedApp
     public class MyFirstBatch : ConsoleAppBase
     {
         public void Hello(
-            [Option("n", "name of send user.")]string name,
-            [Option("r", "repeat count.")]int repeat = 3)
+            [Option("n", "name of send user.")] string name,
+            [Option("r", "repeat count.")] int repeat = 3)
         {
             for (int i = 0; i < repeat; i++)
             {
@@ -67,13 +67,13 @@ namespace SingleContainedApp
         }
 
         [Command("escape")]
-        public void UrlEscape([Option(0)]string input)
+        public void UrlEscape([Option(0)] string input)
         {
             Console.WriteLine(Uri.EscapeDataString(input));
         }
 
         [Command("timer")]
-        public async Task Timer([Option(0)]uint waitSeconds)
+        public async Task Timer([Option(0)] uint waitSeconds)
         {
             Console.WriteLine(waitSeconds + " seconds");
             while (waitSeconds != 0)
@@ -94,16 +94,16 @@ namespace SingleContainedApp
     public class OverrideCheck : ConsoleAppBase
     {
         [Command("encode", "encode input string to base64url")]
-        public void Encode([Option(0)]string input) => Console.WriteLine((input));
+        public void Encode([Option(0)] string input) => Console.WriteLine((input));
 
         [Command("decode", "decode input base64url to string")]
-        public void Decode([Option(0)]string input) => Console.WriteLine((input));
+        public void Decode([Option(0)] string input) => Console.WriteLine((input));
 
         [Command("escape", "escape base64 to base64url")]
-        public void Escape([Option(0)]string input) => Console.WriteLine((input));
+        public void Escape([Option(0)] string input) => Console.WriteLine((input));
 
         [Command(new[] { "unescape", "-h" }, "unescape base64url to base64")]
-        public void Unescape([Option(0)]string input) => Console.WriteLine((input));
+        public void Unescape([Option(0)] string input) => Console.WriteLine((input));
 
         //[Command(new[] { "help", "-h", "-help", "--help" }, "show help")]
         //public void Help()
@@ -127,7 +127,7 @@ namespace SingleContainedApp
 
     public class StandardArgTest : ConsoleAppBase
     {
-        public void Run([Option(0, "message of x.")]string x)
+        public void Run([Option(0, "message of x.")] string x)
         {
             // Console.WriteLine("1." + x);
             //Console.WriteLine("2." + y);
@@ -160,7 +160,7 @@ namespace SingleContainedApp
 
     public class SimpleTwoArgs : ConsoleAppBase
     {
-        public async ValueTask<int> Hello([Option("n")]string name, [Option("r")]int repeat)
+        public async ValueTask<int> Hello([Option("n")] string name, [Option("r")] int repeat)
         {
             Context.Logger.LogInformation($"name:{name}");
 
@@ -217,12 +217,12 @@ namespace SingleContainedApp
     //    }
     //}
 
-    public class Program : ConsoleAppBase
+    public class Program : ConsoleAppBase, IDisposable
     {
         static async Task Main(string[] args)
         {
             //args = new[] { "-m", "a ", "-b", "False" };
-            args = new[] { "help" };
+           args = new[] { "hello" };
 
             await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args, new ConsoleAppOptions
             {
@@ -232,12 +232,18 @@ namespace SingleContainedApp
 
         }
 
+
         public void Hello(
             int? foo = null,
-            [Option("", "", DefaultValue = "DateTime.Today")]DateTime? hello = null)
+            [Option("", "", DefaultValue = "DateTime.Today")] DateTime? hello = null)
         {
             if (hello == null) hello = DateTime.Now;
             Console.WriteLine(hello);
         }
+        public void Dispose()
+        {
+            Console.WriteLine("DISPOSE!");
+        }
+
     }
 }

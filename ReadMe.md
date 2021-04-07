@@ -627,6 +627,25 @@ public MyApp(IOptions<MyConfig> config, ILogger<MyApp> logger)
 
 DI also inject to filter.
 
+Cleanup
+---
+You can implement `IDisposable.Dispose` explicitly, that is called after command finished.
+
+```csharp
+public class MyApp : ConsoleAppBase, IDisposable
+{
+    public void Hello()
+    {
+        Console.WriteLine("Hello");
+    }
+
+    void IDisposable.Dispose() // NOTE: can not implement `public void Dispose()`
+    {
+        Console.WriteLine("DISPOSED");
+    }
+}
+```
+
 ConsoleAppContext
 ---
 ConsoleAppContext is injected to property on method executing.
