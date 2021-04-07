@@ -22,7 +22,7 @@ namespace ConsoleAppFramework
 
         private static string GetExecutionCommandNameDefault()
         {
-            return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
+            return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly()!.Location);
         }
 
         public string GetExecutionCommandName()
@@ -361,36 +361,11 @@ namespace ConsoleAppFramework
             }
 
             return new CommandHelpDefinition(
-                $"{method.DeclaringType.Name.ToLower()}",
+                $"{method.DeclaringType!.Name.ToLower()}",
                 command?.CommandNames ?? new[] { method.Name.ToLower() },
                 parameterDefinitions.OrderBy(x => x.Index ?? int.MaxValue).ToArray(),
                 command?.Description ?? String.Empty
             );
-        }
-
-        class CustomSorter : IComparer<MethodInfo>
-        {
-            public int Compare(MethodInfo x, MethodInfo y)
-            {
-                if (x.Name == y.Name)
-                {
-                    return 0;
-                }
-
-                var xc = x.GetCustomAttribute<CommandAttribute>();
-                var yc = y.GetCustomAttribute<CommandAttribute>();
-
-                if (xc != null)
-                {
-                    return 1;
-                }
-                if (yc != null)
-                {
-                    return -1;
-                }
-
-                return x.Name.CompareTo(y.Name);
-            }
         }
 
         public class CommandHelpDefinition

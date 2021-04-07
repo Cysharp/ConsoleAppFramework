@@ -92,7 +92,7 @@ namespace ConsoleAppFramework.WebHosting
         public async Task Invoke(HttpContext httpContext)
         {
             var path = httpContext.Request.Path.Value;
-            if (!methodLookup.TryGetValue(path, out var methodInfo))
+            if (!methodLookup.TryGetValue(path!, out var methodInfo))
             {
                 await next(httpContext);
                 return;

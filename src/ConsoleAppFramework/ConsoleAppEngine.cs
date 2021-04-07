@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -117,7 +118,7 @@ namespace ConsoleAppFramework
         async Task RunCore(Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
         {
             object instance;
-            object[] invokeArgs;
+            object?[] invokeArgs;
 
             try
             {
@@ -136,8 +137,8 @@ namespace ConsoleAppFramework
             var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger, methodInfo, provider);
             try
             {
-                instance = provider.GetService(type);
-                typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context)).SetValue(instance, ctx);
+                instance = provider.GetRequiredService(type);
+                typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context))!.SetValue(instance, ctx);
             }
             catch (Exception ex)
             {
@@ -185,14 +186,14 @@ namespace ConsoleAppFramework
             return default;
         }
 
-        ValueTask SetFailAsync(string message, Exception ex)
+        ValueTask SetFailAsync(string message, Exception? ex)
         {
             Environment.ExitCode = 1;
             logger.LogError(ex, message);
             return default;
         }
 
-        bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object[] invokeArgs, out string? errorMessage)
+        bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object?[] invokeArgs, out string? errorMessage)
         {
             var jsonOption = options.JsonSerializerOptions;
 
@@ -241,7 +242,7 @@ namespace ConsoleAppFramework
                 var longName = (isStrict) ? ("--" + item.Name) : item.Name;
                 var shortName = (isStrict) ? ("-" + option?.ShortName?.TrimStart('-')) : option?.ShortName?.TrimStart('-');
 
-                if (value.Value != null || argumentDictionary.TryGetValue(longName, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
+                if (value.Value != null || argumentDictionary.TryGetValue(longName!, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
                 {
                     if (parameters[i].ParameterType == typeof(bool) && value.Value == null)
                     {
@@ -324,10 +325,10 @@ namespace ConsoleAppFramework
                     invokeArgs[i] = item.DefaultValue;
                 }
                 else if (item.ParameterType == typeof(bool))
-				{
+                {
                     // bool without default value should be considered that it has implicit default value of false.
                     invokeArgs[i] = false;
-				}
+                }
                 else
                 {
                     var name = item.Name;
@@ -419,31 +420,6 @@ namespace ConsoleAppFramework
         {
             public string? Value;
             public bool BooleanSwitch;
-        }
-
-        class CustomSorter : IComparer<MethodInfo>
-        {
-            public int Compare(MethodInfo x, MethodInfo y)
-            {
-                if (x.Name == y.Name)
-                {
-                    return 0;
-                }
-
-                var xc = x.GetCustomAttribute<CommandAttribute>();
-                var yc = y.GetCustomAttribute<CommandAttribute>();
-
-                if (xc != null)
-                {
-                    return 1;
-                }
-                if (yc != null)
-                {
-                    return -1;
-                }
-
-                return x.Name.CompareTo(y.Name);
-            }
         }
     }
 }

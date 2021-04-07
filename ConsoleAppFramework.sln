@@ -19,11 +19,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AAD2D900
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.Tests", "tests\ConsoleAppFramework.Tests\ConsoleAppFramework.Tests.csproj", "{AF15C841-5D45-4E61-BFCE-A6E6B7BA7629}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".circleci", ".circleci", "{E98E6C20-D6CD-4C6D-9FC4-1070BFFB70F9}"
-	ProjectSection(SolutionItems) = preProject
-		.circleci\config.yml = .circleci\config.yml
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.WebHosting", "src\ConsoleAppFramework.WebHosting\ConsoleAppFramework.WebHosting.csproj", "{9AC1CAE2-E717-472A-BBFB-0FE5590E5C7A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebHostingApp", "sandbox\WebHostingApp\WebHostingApp.csproj", "{2B7CDEFC-3D92-4B72-8898-2494D7B087AD}"
@@ -39,7 +34,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		ReadMe.md = ReadMe.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppFramework.Template", "src\ConsoleAppFramework.Template\ConsoleAppFramework.Template.csproj", "{A76D1521-AB66-4B00-8C7B-069052EFB212}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.Template", "src\ConsoleAppFramework.Template\ConsoleAppFramework.Template.csproj", "{A76D1521-AB66-4B00-8C7B-069052EFB212}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetApp", "sandbox\AspNetApp\AspNetApp.csproj", "{E065696C-9DF6-4E68-933B-BFA0165781DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +80,10 @@ Global
 		{A76D1521-AB66-4B00-8C7B-069052EFB212}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A76D1521-AB66-4B00-8C7B-069052EFB212}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A76D1521-AB66-4B00-8C7B-069052EFB212}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E065696C-9DF6-4E68-933B-BFA0165781DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E065696C-9DF6-4E68-933B-BFA0165781DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E065696C-9DF6-4E68-933B-BFA0165781DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E065696C-9DF6-4E68-933B-BFA0165781DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,6 +98,7 @@ Global
 		{2B7CDEFC-3D92-4B72-8898-2494D7B087AD} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
 		{6A39E146-8CDF-4B04-88ED-395C56A32722} = {AAD2D900-C305-4449-A9FC-6C7696FFEDFA}
 		{A76D1521-AB66-4B00-8C7B-069052EFB212} = {1F399F98-7439-4F05-847B-CC1267B4B7F2}
+		{E065696C-9DF6-4E68-933B-BFA0165781DD} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7F3E353A-C125-4020-8481-11DC6496358C}
