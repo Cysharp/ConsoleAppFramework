@@ -17,5 +17,8 @@ namespace ConsoleAppFramework
         public JsonSerializerOptions? JsonSerializerOptions { get; set; }
 
         public ConsoleAppFilter[]? GlobalFilters { get; set; }
+
+        // for https://github.com/Cysharp/ConsoleAppFramework/issues/60
+        // public INamingConverter NamingConverter { get; set; } = new HypenLowerNamingConverter();
     }
 }

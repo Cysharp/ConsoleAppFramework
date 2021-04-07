@@ -364,9 +364,11 @@ namespace ConsoleAppFramework
                         isFound = true;
                     }
                 }
+
                 if (!isFound && split.Length == 2)
                 {
-                    if (baseType.Name.Equals(split[0], StringComparison.OrdinalIgnoreCase))
+                    var baseNames = baseType.GetCustomAttribute<CommandAttribute>()?.CommandNames ?? new[] { baseType.Name };
+                    if (baseNames.Any(x => x.Equals(split[0], StringComparison.OrdinalIgnoreCase)))
                     {
                         if (foundType != null)
                         {
@@ -395,7 +397,6 @@ namespace ConsoleAppFramework
                 return (foundType, foundMethod);
             }
             return (null, null);
-
         }
     }
 }

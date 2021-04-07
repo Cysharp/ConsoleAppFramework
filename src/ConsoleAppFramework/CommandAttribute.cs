@@ -2,6 +2,7 @@
 
 namespace ConsoleAppFramework
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
     public class CommandAttribute : Attribute
     {
         public string[] CommandNames { get; }

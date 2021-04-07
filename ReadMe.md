@@ -334,7 +334,7 @@ public class App : ConsoleAppBase
 ```
 
 ```
-RunConsoleAPpFramework();
+RunConsoleAppFramework();
 
 public class App2 : ConsoleAppBase
 {
@@ -345,10 +345,11 @@ public class App2 : ConsoleAppBase
     }
 }
 
-
+// command attribute also can use to class.
+[Command("mycmd")
 public class App3 : ConsoleAppBase
 {
-     // routing command: `app3 e2`
+     // routing command: `mycmd e2`
     [Command("e2", "exec app 2.")]
     public void ExecExec()
     {
@@ -642,6 +643,28 @@ public class MyApp : ConsoleAppBase, IDisposable
     void IDisposable.Dispose() // NOTE: can not implement `public void Dispose()`
     {
         Console.WriteLine("DISPOSED");
+    }
+}
+```
+
+also supports `IAsyncDisposable.Dispose`, however if implements both `IDisposable` and `IAsyncDisposable`, called only `IAsyncDisposable`(this is the limitation of default `ServiceProviderEngineScope`).
+
+```csharp
+public class MyApp : ConsoleAppBase, IDisposable, IAsyncDisposable
+{
+    public void Hello()
+    {
+        Console.WriteLine("Hello");
+    }
+
+    void IDisposable.Dispose()
+    {
+        Console.WriteLine("Not called.");
+    }
+        
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        Console.WriteLine("called.");
     }
 }
 ```

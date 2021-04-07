@@ -11,10 +11,11 @@ namespace MultiContainedApp
     {
         static async Task Main(string[] args)
         {
-            //args = new string[] { "Bar.Hello3", "2" };
+            //d
             //args = new string[] { "bar", "hello3", "-help" };
             //args = new string[] { "foo", "echo", "help"};
             //args = new string[] { "bar.hello2", "help" };
+            args = new string[] { "foo-bar", "ec", "-msg", "tako" };
 
 
             await Host.CreateDefaultBuilder()
@@ -39,12 +40,13 @@ namespace MultiContainedApp
 
     [ConsoleAppFilter(typeof(MyFilter2), Order = 9999)]
     [ConsoleAppFilter(typeof(MyFilter2), Order = 9999)]
-    public class Foo : ConsoleAppBase
+    // [Command("AAA")]
+    public class FooBar : ConsoleAppBase
     {
         [Command("ec", "My echo")]
         public void Echo(string msg)
         {
-            Console.WriteLine(msg);
+            Console.WriteLine(msg + "OK??");
         }
 
         public void Sum(int x, int y)
@@ -55,9 +57,16 @@ namespace MultiContainedApp
 
     public class Bar : ConsoleAppBase
     {
-        public void Hello2()
+        [Command("ec", "My echo")]
+        public void Hello2(string msg)
         {
-            Console.WriteLine("H E L L O");
+            Console.WriteLine("H E L L O 2");
+        }
+
+        
+        public void Sum(int x, int y)
+        {
+            Console.WriteLine((x + y).ToString());
         }
     }
 

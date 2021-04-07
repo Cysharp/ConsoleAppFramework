@@ -217,12 +217,12 @@ namespace SingleContainedApp
     //    }
     //}
 
-    public class Program : ConsoleAppBase, IDisposable
+    public class Program : ConsoleAppBase, IDisposable, IAsyncDisposable
     {
         static async Task Main(string[] args)
         {
             //args = new[] { "-m", "a ", "-b", "False" };
-           args = new[] { "hello" };
+            args = new[] { "hello" };
 
             await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args, new ConsoleAppOptions
             {
@@ -240,10 +240,15 @@ namespace SingleContainedApp
             if (hello == null) hello = DateTime.Now;
             Console.WriteLine(hello);
         }
-
+        
         void IDisposable.Dispose()
         {
-            throw new NotImplementedException();
+            Console.WriteLine("standard dispose");
+        }
+        
+        async ValueTask IAsyncDisposable.DisposeAsync()
+        {
+            Console.WriteLine("async dispose");
         }
     }
 }
