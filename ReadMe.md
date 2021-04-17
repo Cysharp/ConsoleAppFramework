@@ -717,7 +717,7 @@ public class ConsoleAppOptions
 }
 ```
 
-In defauolt, The ConsoleAppFramework does not distinguish between the number of `-`.  For example, this method
+By default, The ConsoleAppFramework does not distinguish between the number of `-`.  For example, this method
 
 ```
 public void Hello([Option("m", "Message to display.")]string message)
