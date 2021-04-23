@@ -259,6 +259,9 @@ You can call like here.
 
 ```
 > SampleApp.exe -array [10,20,30] -person {"Age":10,"Name":"foo"}
+
+# including space, use escaping
+> SampleApp.exe -array [10,20,30] -person "{\"Age\":10,\"Name\":\"foo bar\"}"
 ```
 
 > be careful with JSON string double quotation.
