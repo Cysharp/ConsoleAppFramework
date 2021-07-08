@@ -14,8 +14,6 @@ on:
 env:
   GIT_TAG: ${{ github.event.inputs.tag }}
   DRY_RUN: ${{ github.event.inputs.dry_run }}
-  DOTNET_SDK_VERISON_3: 3.1.x
-  DOTNET_SDK_VERISON_5: 5.0.x
 
 jobs:
   build-dotnet:
@@ -26,9 +24,6 @@ jobs:
       NUGET_XMLDOC_MODE: skip
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ env.DOTNET_SDK_VERISON_5 }}
       # pack nuget
       - run: dotnet build -c Release -p:Version=${{ env.GIT_TAG }}
       - run: dotnet test -c Release --no-build
@@ -48,10 +43,6 @@ jobs:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       NUGET_XMLDOC_MODE: skip
     steps:
-      # setup dotnet for nuget push
-      - uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ env.DOTNET_SDK_VERISON_5 }}
       # tag
       - uses: actions/checkout@v2
       - name: tag
