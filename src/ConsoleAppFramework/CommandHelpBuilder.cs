@@ -361,7 +361,7 @@ namespace ConsoleAppFramework
             }
 
             return new CommandHelpDefinition(
-                $"{method.DeclaringType!.Name.ToLower()}",
+                method.DeclaringType.GetCustomAttribute<CommandAttribute>()?.CommandNames?.FirstOrDefault() ?? method.DeclaringType!.Name.ToLower(),
                 command?.CommandNames ?? new[] { method.Name.ToLower() },
                 parameterDefinitions.OrderBy(x => x.Index ?? int.MaxValue).ToArray(),
                 command?.Description ?? String.Empty
