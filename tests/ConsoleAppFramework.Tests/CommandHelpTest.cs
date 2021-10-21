@@ -19,9 +19,9 @@ namespace ConsoleAppFramework.Tests
             var builder = CreateCommandHelpBuilder();
             var expected = @$"
 Commands:
-  commandhelptestlistmessagebatch hello                            
-  commandhelptestlistmessagebatch YetAnotherHello                  
-  commandhelptestlistmessagebatch HelloWithAliasWithDescription    Description of command
+  list-message-batch hello                            
+  list-message-batch YetAnotherHello                  
+  list-message-batch HelloWithAliasWithDescription    Description of command
 ".TrimStart();
 
             var msg = builder.BuildMethodListMessage(new[] { typeof(CommandHelpTestListMessageBatch) }, out _);
@@ -36,9 +36,9 @@ Commands:
             var expected = @"Usage: Nantoka <Command>
 
 Commands:
-  commandhelptestlistmessagebatch hello                            
-  commandhelptestlistmessagebatch YetAnotherHello                  
-  commandhelptestlistmessagebatch HelloWithAliasWithDescription    Description of command
+  list-message-batch hello                            
+  list-message-batch YetAnotherHello                  
+  list-message-batch HelloWithAliasWithDescription    Description of command
 ";
 
             builder.BuildHelpMessage(new[] { typeof(CommandHelpTestListMessageBatch) }).Should().Be(expected);
@@ -342,6 +342,7 @@ Options:
         //}
     }
 
+    [Command("list-message-batch")]
     public class CommandHelpTestListMessageBatch : ConsoleAppBase
     {
         public void Hello()
