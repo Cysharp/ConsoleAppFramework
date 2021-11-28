@@ -580,6 +580,8 @@ Here's single contained batch with Config loading sample.
 ```
 
 ```csharp
+using Microsoft.Extensions.DependencyInjection;
+
 class Program
 {
     static async Task Main(string[] args)
@@ -589,6 +591,7 @@ class Program
             {
                 // mapping config json to IOption<MyConfig>
                 // requires "Microsoft.Extensions.Options.ConfigurationExtensions" package
+                // if you want to map subscetion in json, use Configure<T>(hostContext.Configuration.GetSection("foo"))
                 services.Configure<MyConfig>(hostContext.Configuration);
             })
             .RunConsoleAppFrameworkAsync<ConfigAppSample>(args);
@@ -597,18 +600,18 @@ class Program
 
 public class ConfigAppSample : ConsoleAppBase
 {
-    IOptions<MyConfig> config;
+    MyConfig config;
 
     // get configuration from DI.
     public ConfigAppSample(IOptions<MyConfig> config)
     {
-        this.config = config;
+        this.config = config.Value;
     }
 
     public void ShowOption()
     {
-        Console.WriteLine(config.Value.Bar);
-        Console.WriteLine(config.Value.Foo);
+        Console.WriteLine(config.Bar);
+        Console.WriteLine(config.Foo);
     }
 }
 ```
