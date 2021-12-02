@@ -350,7 +350,7 @@ public class App2 : ConsoleAppBase
 }
 
 // command attribute also can use to class.
-[Command("mycmd")
+[Command("mycmd")]
 public class App3 : ConsoleAppBase
 {
      // routing command: `mycmd e2`
