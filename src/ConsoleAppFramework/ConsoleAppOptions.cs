@@ -1,4 +1,8 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Text.Json;
 
 namespace ConsoleAppFramework
 {
@@ -18,7 +22,9 @@ namespace ConsoleAppFramework
 
         public ConsoleAppFilter[]? GlobalFilters { get; set; }
 
-        // for https://github.com/Cysharp/ConsoleAppFramework/issues/60
-        // public INamingConverter NamingConverter { get; set; } = new HypenLowerNamingConverter();
+        // internal store values for execute engine.
+
+        internal string[] CommandLineArguments { get; set; } = default!;
+        internal CommandDescriptorMatcher CommandDescriptors { get; } = new CommandDescriptorMatcher();
     }
 }

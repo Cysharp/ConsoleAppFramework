@@ -5,6 +5,7 @@ namespace ConsoleAppFramework
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
     public class CommandAttribute : Attribute
     {
+        // TODO: only allow string CommandName
         public string[] CommandNames { get; }
         public string? Description { get; }
 

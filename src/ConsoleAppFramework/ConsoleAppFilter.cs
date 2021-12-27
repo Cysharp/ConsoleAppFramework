@@ -49,7 +49,7 @@ namespace ConsoleAppFramework
     internal class WithFilterInvoker
     {
         readonly MethodInfo methodInfo;
-        readonly object instance;
+        readonly object? instance;
         readonly object?[] invokeArgs;
         readonly IServiceProvider serviceProvider;
         readonly ConsoleAppFilter[] globalFilters;
@@ -57,7 +57,7 @@ namespace ConsoleAppFramework
 
         int? invokeResult;
 
-        public WithFilterInvoker(MethodInfo methodInfo, object instance, object?[] invokeArgs, IServiceProvider serviceProvider, ConsoleAppFilter[] globalFilters, ConsoleAppContext context)
+        public WithFilterInvoker(MethodInfo methodInfo, object? instance, object?[] invokeArgs, IServiceProvider serviceProvider, ConsoleAppFilter[] globalFilters, ConsoleAppContext context)
         {
             this.methodInfo = methodInfo;
             this.instance = instance;
@@ -75,7 +75,7 @@ namespace ConsoleAppFramework
             var methodFilters = methodInfo.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
             foreach (var item in classFilters.Concat(methodFilters))
             {
-                var filter = serviceProvider.GetRequiredService(item.Type) as ConsoleAppFilter;
+                var filter = ActivatorUtilities.CreateInstance<ConsoleAppFilter>(serviceProvider, item.Type);
                 if (filter != null)
                 {
                     filter.Order = item.Order;

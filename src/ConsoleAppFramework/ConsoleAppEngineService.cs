@@ -1,41 +1,31 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ConsoleAppFramework
 {
+    // This servcie is called from ConsoleApp.Run
     public sealed class ConsoleAppEngineService : IHostedService
     {
-        string[] args;
-        Type type;
-        MethodInfo? methodInfo;
         IHostApplicationLifetime appLifetime;
-        ILogger<ConsoleAppEngine> logger;
-        IServiceScope scope;
+        ILogger<ConsoleApp> logger;
+        IServiceProvider provider;
+        IServiceScope? scope;
         Task? runningTask;
         CancellationTokenSource cancellationTokenSource;
 
-        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, Type type, string[] args, ILogger<ConsoleAppEngine> logger, IServiceProvider provider)
-            : this(appLifetime, type, null, args, logger, provider)
+        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, ILogger<ConsoleApp> logger, IServiceProvider provider)
         {
-        }
-
-        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, Type type, MethodInfo? methodInfo, string[] args, ILogger<ConsoleAppEngine> logger, IServiceProvider provider)
-        {
-            this.args = args;
-            this.type = type;
-            this.methodInfo = methodInfo;
             this.appLifetime = appLifetime;
-            this.scope = provider.CreateScope();
+            this.provider = provider;
             this.logger = logger;
             this.cancellationTokenSource = new CancellationTokenSource();
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken _) // TODO: use _(this is used ShutdownTimeout ??? )
         {
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
@@ -43,16 +33,9 @@ namespace ConsoleAppFramework
                 var self = (ConsoleAppEngineService)state!;
                 try
                 {
-                    var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ConsoleAppOptions>(), self.cancellationTokenSource.Token);
-                    if (self.methodInfo != null)
-                    {
-                        self.runningTask = engine.RunAsync(self.type, self.methodInfo, self.args);
-                    }
-                    else
-                    {
-                        self.runningTask = engine.RunAsync(self.type, self.args);
-                    }
-
+                    self.scope = self.provider.CreateScope();
+                    var engine = ActivatorUtilities.CreateInstance<ConsoleAppEngine>(self.scope.ServiceProvider, self.cancellationTokenSource.Token);
+                    self.runningTask = engine.RunAsync();
                     await self.runningTask;
                     self.runningTask = null;
                 }
@@ -69,7 +52,7 @@ namespace ConsoleAppFramework
             return Task.CompletedTask;
         }
 
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken _) // TODO:use _???
         {
             try
             {
@@ -79,6 +62,7 @@ namespace ConsoleAppFramework
                 if (task != null)
                 {
                     logger.LogTrace("Detect Cancel signal, wait for running console app task canceled.");
+                    // TODO:require timeout.
                     await task;
                     logger.LogTrace("ConsoleApp cancel completed.");
                 }
@@ -91,7 +75,7 @@ namespace ConsoleAppFramework
                 }
                 else
                 {
-                    scope.Dispose();
+                    scope?.Dispose();
                 }
             }
         }

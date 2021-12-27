@@ -29,12 +29,14 @@ namespace ConsoleAppFramework
             this.isStrict = this.options.StrictOption;
         }
 
+        // TODO:remove this.
         public async Task RunAsync(Type type, MethodInfo method, string?[] args)
         {
             logger.LogTrace("ConsoleAppEngine.Run Start");
-            await RunCore(type, method, args, 1); // 0 is type selector
+            await RunCore(type, method, null, args, 1); // 0 is type selector
         }
 
+        // TODO:remove this.
         public async Task RunAsync(Type type, string[] args)
         {
             logger.LogTrace("ConsoleAppEngine.Run Start");
@@ -111,22 +113,65 @@ namespace ConsoleAppFramework
                 return;
             }
 
-            RUN:
-            await RunCore(type, method, args, argsOffset);
+        RUN:
+            await RunCore(type, method, null, args, argsOffset);
         }
 
-        async Task RunCore(Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
-        {
-            object instance;
-            object?[] invokeArgs;
 
+        // TODO:which method to invoke.
+        public async Task RunAsync()
+        {
+            var args = options.CommandLineArguments;
+
+            // Show help or use default.
+            if (!options.CommandDescriptors.TryGetDescriptor(args, out var commandDescriptor
+                    , out var skipCount))
+            {
+                // TODO:show help.
+            }
+            else
+            {
+                goto FIND;
+            }
+
+            // TODO: not found
+            Console.WriteLine("NOT FOUND");
+            return;
+
+        FIND:
+            // TODO:DeclaringType is ok?
+            // offset???
+            await RunCore(commandDescriptor!.MethodInfo!.DeclaringType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, skipCount);
+        }
+
+
+
+
+
+
+
+
+
+
+        async Task RunCore(Type type, MethodInfo methodInfo, object? instance, string?[] args, int argsOffset)
+        {
+            object?[] invokeArgs;
+            ParameterInfo[] originalParameters = methodInfo.GetParameters();
+            var isService = provider.GetService<IServiceProviderIsService>();
             try
             {
-                if (!TryGetInvokeArguments(methodInfo.GetParameters(), args, argsOffset, out invokeArgs, out var errorMessage))
+                var parameters = originalParameters;
+                if (isService != null)
+                {
+                    parameters = parameters.Where(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType))).ToArray();
+                }
+
+                if (!TryGetInvokeArguments(parameters, args, argsOffset, out invokeArgs, out var errorMessage))
                 {
                     await SetFailAsync(errorMessage + " args: " + string.Join(" ", args));
                     return;
                 }
+
             }
             catch (Exception ex)
             {
@@ -135,10 +180,39 @@ namespace ConsoleAppFramework
             }
 
             var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger, methodInfo, provider);
+
+            // re:create invokeArgs, merge with DI parameter.
+            if (invokeArgs.Length != originalParameters.Length)
+            {
+                var newInvokeArgs = new object?[originalParameters.Length];
+                var invokeArgsIndex = 0;
+                for (int i = 0; i < originalParameters.Length; i++)
+                {
+                    var p = originalParameters[i].ParameterType;
+                    if (p == typeof(ConsoleAppContext))
+                    {
+                        newInvokeArgs[i] = ctx;
+                    }
+                    else if (isService!.IsService(p))
+                    {
+                        newInvokeArgs[i] = provider.GetService(p);
+                    }
+                    else
+                    {
+                        newInvokeArgs[i] = invokeArgs[invokeArgsIndex++];
+                    }
+                }
+                invokeArgs = newInvokeArgs;
+            }
+
             try
             {
-                instance = provider.GetRequiredService(type);
-                typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context))!.SetValue(instance, ctx);
+                if (instance == null && !type.IsAbstract)
+                {
+                    instance = ActivatorUtilities.CreateInstance(provider, type);
+                    typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context))!.SetValue(instance, ctx);
+                }
+
             }
             catch (Exception ex)
             {
@@ -193,6 +267,7 @@ namespace ConsoleAppFramework
             return default;
         }
 
+        // TODO:serviceprovider provider type check
         bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object?[] invokeArgs, out string? errorMessage)
         {
             var jsonOption = options.JsonSerializerOptions;
