@@ -38,6 +38,14 @@ namespace ConsoleAppFramework
 
             if (!options.CommandDescriptors.TryGetDescriptor(args, out var commandDescriptor, out var offset))
             {
+                if (args.Length == 0)
+                {
+                    if (options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor))
+                    {
+                        goto RUN;
+                    }
+                }
+
                 // TryGet SubCommands Help
                 if (args.Length >= 2 && args[1].Trim('-') == "help")
                 {
@@ -61,6 +69,17 @@ namespace ConsoleAppFramework
                 var msg = new CommandHelpBuilder(() => commandDescriptor.CommandName, options.StrictOption, isService).BuildHelpMessage(commandDescriptor);
                 Console.WriteLine(msg);
                 return;
+            }
+
+        RUN:
+            // check can invoke help
+            if (commandDescriptor.CommandType == CommandType.DefaultCommand && args.Length == 0)
+            {
+                var p = commandDescriptor.MethodInfo.GetParameters();
+                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType))))
+                {
+                    options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor);
+                }
             }
 
             await RunCore(commandDescriptor!.MethodInfo!.DeclaringType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, offset);

@@ -243,7 +243,7 @@ namespace ConsoleAppFramework
             foreach (var item in descriptor.MethodInfo.GetParameters())
             {
                 // ignore DI params.
-                if (item.ParameterType == typeof(ConsoleAppContext) || isService.IsService(item.ParameterType)) continue;
+                if (item.ParameterType == typeof(ConsoleAppContext) || (isService != null && isService.IsService(item.ParameterType))) continue;
 
                 // -i, -input | [default=foo]...
 

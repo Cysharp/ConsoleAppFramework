@@ -59,7 +59,7 @@ namespace ConsoleAppFramework
 
         public static void Run(string[] args, Delegate defaultCommand)
         {
-            Create(args).Run(defaultCommand);
+            RunAsync(args, defaultCommand).GetAwaiter().GetResult();
         }
 
         public static Task RunAsync(string[] args, Delegate defaultCommand)
@@ -120,8 +120,43 @@ namespace ConsoleAppFramework
             return this;
         }
 
-        // TODO:AddSubCommand
-        // TODO:AddSubCommands<T>()
+        public ConsoleApp AddSubCommand(string rootCommandName, string commandName, Delegate command)
+        {
+            var attr = new CommandAttribute(commandName);
+            commands.AddSubCommand(rootCommandName, new CommandDescriptor(CommandType.SubCommand, command.Method, command.Target, attr, rootCommandName));
+            return this;
+        }
+
+        public ConsoleApp AddSubCommand(string rootCommandName, string commandName, string description, Delegate command)
+        {
+            var attr = new CommandAttribute(commandName, description);
+            commands.AddSubCommand(rootCommandName, new CommandDescriptor(CommandType.SubCommand, command.Method, command.Target, attr, rootCommandName));
+            return this;
+        }
+
+        public ConsoleApp AddSubCommands<T>()
+        {
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            var rootName = typeof(T).GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? typeof(T).Name;
+
+            foreach (var method in methods)
+            {
+                if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
+
+                if (method.GetCustomAttribute<DefaultCommandAttribute>() != null)
+                {
+                    var command = new CommandDescriptor(CommandType.DefaultCommand, method);
+                    commands.AddDefaultCommand(command);
+                }
+                else
+                {
+                    var command = new CommandDescriptor(CommandType.SubCommand, method, rootCommand: rootName);
+                    commands.AddSubCommand(rootName, command);
+                }
+            }
+            return this;
+        }
 
         public ConsoleApp AddRoutedCommands()
         {
@@ -133,12 +168,11 @@ namespace ConsoleAppFramework
             foreach (var type in GetConsoleAppTypes(searchAssemblies))
             {
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                var rootName = type.GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? type.Name;
                 foreach (var method in methods)
                 {
                     if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
 
-                    // TODO:type-name get from CommandAttribute
-                    var rootName = type.Name;
                     commands.AddSubCommand(rootName, new CommandDescriptor(CommandType.SubCommand, method, rootCommand: rootName));
                 }
             }
@@ -148,11 +182,6 @@ namespace ConsoleAppFramework
         // Run
 
         public void Run()
-        {
-            RunAsync().GetAwaiter().GetResult();
-        }
-
-        public void Run(Delegate defaultCommand)
         {
             RunAsync().GetAwaiter().GetResult();
         }

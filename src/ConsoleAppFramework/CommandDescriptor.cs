@@ -26,7 +26,7 @@ namespace ConsoleAppFramework
             {
                 if (CommandAttribute != null) return CommandAttribute.CommandNames[0];
                 // TODO: foo-bar name???
-                return MethodInfo.Name;
+                return MethodInfo.Name.ToLower();
             }
         }
 

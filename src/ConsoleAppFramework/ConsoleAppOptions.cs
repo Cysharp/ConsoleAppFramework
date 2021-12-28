@@ -9,9 +9,9 @@ namespace ConsoleAppFramework
     public class ConsoleAppOptions
     {
         /// <summary>
-        /// Argument parser uses strict(-short, --long) option. Default is false.
+        /// Argument parser uses strict(-short, --long) option. Default is true.
         /// </summary>
-        public bool StrictOption { get; set; } = false;
+        public bool StrictOption { get; set; } = true; // TODO: legacy compatibility => false;
 
         /// <summary>
         /// Show default command(help/version) to help. Default is true.
