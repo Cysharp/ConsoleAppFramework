@@ -16,17 +16,23 @@ namespace ConsoleAppFramework
         {
         }
 
+        internal ConsoleAppBuilder(string[] args, ConsoleAppOptions consoleAppOptions)
+        {
+            var hostBuilder = new HostBuilder();
+            hostBuilder.ConfigureDefaults(args);
+            this.builder = AddConsoleAppFramework(hostBuilder, args, consoleAppOptions, null);
+        }
+
         internal ConsoleAppBuilder(string[] args, Action<ConsoleAppOptions> configureOptions)
             : this(args, (_, options) => configureOptions(options))
-        {
-
+         {
         }
 
         internal ConsoleAppBuilder(string[] args, Action<HostBuilderContext, ConsoleAppOptions> configureOptions)
         {
             var hostBuilder = new HostBuilder();
             hostBuilder.ConfigureDefaults(args);
-            this.builder = AddConsoleAppFramework(hostBuilder, args, configureOptions);
+            this.builder = AddConsoleAppFramework(hostBuilder, args, new ConsoleAppOptions(), configureOptions);
         }
 
         public ConsoleApp Build()
@@ -35,14 +41,13 @@ namespace ConsoleAppFramework
             return new ConsoleApp(host);
         }
 
-        IHostBuilder AddConsoleAppFramework(IHostBuilder builder, string[] args, Action<HostBuilderContext, ConsoleAppOptions>? configureOptions)
+        IHostBuilder AddConsoleAppFramework(IHostBuilder builder, string[] args, ConsoleAppOptions options, Action<HostBuilderContext, ConsoleAppOptions>? configureOptions)
         {
             return builder
                 .ConfigureServices((ctx, services) =>
                 {
                     services.AddOptions<ConsoleLifetimeOptions>().Configure(x => x.SuppressStatusMessages = true);
                     services.AddHostedService<ConsoleAppEngineService>();
-                    var options = new ConsoleAppOptions();
                     configureOptions?.Invoke(ctx, options);
                     options.CommandLineArguments = args;
                     services.AddSingleton(options);

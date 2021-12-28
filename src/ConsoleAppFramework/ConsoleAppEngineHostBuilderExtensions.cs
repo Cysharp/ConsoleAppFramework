@@ -76,7 +76,8 @@ namespace ConsoleAppFramework
                     var (t, mi) = GetTypeFromAssemblies(args[methodIndex], null, searchAssemblies);
                     if (mi != null)
                     {
-                        Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(mi, showCommandName: true, true));
+                        // TODO:
+                        // Console.Write(new CommandHelpBuilder(null, options.StrictOption).BuildHelpMessage(mi, showCommandName: true, true));
                     }
                     else
                     {
@@ -187,7 +188,8 @@ namespace ConsoleAppFramework
                 {
                     if (!hasHelp)
                     {
-                        Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(methods, defaultMethod));
+                        // TODO:
+                        //Console.Write(new CommandHelpBuilder(null, options.StrictOption).BuildHelpMessage(methods, defaultMethod));
                         ConfigureEmptyService();
                         return hostBuilder;
                     }
@@ -201,7 +203,8 @@ namespace ConsoleAppFramework
 
             if (!hasHelp && args.Length == 1 && OptionEquals(args[0], HelpCommand))
             {
-                Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(methods, defaultMethod));
+                //TODO:
+                //Console.Write(new CommandHelpBuilder(null, options.StrictOption).BuildHelpMessage(methods, defaultMethod));
                 ConfigureEmptyService();
                 return hostBuilder;
             }
@@ -233,7 +236,8 @@ namespace ConsoleAppFramework
                     var (_, mi) = GetTypeFromAssemblies(args[methodIndex], typeof(T), searchAssemblies);
                     if (mi != null)
                     {
-                        Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(mi, showCommandName: true, fromMultiCommand: false));
+                        //TODO:
+                        //Console.Write(new CommandHelpBuilder(null, options.StrictOption).BuildHelpMessage(mi, showCommandName: true, fromMultiCommand: false));
                         ConfigureEmptyService();
                         return hostBuilder;
                     }
@@ -301,7 +305,8 @@ namespace ConsoleAppFramework
 
         static void ShowMethodList(Assembly[] searchAssemblies, ConsoleAppOptions options)
         {
-            Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(GetConsoleAppTypes(searchAssemblies)));
+            // TODO:remove this method completely.
+            // Console.Write(new CommandHelpBuilder(null, options.StrictOption).BuildHelpMessage(GetConsoleAppTypes(searchAssemblies)));
         }
 
         static List<Type> GetConsoleAppTypes(Assembly[] searchAssemblies)
@@ -319,7 +324,7 @@ namespace ConsoleAppFramework
                 }
                 catch (ReflectionTypeLoadException ex)
                 {
-                    types = ex.Types;
+                    types = ex.Types ?? Array.Empty<Type>();
                 }
 
                 foreach (var item in types.Where(x => x != null))

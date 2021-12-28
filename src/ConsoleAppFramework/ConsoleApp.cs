@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,13 +13,15 @@ namespace ConsoleAppFramework
     public class ConsoleApp
     {
         // Keep this reference as ConsoleApOptions.CommandDescriptors.
-        readonly CommandDescriptorMatcher commands;
+        readonly CommandDescriptorCollection commands;
 
         public IHost Host { get; }
+        public ILogger<ConsoleApp> Logger { get; }
 
         internal ConsoleApp(IHost host)
         {
             this.Host = host;
+            this.Logger = host.Services.GetRequiredService<ILogger<ConsoleApp>>();
             this.commands = host.Services.GetRequiredService<ConsoleAppOptions>().CommandDescriptors;
         }
 
@@ -61,7 +64,7 @@ namespace ConsoleAppFramework
 
         public static Task RunAsync(string[] args, Delegate defaultCommand)
         {
-            return Create(args).RunAsync(defaultCommand);
+            return Create(args).AddDefaultCommand(defaultCommand).RunAsync();
         }
 
         public static void Run<T>(string[] args)
@@ -74,17 +77,24 @@ namespace ConsoleAppFramework
 
         // Add Command
 
+        public ConsoleApp AddDefaultCommand(Delegate command)
+        {
+            var attr = command.Method.GetCustomAttribute<CommandAttribute>();
+            commands.AddDefaultCommand(new CommandDescriptor(CommandType.DefaultCommand, command.Method, command.Target, attr));
+            return this;
+        }
+
         public ConsoleApp AddCommand(string commandName, Delegate command)
         {
             var attr = new CommandAttribute(commandName);
-            commands.AddCommand(new CommandDescriptor(command.Method, command.Target, attr));
+            commands.AddCommand(new CommandDescriptor(CommandType.Command, command.Method, command.Target, attr));
             return this;
         }
 
         public ConsoleApp AddCommand(string commandName, string description, Delegate command)
         {
             var attr = new CommandAttribute(commandName, description);
-            commands.AddCommand(new CommandDescriptor(command.Method, command.Target, attr));
+            commands.AddCommand(new CommandDescriptor(CommandType.Command, command.Method, command.Target, attr));
             return this;
         }
 
@@ -94,8 +104,18 @@ namespace ConsoleAppFramework
             var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             foreach (var method in methods)
             {
-                var attr = method.GetCustomAttribute<CommandAttribute>();
-                commands.AddCommand(new CommandDescriptor(method, null, attr));
+                if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
+
+                if (method.GetCustomAttribute<DefaultCommandAttribute>() != null)
+                {
+                    var command = new CommandDescriptor(CommandType.DefaultCommand, method);
+                    commands.AddDefaultCommand(command);
+                }
+                else
+                {
+                    var command = new CommandDescriptor(CommandType.Command, method);
+                    commands.AddCommand(command);
+                }
             }
             return this;
         }
@@ -115,9 +135,11 @@ namespace ConsoleAppFramework
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 foreach (var method in methods)
                 {
-                    var attr = method.GetCustomAttribute<CommandAttribute>();
+                    if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
+
                     // TODO:type-name get from CommandAttribute
-                    commands.AddSubCommand(type.Name, new CommandDescriptor(method, null, attr));
+                    var rootName = type.Name;
+                    commands.AddSubCommand(rootName, new CommandDescriptor(CommandType.SubCommand, method, rootCommand: rootName));
                 }
             }
             return this;
@@ -138,15 +160,8 @@ namespace ConsoleAppFramework
         // Don't use return RunAsync to keep stacktrace.
         public async Task RunAsync(CancellationToken cancellationToken = default)
         {
-            // Start ConsoleAppEngineService.
-            await Host.RunAsync(cancellationToken);
-        }
-
-        public async Task RunAsync(Delegate defaultCommand, CancellationToken cancellationToken = default)
-        {
-            var attr = defaultCommand.Method.GetCustomAttribute<CommandAttribute>();
-            var descriptor = new CommandDescriptor(defaultCommand.Method, defaultCommand.Target, attr);
-            commands.SetDefaultCommand(descriptor);
+            commands.TryAddDefaultHelpMethod();
+            commands.TryAddDefaultVersionMethod();
 
             await Host.RunAsync(cancellationToken);
         }
@@ -157,7 +172,7 @@ namespace ConsoleAppFramework
 
             foreach (var asm in searchAssemblies)
             {
-                if (asm.FullName!.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions")) continue;
+                if (asm.FullName!.StartsWith("System") || asm.FullName.StartsWith("Microsoft.Extensions") || asm.GetName().Name == "ConsoleAppFramework") continue;
 
                 Type?[] types;
                 try

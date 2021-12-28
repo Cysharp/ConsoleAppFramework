@@ -5,154 +5,68 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    public class ConsoleAppEngine
+    internal class ConsoleAppEngine
     {
-        readonly ILogger<ConsoleAppEngine> logger;
+        readonly ILogger<ConsoleApp> logger;
         readonly IServiceProvider provider;
         readonly CancellationToken cancellationToken;
         readonly ConsoleAppOptions options;
+        readonly IServiceProviderIsService isService;
         readonly bool isStrict;
 
-        public ConsoleAppEngine(ILogger<ConsoleAppEngine> logger, IServiceProvider provider, ConsoleAppOptions options, CancellationToken cancellationToken)
+        public ConsoleAppEngine(ILogger<ConsoleApp> logger, IServiceProvider provider, ConsoleAppOptions options, IServiceProviderIsService isService, CancellationToken cancellationToken)
         {
             this.logger = logger;
             this.provider = provider;
             this.cancellationToken = cancellationToken;
             this.options = options;
-            this.isStrict = this.options.StrictOption;
+            this.isService = isService;
+            this.isStrict = options.StrictOption;
         }
 
-        // TODO:remove this.
-        public async Task RunAsync(Type type, MethodInfo method, string?[] args)
-        {
-            logger.LogTrace("ConsoleAppEngine.Run Start");
-            await RunCore(type, method, null, args, 1); // 0 is type selector
-        }
-
-        // TODO:remove this.
-        public async Task RunAsync(Type type, string[] args)
+        public async Task RunAsync()
         {
             logger.LogTrace("ConsoleAppEngine.Run Start");
 
-            int argsOffset = 0;
-            MethodInfo? method = null;
-            try
+            var args = options.CommandLineArguments;
+
+            if (!options.CommandDescriptors.TryGetDescriptor(args, out var commandDescriptor, out var offset))
             {
-                if (type == typeof(void))
+                // TryGet SubCommands Help
+                if (args.Length >= 2 && args[1].Trim('-') == "help")
                 {
-                    await SetFailAsync("Type or method does not found on this Program. args: " + string.Join(" ", args));
-                    return;
-                }
-
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                if (methods.Length == 0)
-                {
-                    await SetFailAsync("Method can not select. T of Run/UseConsoleAppEngine<T> have to be contain single method or command. Type:" + type.FullName);
-                    return;
-                }
-
-                MethodInfo? helpMethod = null;
-                foreach (var item in methods)
-                {
-                    var command = item.GetCustomAttribute<CommandAttribute>();
-                    if (command != null)
+                    var subCommands = options.CommandDescriptors.GetSubCommands(args[0]);
+                    if (subCommands.Length != 0)
                     {
-                        if (args.Length > 0 && command.EqualsAny(args[0]))
-                        {
-                            // command's priority is first
-                            method = item;
-                            argsOffset = 1;
-                            goto RUN;
-                        }
-                        else
-                        {
-                            if (command.EqualsAny("help"))
-                            {
-                                helpMethod = item;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (method != null)
-                        {
-                            await SetFailAsync("Found more than one public methods(without command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
-                            return;
-                        }
-                        method = item; // found single public(non-command) method.
+                        var msg = new CommandHelpBuilder(() => args[0], options.StrictOption, isService).BuildHelpMessage(null, subCommands, shortCommandName: true);
+                        Console.WriteLine(msg);
+                        return;
                     }
                 }
 
-                if (method != null)
-                {
-                    goto RUN;
-                }
-
-                // completely not found, invalid command name show help.
-                if (helpMethod != null)
-                {
-                    method = helpMethod;
-                    goto RUN;
-                }
-                else
-                {
-                    Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(methods, null));
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                await SetFailAsync("Fail to get method. Type:" + type.FullName, ex);
+                await SetFailAsync("Command not found. args: " + string.Join(" ", args));
                 return;
             }
 
-        RUN:
-            await RunCore(type, method, null, args, argsOffset);
-        }
-
-
-        // TODO:which method to invoke.
-        public async Task RunAsync()
-        {
-            var args = options.CommandLineArguments;
-
-            // Show help or use default.
-            if (!options.CommandDescriptors.TryGetDescriptor(args, out var commandDescriptor
-                    , out var skipCount))
+            // foo --help
+            // foo bar --help
+            if (args.Skip(offset).FirstOrDefault()?.Trim('-') == "help")
             {
-                // TODO:show help.
-            }
-            else
-            {
-                goto FIND;
+                var msg = new CommandHelpBuilder(() => commandDescriptor.CommandName, options.StrictOption, isService).BuildHelpMessage(commandDescriptor);
+                Console.WriteLine(msg);
+                return;
             }
 
-            // TODO: not found
-            Console.WriteLine("NOT FOUND");
-            return;
-
-        FIND:
-            // TODO:DeclaringType is ok?
-            // offset???
-            await RunCore(commandDescriptor!.MethodInfo!.DeclaringType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, skipCount);
+            await RunCore(commandDescriptor!.MethodInfo!.DeclaringType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, offset);
         }
 
-
-
-
-
-
-
-
-
-
+        // Try to invoke method.
         async Task RunCore(Type type, MethodInfo methodInfo, object? instance, string?[] args, int argsOffset)
         {
             object?[] invokeArgs;
@@ -223,6 +137,7 @@ namespace ConsoleAppFramework
             try
             {
                 var invoker = new WithFilterInvoker(methodInfo, instance, invokeArgs, provider, options.GlobalFilters ?? Array.Empty<ConsoleAppFilter>(), ctx);
+                // TODO:dispose or dispose async instance.
                 var result = await invoker.InvokeAsync();
                 if (result != null)
                 {
@@ -240,12 +155,12 @@ namespace ConsoleAppFramework
 
                 if (ex is TargetInvocationException tex)
                 {
-                    await SetFailAsync("Fail in console app running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
+                    await SetFailAsync("Fail in application running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
                     return;
                 }
                 else
                 {
-                    await SetFailAsync("Fail in console app running on " + type.Name + "." + methodInfo.Name, ex);
+                    await SetFailAsync("Fail in application running on " + type.Name + "." + methodInfo.Name, ex);
                     return;
                 }
             }
@@ -267,7 +182,6 @@ namespace ConsoleAppFramework
             return default;
         }
 
-        // TODO:serviceprovider provider type check
         bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object?[] invokeArgs, out string? errorMessage)
         {
             var jsonOption = options.JsonSerializerOptions;

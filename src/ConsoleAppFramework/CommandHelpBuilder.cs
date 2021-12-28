@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,15 +10,15 @@ namespace ConsoleAppFramework
 {
     internal class CommandHelpBuilder
     {
-        readonly Func<string> _getExecutionCommandName;
-        readonly bool _isStrictOption;
-        readonly bool _isShowDefaultOption;
+        readonly Func<string> getExecutionCommandName;
+        readonly bool isStrictOption;
+        readonly IServiceProviderIsService isService;
 
-        public CommandHelpBuilder(Func<string>? getExecutionCommandName, bool isStrictOption, bool isShowDefaultOption)
+        public CommandHelpBuilder(Func<string>? getExecutionCommandName, bool isStrictOption, IServiceProviderIsService isService)
         {
-            _getExecutionCommandName = getExecutionCommandName ?? GetExecutionCommandNameDefault;
-            _isStrictOption = isStrictOption;
-            _isShowDefaultOption = isShowDefaultOption;
+            this.getExecutionCommandName = getExecutionCommandName ?? GetExecutionCommandNameDefault;
+            this.isStrictOption = isStrictOption;
+            this.isService = isService;
         }
 
         private static string GetExecutionCommandNameDefault()
@@ -25,73 +26,40 @@ namespace ConsoleAppFramework
             return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly()!.Location);
         }
 
-        public string GetExecutionCommandName()
-            => _getExecutionCommandName();
+        public string GetExecutionCommandName() => getExecutionCommandName();
 
-        public string BuildHelpMessage(IEnumerable<Type> types)
-        {
-            var sb = new StringBuilder();
-            sb.Append(BuildUsageMessage());
-            sb.AppendLine();
-
-            sb.Append(BuildMethodListMessage(types, out var maxWidth));
-            if (_isShowDefaultOption)
-            {
-                BuildDefaultHelp(sb, maxWidth, false);
-            }
-
-            return sb.ToString();
-        }
-
-        public string BuildHelpMessage(MethodInfo[] methodInfo, MethodInfo? defaultMethod)
+        public string BuildHelpMessage(CommandDescriptor? defaultCommand, IEnumerable<CommandDescriptor> commands, bool shortCommandName)
         {
             var sb = new StringBuilder();
 
-            bool showHeader = (defaultMethod != null);
-            if (defaultMethod != null)
+            bool showHeader = (defaultCommand != null);
+            if (defaultCommand != null)
             {
                 // Display a help messages for default method
-                sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultMethod), showCommandName: false, fromMultiCommand: false));
+                sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultCommand, shortCommandName), showCommandName: false, fromMultiCommand: false));
             }
 
-            int maxWidth = 10;
-            if ((defaultMethod == null && methodInfo.Length == 1) || methodInfo.Length > 1)
+            var orderedCommands = commands.OrderBy(x => x.Name).ToArray();
+            if (orderedCommands.Length > 0)
             {
-                // Display sub commands list.
-                sb.Append(BuildUsageMessage());
-                sb.AppendLine();
+                if (defaultCommand == null)
+                {
+                    sb.Append(BuildUsageMessage());
+                    sb.AppendLine();
+                }
 
-                var list = methodInfo.Where(x => x != defaultMethod).Select(x => CreateCommandHelpDefinition(x)).ToArray();
-                sb.Append(BuildMethodListMessage(list, false, out maxWidth));
-                showHeader = false;
-            }
-
-            if (_isShowDefaultOption)
-            {
-                BuildDefaultHelp(sb, maxWidth, showHeader);
+                sb.Append(BuildMethodListMessage(orderedCommands, shortCommandName, out var maxWidth));
             }
 
             return sb.ToString();
         }
 
-        static void BuildDefaultHelp(StringBuilder sb, int maxWidth, bool showHeader)
+        public string BuildHelpMessage(CommandDescriptor command)
         {
-            if (showHeader)
-            {
-                sb.AppendLine("Commands:");
-            }
-
-            var padding = Math.Max(0, maxWidth - "help".Length);
-            sb.AppendLine("  help" + new string(' ', padding) + "    Display help.");
-            padding = Math.Max(0, maxWidth - "version".Length);
-            sb.AppendLine("  version" + new string(' ', padding) + "    Display version.");
+            return BuildHelpMessage(CreateCommandHelpDefinition(command, false), showCommandName: false, fromMultiCommand: false);
         }
 
-
-        public string BuildHelpMessage(MethodInfo methodInfo, bool showCommandName, bool fromMultiCommand)
-            => BuildHelpMessage(CreateCommandHelpDefinition(methodInfo), showCommandName, fromMultiCommand);
-
-        public string BuildHelpMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
+        internal string BuildHelpMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
         {
             var sb = new StringBuilder();
 
@@ -119,7 +87,7 @@ namespace ConsoleAppFramework
             return sb.ToString();
         }
 
-        public string BuildUsageMessage()
+        internal string BuildUsageMessage()
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Usage: {GetExecutionCommandName()} <Command>");
@@ -127,7 +95,7 @@ namespace ConsoleAppFramework
             return sb.ToString();
         }
 
-        public string BuildUsageMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
+        internal string BuildUsageMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
         {
             var sb = new StringBuilder();
             sb.Append($"Usage: {GetExecutionCommandName()}");
@@ -150,7 +118,7 @@ namespace ConsoleAppFramework
             return sb.ToString();
         }
 
-        public string BuildArgumentsMessage(CommandHelpDefinition definition)
+        internal string BuildArgumentsMessage(CommandHelpDefinition definition)
         {
             var argumentsFormatted = definition.Options
                 .Where(x => x.Index.HasValue)
@@ -184,7 +152,7 @@ namespace ConsoleAppFramework
             return sb.ToString();
         }
 
-        public string BuildOptionsMessage(CommandHelpDefinition definition)
+        internal string BuildOptionsMessage(CommandHelpDefinition definition)
         {
             var optionsFormatted = definition.Options
                 .Where(x => !x.Index.HasValue)
@@ -234,14 +202,13 @@ namespace ConsoleAppFramework
             return sb.ToString();
         }
 
-        public string BuildMethodListMessage(IEnumerable<Type> types, out int maxWidth)
+        internal string BuildMethodListMessage(IEnumerable<CommandDescriptor> types, bool shortCommandName, out int maxWidth)
         {
-            return BuildMethodListMessage(types
-                .SelectMany(xs => xs.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                .Select(x => CreateCommandHelpDefinition(x))), true, out maxWidth);
+            maxWidth = 0;
+            return BuildMethodListMessage(types.Select(x => CreateCommandHelpDefinition(x, shortCommandName)), true, out maxWidth);
         }
 
-        public string BuildMethodListMessage(IEnumerable<CommandHelpDefinition> commandHelpDefinitions, bool appendCommand, out int maxWidth)
+        internal string BuildMethodListMessage(IEnumerable<CommandHelpDefinition> commandHelpDefinitions, bool appendCommand, out int maxWidth)
         {
             var formatted = commandHelpDefinitions
                 .Select(x => (Command: $"{(x.CommandAliases.Length != 0 ? ((appendCommand ? x.Command + " " : "") + string.Join(", ", x.CommandAliases)) : x.Command)}", Description: x.Description))
@@ -266,19 +233,18 @@ namespace ConsoleAppFramework
                 sb.AppendLine(item.Description);
             }
 
-            // sb.AppendLine();
-
             return sb.ToString();
         }
 
-        public CommandHelpDefinition CreateCommandHelpDefinition(MethodInfo method)
+        internal CommandHelpDefinition CreateCommandHelpDefinition(CommandDescriptor descriptor, bool shortCommandName)
         {
-            var command = method.GetCustomAttribute<CommandAttribute>();
-
             var parameterDefinitions = new List<CommandOptionHelpDefinition>();
 
-            foreach (var item in method.GetParameters())
+            foreach (var item in descriptor.MethodInfo.GetParameters())
             {
+                // ignore DI params.
+                if (item.ParameterType == typeof(ConsoleAppContext) || isService.IsService(item.ParameterType)) continue;
+
                 // -i, -input | [default=foo]...
 
                 var index = default(int?);
@@ -303,7 +269,7 @@ namespace ConsoleAppFramework
 
                 if (!index.HasValue)
                 {
-                    if (_isStrictOption)
+                    if (isStrictOption)
                     {
                         options.Add($"--{item.Name}");
                     }
@@ -361,10 +327,10 @@ namespace ConsoleAppFramework
             }
 
             return new CommandHelpDefinition(
-                method.DeclaringType.GetCustomAttribute<CommandAttribute>()?.CommandNames?.FirstOrDefault() ?? method.DeclaringType!.Name.ToLower(),
-                command?.CommandNames ?? new[] { method.Name.ToLower() },
+                shortCommandName ? descriptor.Name : descriptor.CommandName,
+                descriptor.Aliases,
                 parameterDefinitions.OrderBy(x => x.Index ?? int.MaxValue).ToArray(),
-                command?.Description ?? String.Empty
+                descriptor.Description
             );
         }
 

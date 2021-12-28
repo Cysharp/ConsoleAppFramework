@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-args = new[] { "foo", "10", "199" };
+args = new[] { "help" };
 //args = new[] { "consolefoo", "tako" };
 
 var app = ConsoleApp.CreateBuilder(args)
@@ -12,12 +12,14 @@ var app = ConsoleApp.CreateBuilder(args)
     })
     .Build();
 
-app.AddCommand("foo", (ConsoleAppContext context, [Option(0)] int x, ILogger<string> oreLogger, [Option(1)] int y) =>
-{
-    global::System.Console.WriteLine(context.Timestamp);
-    global::System.Console.WriteLine(x + ":" + y);
-});
+//app.AddCommand("foo", (ConsoleAppContext context, [Option(0)] int x, ILogger<string> oreLogger, [Option(1)] int y) =>
+//{
+//    global::System.Console.WriteLine(context.Timestamp);
+//    global::System.Console.WriteLine(x + ":" + y);
+//});
 app.AddRoutedCommands();
+
+//app.AddCommands<ConsoleFoo>();
 
 app.Run();
 
@@ -31,8 +33,13 @@ static class Foo
 
 public class ConsoleFoo : ConsoleAppBase
 {
-    public void Tako()
+    //[DefaultCommand]
+    public void Hello1([Option("n", "name of send user.")] string name, [Option("r", "repeat count.")] int repeat = 3)
     {
-        Console.WriteLine($"OK");
+    }
+
+    public void Hello2([Option("n", "name of send user.")] string name, [Option("r", "repeat count.")] int repeat = 3)
+    {
     }
 }
+

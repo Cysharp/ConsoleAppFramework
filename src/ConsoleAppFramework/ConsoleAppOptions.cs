@@ -22,9 +22,20 @@ namespace ConsoleAppFramework
 
         public ConsoleAppFilter[]? GlobalFilters { get; set; }
 
+        // TODO: Legacy Compatibility options
+        // NoAttributeCommandAsImplicitlyDefault
+
+
+
         // internal store values for execute engine.
 
         internal string[] CommandLineArguments { get; set; } = default!;
-        internal CommandDescriptorMatcher CommandDescriptors { get; } = new CommandDescriptorMatcher();
+        internal CommandDescriptorCollection CommandDescriptors { get; } = new CommandDescriptorCollection();
+    }
+
+    // TODO:mitaina...
+    public class LegacyCompatibilityOptions
+    {
+        public bool NoAttributeCommandAsImplicitlyDefault { get; set; }
     }
 }

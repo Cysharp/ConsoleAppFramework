@@ -5,7 +5,7 @@ namespace ConsoleAppFramework
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
     public class CommandAttribute : Attribute
     {
-        // TODO: only allow string CommandName
+        // TODO:register aliases.
         public string[] CommandNames { get; }
         public string? Description { get; }
 
@@ -30,6 +30,7 @@ namespace ConsoleAppFramework
             this.Description = description;
         }
 
+        // TODO:remove this.
         internal bool EqualsAny(string name)
         {
             foreach (var item in CommandNames)
@@ -41,5 +42,10 @@ namespace ConsoleAppFramework
             }
             return false;
         }
+    }
+
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class DefaultCommandAttribute : Attribute
+    {
     }
 }
