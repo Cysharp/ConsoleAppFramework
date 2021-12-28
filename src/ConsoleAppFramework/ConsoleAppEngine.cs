@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    internal class ConsoleAppEngine
+    public class ConsoleAppEngine
     {
         readonly ILogger<ConsoleApp> logger;
         readonly IServiceProvider provider;
