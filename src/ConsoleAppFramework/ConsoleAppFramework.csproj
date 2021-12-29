@@ -23,6 +23,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Only for .NET 6, default implicit Using. -->
+		<None Include="ConsoleAppFramework.props" Pack="true" PackagePath="build\net6.0\ConsoleAppFramework.props" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<None Include="Icon.png" Pack="true" PackagePath="/" />
 	</ItemGroup>
 </Project>

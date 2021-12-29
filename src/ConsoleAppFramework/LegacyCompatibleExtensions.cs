@@ -20,7 +20,7 @@ namespace ConsoleAppFramework
 
             return new ConsoleAppBuilder(args, hostBuilder, options)
                 .Build()
-                .AddRoutedCommands(searchAssemblies ?? AppDomain.CurrentDomain.GetAssemblies())
+                .AddAllCommandType(searchAssemblies ?? AppDomain.CurrentDomain.GetAssemblies())
                 .RunAsync();
         }
 

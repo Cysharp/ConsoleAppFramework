@@ -84,6 +84,13 @@ namespace ConsoleAppFramework
             return this;
         }
 
+        public ConsoleApp AddRootCommand(string description, Delegate command)
+        {
+            var attr = new CommandAttribute("root-command", description);
+            commands.AddRootCommand(new CommandDescriptor(CommandType.DefaultCommand, command.Method, command.Target, attr));
+            return this;
+        }
+
         public ConsoleApp AddCommand(string commandName, Delegate command)
         {
             var attr = new CommandAttribute(commandName);
@@ -158,12 +165,12 @@ namespace ConsoleAppFramework
             return this;
         }
 
-        public ConsoleApp AddRoutedCommands()
+        public ConsoleApp AddAllCommandType()
         {
-            return AddRoutedCommands(AppDomain.CurrentDomain.GetAssemblies());
+            return AddAllCommandType(AppDomain.CurrentDomain.GetAssemblies());
         }
 
-        public ConsoleApp AddRoutedCommands(params Assembly[] searchAssemblies)
+        public ConsoleApp AddAllCommandType(params Assembly[] searchAssemblies)
         {
             foreach (var type in GetConsoleAppTypes(searchAssemblies))
             {

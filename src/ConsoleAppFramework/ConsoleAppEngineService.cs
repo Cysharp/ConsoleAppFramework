@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ConsoleAppFramework
 {
     // This servcie is called from ConsoleApp.Run
-    public sealed class ConsoleAppEngineService : IHostedService
+    internal sealed class ConsoleAppEngineService : IHostedService
     {
         IHostApplicationLifetime appLifetime;
         ILogger<ConsoleApp> logger;

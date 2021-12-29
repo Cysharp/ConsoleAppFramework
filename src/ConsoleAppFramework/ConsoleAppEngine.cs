@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    public class ConsoleAppEngine
+    internal class ConsoleAppEngine
     {
         readonly ILogger<ConsoleApp> logger;
         readonly IServiceProvider provider;
@@ -162,7 +162,7 @@ namespace ConsoleAppFramework
 
             try
             {
-                if (instance == null && !type.IsAbstract)
+                if (instance == null && !type.IsAbstract && !methodInfo.IsStatic)
                 {
                     instance = ActivatorUtilities.CreateInstance(provider, type);
                     typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context))!.SetValue(instance, ctx);
