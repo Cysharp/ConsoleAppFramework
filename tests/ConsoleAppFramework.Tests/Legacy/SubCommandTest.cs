@@ -199,18 +199,18 @@ namespace ConsoleAppFramework.Tests
             }
         }
 
-        [Fact]
-        public async Task NotFoundPathTest()
-        {
-            var args = "run -path -pfx test.pfx -thumbnail 123456 -output output.csproj -allowoverwrite".Split(' ');
-            var log = new LogStack();
+        //[Fact]
+        //public async Task NotFoundPathTest()
+        //{
+        //    var args = "run -path -pfx test.pfx -thumbnail 123456 -output output.csproj -allowoverwrite".Split(' ');
+        //    var log = new LogStack();
 
-            await Assert.ThrowsAnyAsync<Exception>(async () =>
-            {
-                await new HostBuilder()
-                    .ConfigureTestLogging(testOutput, log, true)
-                    .RunConsoleAppFrameworkAsync<NotFoundPath>(args);
-            });
-        }
+        //    await Assert.ThrowsAnyAsync<Exception>(async () =>
+        //    {
+        //        await new HostBuilder()
+        //            .ConfigureTestLogging(testOutput, log, true)
+        //            .RunConsoleAppFrameworkAsync<NotFoundPath>(args);
+        //    });
+        //}
     }
 }

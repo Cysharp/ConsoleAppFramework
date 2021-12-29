@@ -16,7 +16,7 @@ namespace ConsoleAppFramework.Integration.Test
             using var console = new CaptureConsoleOutput();
             var args = new string[] { };
             (await Assert.ThrowsAsync<InvalidOperationException>(()=> Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Multiple_NoCommandAttribute>(args)))
-                .Message.Should().Contain("Found more than one default command.");
+                .Message.Should().Contain("Found more than one root command.");
         }
 
         public class CommandTests_Multiple_NoCommandAttribute : ConsoleAppBase

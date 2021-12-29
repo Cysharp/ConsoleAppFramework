@@ -83,6 +83,7 @@ namespace ConsoleAppFramework.Tests
         }
 
         public List<string> InfoLog => logs[LogLevel.Information];
+        public List<string> ErrorLog => logs[LogLevel.Error];
 
         public StringAssertions InfoLogShould(int index) => logs[LogLevel.Information][index].Should();
         public AndConstraint<StringAssertions> InfoLogShouldBe(int index, string expected) => InfoLogShould(index).Be(expected);
