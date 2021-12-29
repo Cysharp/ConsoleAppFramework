@@ -9,27 +9,27 @@ using ZLogger;
 
 //ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 
-args = new[] { "--message", "tako" };
+//args = new[] { "--message", "tako" };
 
 
 
-static int Hello([Option("m")]string message, [Option("e")] bool end, [Option("r")] int repeat = 3)
-{
-    for (int i = 0; i < repeat; i++)
-    {
-        Console.WriteLine(message);
-    }
-    if (end)
-    {
-        Console.WriteLine("END");
-    }
-    //throw new OperationCanceledException("hogemoge");
-    return 999;
-}
+//static int Hello([Option("m")]string message, [Option("e")] bool end, [Option("r")] int repeat = 3)
+//{
+//    for (int i = 0; i < repeat; i++)
+//    {
+//        Console.WriteLine(message);
+//    }
+//    if (end)
+//    {
+//        Console.WriteLine("END");
+//    }
+//    //throw new OperationCanceledException("hogemoge");
+//    return 999;
+//}
 
-ConsoleApp.Run(args, Hello);
+//ConsoleApp.Run(args, Hello);
 
-return;
+//return;
 
 
 //args = new[] { "help" };
