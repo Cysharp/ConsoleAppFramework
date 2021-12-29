@@ -35,6 +35,12 @@ namespace ConsoleAppFramework
             this.builder = AddConsoleAppFramework(hostBuilder, args, new ConsoleAppOptions(), configureOptions);
         }
 
+        // internal use for legacy compatible
+        internal ConsoleAppBuilder(string[] args, IHostBuilder hostBuilder, ConsoleAppOptions options)
+        {
+            this.builder = AddConsoleAppFramework(hostBuilder, args, options, (_, __) => { });
+        }
+
         public ConsoleApp Build()
         {
             var host = builder.Build();

@@ -14,6 +14,7 @@ namespace ConsoleAppFramework
     {
         // Keep this reference as ConsoleApOptions.CommandDescriptors.
         readonly CommandDescriptorCollection commands;
+        readonly ConsoleAppOptions options;
 
         public IHost Host { get; }
         public ILogger<ConsoleApp> Logger { get; }
@@ -22,7 +23,8 @@ namespace ConsoleAppFramework
         {
             this.Host = host;
             this.Logger = host.Services.GetRequiredService<ILogger<ConsoleApp>>();
-            this.commands = host.Services.GetRequiredService<ConsoleAppOptions>().CommandDescriptors;
+            this.options = host.Services.GetRequiredService<ConsoleAppOptions>();
+            this.commands = options.CommandDescriptors;
         }
 
         // Statics
@@ -106,7 +108,7 @@ namespace ConsoleAppFramework
             {
                 if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
 
-                if (method.GetCustomAttribute<DefaultCommandAttribute>() != null)
+                if (method.GetCustomAttribute<DefaultCommandAttribute>() != null || (options.NoAttributeCommandAsImplicitlyDefault && method.GetCustomAttribute<CommandAttribute>() == null))
                 {
                     var command = new CommandDescriptor(CommandType.DefaultCommand, method);
                     commands.AddDefaultCommand(command);

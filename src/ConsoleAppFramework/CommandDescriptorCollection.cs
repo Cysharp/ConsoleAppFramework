@@ -15,9 +15,12 @@ namespace ConsoleAppFramework
 
         public void AddCommand(CommandDescriptor commandDescriptor)
         {
-            if (subCommandDescriptors.ContainsKey(commandDescriptor.Name) || !descriptors.TryAdd(commandDescriptor.Name, commandDescriptor))
+            foreach (var name in commandDescriptor.Names)
             {
-                throw new InvalidOperationException($"Duplicate command name is added. Name:{commandDescriptor.Name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
+                if (subCommandDescriptors.ContainsKey(name) || !descriptors.TryAdd(name, commandDescriptor))
+                {
+                    throw new InvalidOperationException($"Duplicate command name is added. Name:{name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
+                }
             }
         }
 
@@ -39,9 +42,12 @@ namespace ConsoleAppFramework
                 subCommandDescriptors.Add(rootCommand, commandDict);
             }
 
-            if (!commandDict.TryAdd(commandDescriptor.Name, commandDescriptor))
+            foreach (var name in commandDescriptor.Names)
             {
-                Throw();
+                if (!commandDict.TryAdd(name, commandDescriptor))
+                {
+                    Throw();
+                }
             }
         }
 

@@ -46,6 +46,28 @@ namespace ConsoleAppFramework
                     }
                 }
 
+                // TryGet Single help or Version
+                if (args.Length == 1)
+                {
+                    switch (args[0].Trim('-'))
+                    {
+                        case "help":
+                            if (options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor))
+                            {
+                                goto RUN;
+                            }
+                            break;
+                        case "version":
+                            if (options.CommandDescriptors.TryGetVersionMethod(out commandDescriptor))
+                            {
+                                goto RUN;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
                 // TryGet SubCommands Help
                 if (args.Length >= 2 && args[1].Trim('-') == "help")
                 {
@@ -71,17 +93,17 @@ namespace ConsoleAppFramework
                 return;
             }
 
-        RUN:
             // check can invoke help
             if (commandDescriptor.CommandType == CommandType.DefaultCommand && args.Length == 0)
             {
                 var p = commandDescriptor.MethodInfo.GetParameters();
-                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType))))
+                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType) || x.HasDefaultValue)))
                 {
                     options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor);
                 }
             }
 
+        RUN:
             await RunCore(commandDescriptor!.MethodInfo!.DeclaringType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, offset);
         }
 

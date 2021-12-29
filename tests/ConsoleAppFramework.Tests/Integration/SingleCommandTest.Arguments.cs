@@ -56,7 +56,7 @@ namespace ConsoleAppFramework.Integration.Test
         public void NoOptions_OneRequiredArg_Version()
         {
             using var console = new CaptureConsoleOutput();
-            var args = new[] { "-version" };
+            var args = new[] { "version" };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneRequiredArg>(args);
             console.Output.Should().MatchRegex(@"\d.\d.\d"); // NOTE: When running with unit test runner, it returns a version of the runner.
 
@@ -102,7 +102,7 @@ namespace ConsoleAppFramework.Integration.Test
         public void NoOptions_OneOptionalArg_Help()
         {
             using var console = new CaptureConsoleOutput();
-            var args = new[] { "-help" };
+            var args = new[] { "help" };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneOptionalArgs>(args);
             console.Output.Should().Contain("Usage:");
             console.Output.Should().Contain("Arguments:");
@@ -115,7 +115,7 @@ namespace ConsoleAppFramework.Integration.Test
         public void NoOptions_OneOptionalArg_Version()
         {
             using var console = new CaptureConsoleOutput();
-            var args = new[] { "-version" };
+            var args = new[] { "version" };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_OneOptionalArgs>(args);
             console.Output.Should().MatchRegex(@"\d.\d.\d"); // NOTE: When running with unit test runner, it returns a version of the runner.
 

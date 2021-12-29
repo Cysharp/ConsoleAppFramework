@@ -30,6 +30,16 @@ namespace ConsoleAppFramework
             }
         }
 
+        public string[] Names
+        {
+            get
+            {
+                if (CommandAttribute != null) return CommandAttribute.CommandNames;
+                // TODO: foo-bar name???
+                return new[] { MethodInfo.Name.ToLower() };
+            }
+        }
+
         public string[] Aliases
         {
             get

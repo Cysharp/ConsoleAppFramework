@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ConsoleAppFramework
 {
@@ -11,7 +7,7 @@ namespace ConsoleAppFramework
         /// <summary>
         /// Argument parser uses strict(-short, --long) option. Default is true.
         /// </summary>
-        public bool StrictOption { get; set; } = true; // TODO: legacy compatibility => false;
+        public bool StrictOption { get; set; } = true;
 
         /// <summary>
         /// Show default command(help/version) to help. Default is true.
@@ -22,20 +18,20 @@ namespace ConsoleAppFramework
 
         public ConsoleAppFilter[]? GlobalFilters { get; set; }
 
-        // TODO: Legacy Compatibility options
-        // NoAttributeCommandAsImplicitlyDefault
-
-
+        public bool NoAttributeCommandAsImplicitlyDefault { get; set; }
 
         // internal store values for execute engine.
 
         internal string[] CommandLineArguments { get; set; } = default!;
         internal CommandDescriptorCollection CommandDescriptors { get; } = new CommandDescriptorCollection();
-    }
 
-    // TODO:mitaina...
-    public class LegacyCompatibilityOptions
-    {
-        public bool NoAttributeCommandAsImplicitlyDefault { get; set; }
+        public static ConsoleAppOptions CreateLegacyCompatible()
+        {
+            return new ConsoleAppOptions()
+            {
+                StrictOption = false,
+                NoAttributeCommandAsImplicitlyDefault = true
+            };
+        }
     }
 }

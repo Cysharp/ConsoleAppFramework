@@ -3,6 +3,12 @@
 //args = new[] { "-name", "ORE" };
 ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 
+
+
+
+// ConsoleApp.CreateBuilder(args)
+    
+
 //using ConsoleAppFramework;
 //using Microsoft.Extensions.Hosting;
 //using Microsoft.Extensions.Logging;

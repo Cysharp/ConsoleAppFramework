@@ -5,7 +5,6 @@ namespace ConsoleAppFramework
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
     public class CommandAttribute : Attribute
     {
-        // TODO:register aliases.
         public string[] CommandNames { get; }
         public string? Description { get; }
 
@@ -28,19 +27,6 @@ namespace ConsoleAppFramework
         {
             this.CommandNames = commandNames;
             this.Description = description;
-        }
-
-        // TODO:remove this.
-        internal bool EqualsAny(string name)
-        {
-            foreach (var item in CommandNames)
-            {
-                if (string.Equals(name, item, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
     }
 
