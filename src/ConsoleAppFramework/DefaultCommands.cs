@@ -32,7 +32,7 @@ namespace ConsoleAppFramework
             {
                 descriptors = descriptors.Where(x => x != HelpCommand && x != VersionCommand);
             }
-            var message = new CommandHelpBuilder(null, options.StrictOption, isService).BuildHelpMessage(options.CommandDescriptors.GetDefaultCommandDescriptor(), descriptors, shortCommandName: false);
+            var message = new CommandHelpBuilder(null,isService, options).BuildHelpMessage(options.CommandDescriptors.GetDefaultCommandDescriptor(), descriptors, shortCommandName: false);
             Console.WriteLine(message);
         }
 

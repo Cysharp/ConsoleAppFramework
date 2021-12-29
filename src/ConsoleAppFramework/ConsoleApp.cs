@@ -170,7 +170,7 @@ namespace ConsoleAppFramework
             foreach (var type in GetConsoleAppTypes(searchAssemblies))
             {
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                var rootName = type.GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? type.Name;
+                var rootName = type.GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? options.NameConverter(type.Name);
                 foreach (var method in methods)
                 {
                     if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable

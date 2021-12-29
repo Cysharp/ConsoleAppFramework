@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    [Obsolete("", true)]
     public static class LegacyCompatibleExtensions
     {
         /// <summary>
@@ -51,6 +50,8 @@ namespace ConsoleAppFramework
 
             options.NoAttributeCommandAsImplicitlyDefault = true;
             options.StrictOption = false;
+            options.NameConverter = x => x.ToLower();
+            options.ReplaceToUseSimpleConsoleLogger = false;
             return options;
         }
 

@@ -13,12 +13,14 @@ namespace ConsoleAppFramework
         readonly Func<string> getExecutionCommandName;
         readonly bool isStrictOption;
         readonly IServiceProviderIsService isService;
+        readonly ConsoleAppOptions options;
 
-        public CommandHelpBuilder(Func<string>? getExecutionCommandName, bool isStrictOption, IServiceProviderIsService isService)
+        public CommandHelpBuilder(Func<string>? getExecutionCommandName, IServiceProviderIsService isService, ConsoleAppOptions options)
         {
             this.getExecutionCommandName = getExecutionCommandName ?? GetExecutionCommandNameDefault;
-            this.isStrictOption = isStrictOption;
+            this.isStrictOption = options.StrictOption;
             this.isService = isService;
+            this.options = options;
         }
 
         private static string GetExecutionCommandNameDefault()
@@ -39,7 +41,7 @@ namespace ConsoleAppFramework
                 sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultCommand, shortCommandName), showCommandName: false, fromMultiCommand: false));
             }
 
-            var orderedCommands = commands.OrderBy(x => x.Name).ToArray();
+            var orderedCommands = commands.OrderBy(x => x.GetNamesFormatted(options)).ToArray();
             if (orderedCommands.Length > 0)
             {
                 if (defaultCommand == null)
@@ -248,6 +250,8 @@ namespace ConsoleAppFramework
                 // -i, -input | [default=foo]...
 
                 var index = default(int?);
+                var itemName = this.options.NameConverter(item.Name!);
+
                 var options = new List<string>();
                 var option = item.GetCustomAttribute<OptionAttribute>();
                 if (option != null)
@@ -271,11 +275,11 @@ namespace ConsoleAppFramework
                 {
                     if (isStrictOption)
                     {
-                        options.Add($"--{item.Name}");
+                        options.Add($"--{itemName}");
                     }
                     else
                     {
-                        options.Add($"-{item.Name}");
+                        options.Add($"-{itemName}");
                     }
                 }
 
@@ -327,7 +331,7 @@ namespace ConsoleAppFramework
             }
 
             return new CommandHelpDefinition(
-                shortCommandName ? descriptor.Name : descriptor.CommandName,
+                shortCommandName ? descriptor.GetNamesFormatted(options) : descriptor.GetCommandName(options),
                 descriptor.Aliases,
                 parameterDefinitions.OrderBy(x => x.Index ?? int.MaxValue).ToArray(),
                 descriptor.Description

@@ -7,15 +7,19 @@ namespace ConsoleAppFramework
 {
     internal class CommandDescriptorCollection
     {
-        // TODO:add aliases.
-
         CommandDescriptor? defaultCommandDescriptor;
         readonly Dictionary<string, CommandDescriptor> descriptors = new Dictionary<string, CommandDescriptor>(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, Dictionary<string, CommandDescriptor>> subCommandDescriptors = new Dictionary<string, Dictionary<string, CommandDescriptor>>(StringComparer.OrdinalIgnoreCase);
+        readonly ConsoleAppOptions options;
+
+        public CommandDescriptorCollection(ConsoleAppOptions options)
+        {
+            this.options = options;
+        }
 
         public void AddCommand(CommandDescriptor commandDescriptor)
         {
-            foreach (var name in commandDescriptor.Names)
+            foreach (var name in commandDescriptor.GetNames(options))
             {
                 if (subCommandDescriptors.ContainsKey(name) || !descriptors.TryAdd(name, commandDescriptor))
                 {
@@ -26,14 +30,9 @@ namespace ConsoleAppFramework
 
         public void AddSubCommand(string rootCommand, CommandDescriptor commandDescriptor)
         {
-            void Throw()
-            {
-                throw new InvalidOperationException($"Duplicate command name is added. Name:{rootCommand} {commandDescriptor.Name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
-            }
-
             if (descriptors.ContainsKey(rootCommand))
             {
-                Throw();
+                throw new InvalidOperationException($"Duplicate root-command is added. Name:{rootCommand} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
             }
 
             if (!subCommandDescriptors.TryGetValue(rootCommand, out var commandDict))
@@ -42,11 +41,11 @@ namespace ConsoleAppFramework
                 subCommandDescriptors.Add(rootCommand, commandDict);
             }
 
-            foreach (var name in commandDescriptor.Names)
+            foreach (var name in commandDescriptor.GetNames(options))
             {
                 if (!commandDict.TryAdd(name, commandDescriptor))
                 {
-                    Throw();
+                    throw new InvalidOperationException($"Duplicate command name is added. Name:{rootCommand} {name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
                 }
             }
         }
@@ -74,6 +73,10 @@ namespace ConsoleAppFramework
                         offset = 2;
                         return true;
                     }
+                    else
+                    {
+                        goto NOTMATCH;
+                    }
                 }
             }
 
@@ -95,7 +98,8 @@ namespace ConsoleAppFramework
                 return true;
             }
 
-            // not match.
+        // not match.
+        NOTMATCH:
             offset = 0;
             descriptor = default;
             return false;

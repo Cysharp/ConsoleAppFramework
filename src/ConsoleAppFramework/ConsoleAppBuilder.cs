@@ -25,7 +25,7 @@ namespace ConsoleAppFramework
 
         internal ConsoleAppBuilder(string[] args, Action<ConsoleAppOptions> configureOptions)
             : this(args, (_, options) => configureOptions(options))
-         {
+        {
         }
 
         internal ConsoleAppBuilder(string[] args, Action<HostBuilderContext, ConsoleAppOptions> configureOptions)
@@ -57,6 +57,14 @@ namespace ConsoleAppFramework
                     configureOptions?.Invoke(ctx, options);
                     options.CommandLineArguments = args;
                     services.AddSingleton(options);
+
+                    if (options.ReplaceToUseSimpleConsoleLogger)
+                    {
+                        services.AddLogging(builder =>
+                        {
+                            builder.ReplaceToSimpleConsole();
+                        });
+                    }
                 })
                 .UseConsoleLifetime();
         }

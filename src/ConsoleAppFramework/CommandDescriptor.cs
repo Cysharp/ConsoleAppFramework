@@ -19,25 +19,15 @@ namespace ConsoleAppFramework
         public CommandAttribute? CommandAttribute { get; }
         public string? RootCommand { get; }
 
-        // TODO:names???
-        public string Name
+        public string[] GetNames(ConsoleAppOptions options)
         {
-            get
-            {
-                if (CommandAttribute != null) return CommandAttribute.CommandNames[0];
-                // TODO: foo-bar name???
-                return MethodInfo.Name.ToLower();
-            }
+            if (CommandAttribute != null) return CommandAttribute.CommandNames;
+            return new[] { options.NameConverter(MethodInfo.Name) };
         }
 
-        public string[] Names
+        public string GetNamesFormatted(ConsoleAppOptions options)
         {
-            get
-            {
-                if (CommandAttribute != null) return CommandAttribute.CommandNames;
-                // TODO: foo-bar name???
-                return new[] { MethodInfo.Name.ToLower() };
-            }
+            return string.Join(", ", GetNames(options));
         }
 
         public string[] Aliases
@@ -55,18 +45,15 @@ namespace ConsoleAppFramework
             }
         }
 
-        public string CommandName
+        public string GetCommandName(ConsoleAppOptions options)
         {
-            get
+            if (RootCommand != null)
             {
-                if (RootCommand != null)
-                {
-                    return $"{RootCommand} {Name}";
-                }
-                else
-                {
-                    return Name;
-                }
+                return $"{RootCommand} {GetNamesFormatted(options)}";
+            }
+            else
+            {
+                return GetNamesFormatted(options);
             }
         }
 

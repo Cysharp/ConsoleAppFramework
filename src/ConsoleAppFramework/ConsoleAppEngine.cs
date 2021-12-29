@@ -74,7 +74,7 @@ namespace ConsoleAppFramework
                     var subCommands = options.CommandDescriptors.GetSubCommands(args[0]);
                     if (subCommands.Length != 0)
                     {
-                        var msg = new CommandHelpBuilder(() => args[0], options.StrictOption, isService).BuildHelpMessage(null, subCommands, shortCommandName: true);
+                        var msg = new CommandHelpBuilder(() => args[0], isService, options).BuildHelpMessage(null, subCommands, shortCommandName: true);
                         Console.WriteLine(msg);
                         return;
                     }
@@ -88,7 +88,7 @@ namespace ConsoleAppFramework
             // foo bar --help
             if (args.Skip(offset).FirstOrDefault()?.Trim('-') == "help")
             {
-                var msg = new CommandHelpBuilder(() => commandDescriptor.CommandName, options.StrictOption, isService).BuildHelpMessage(commandDescriptor);
+                var msg = new CommandHelpBuilder(() => commandDescriptor.GetCommandName(options), isService, options).BuildHelpMessage(commandDescriptor);
                 Console.WriteLine(msg);
                 return;
             }
@@ -234,7 +234,7 @@ namespace ConsoleAppFramework
                 var item = parameters[i];
                 var option = item.GetCustomAttribute<OptionAttribute>();
 
-                optionTypeByOptionName[(isStrict ? "--" : "") + item.Name] = item.ParameterType;
+                optionTypeByOptionName[(isStrict ? "--" : "") + options.NameConverter(item.Name!)] = item.ParameterType;
                 if (!string.IsNullOrWhiteSpace(option?.ShortName))
                 {
                     optionTypeByOptionName[(isStrict ? "-" : "") + option!.ShortName!] = item.ParameterType;
@@ -247,8 +247,9 @@ namespace ConsoleAppFramework
             for (int i = 0; i < parameters.Length; i++)
             {
                 var item = parameters[i];
+                var itemName = options.NameConverter(item.Name!);
                 var option = item.GetCustomAttribute<OptionAttribute>();
-                if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{item.Name}' has a short name, but the short name must start with A-Z or a-z.");
+                if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{itemName}' has a short name, but the short name must start with A-Z or a-z.");
 
                 var value = default(OptionParameter);
 
@@ -269,7 +270,7 @@ namespace ConsoleAppFramework
                 }
 
                 // Keyed options (e.g. -foo -bar )
-                var longName = (isStrict) ? ("--" + item.Name) : item.Name;
+                var longName = (isStrict) ? ("--" + itemName) : itemName;
                 var shortName = (isStrict) ? ("-" + option?.ShortName?.TrimStart('-')) : option?.ShortName?.TrimStart('-');
 
                 if (value.Value != null || argumentDictionary.TryGetValue(longName!, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
@@ -297,7 +298,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on Enum parsing.";
+                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on Enum parsing.";
                                 return false;
                             }
                         }
@@ -330,7 +331,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
+                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
                                 return false;
                             }
                         }
@@ -343,7 +344,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
+                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
                                 return false;
                             }
                         }
@@ -361,10 +362,10 @@ namespace ConsoleAppFramework
                 }
                 else
                 {
-                    var name = item.Name;
+                    var name = itemName;
                     if (option?.ShortName != null)
                     {
-                        name = item.Name + "(" + "-" + option.ShortName + ")";
+                        name = itemName + "(" + "-" + option.ShortName + ")";
                     }
                     errorMessage = "Required parameter \"" + name + "\"" + " not found in argument.";
                     return false;
