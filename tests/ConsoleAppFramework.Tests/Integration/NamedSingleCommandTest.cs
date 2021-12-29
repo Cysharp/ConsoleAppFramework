@@ -63,15 +63,15 @@ namespace ConsoleAppFramework.Integration.Test
             console.Output.Should().Contain("Hello Cysharp");
         }
 
-        [Fact]
-        public void NamedCommand_OneArg_CommandHelp()
-        {
-            using var console = new CaptureConsoleOutput();
-            var args = new string[] { "help", "hello" };
-            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_Named_OneArg>(args);
-            console.Output.Should().Contain("Usage:");
-            console.Output.Should().Contain("Arguments:");
-        }
+        //[Fact]
+        //public void NamedCommand_OneArg_CommandHelp()
+        //{
+        //    using var console = new CaptureConsoleOutput();
+        //    var args = new string[] { "help", "hello" };
+        //    Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_Named_OneArg>(args);
+        //    console.Output.Should().Contain("Usage:");
+        //    console.Output.Should().Contain("Arguments:");
+        //}
 
         public class CommandTests_Single_Named_OneArg : ConsoleAppBase
         {

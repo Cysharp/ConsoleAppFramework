@@ -5,128 +5,128 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ConsoleAppFramework
 {
-    public class ConsoleAppEngine
+    internal class ConsoleAppEngine
     {
-        readonly ILogger<ConsoleAppEngine> logger;
+        readonly ILogger<ConsoleApp> logger;
         readonly IServiceProvider provider;
         readonly CancellationToken cancellationToken;
         readonly ConsoleAppOptions options;
+        readonly IServiceProviderIsService isService;
         readonly bool isStrict;
 
-        public ConsoleAppEngine(ILogger<ConsoleAppEngine> logger, IServiceProvider provider, ConsoleAppOptions options, CancellationToken cancellationToken)
+        public ConsoleAppEngine(ILogger<ConsoleApp> logger, IServiceProvider provider, ConsoleAppOptions options, IServiceProviderIsService isService, CancellationToken cancellationToken)
         {
             this.logger = logger;
             this.provider = provider;
             this.cancellationToken = cancellationToken;
             this.options = options;
-            this.isStrict = this.options.StrictOption;
+            this.isService = isService;
+            this.isStrict = options.StrictOption;
         }
 
-        public async Task RunAsync(Type type, MethodInfo method, string?[] args)
-        {
-            logger.LogTrace("ConsoleAppEngine.Run Start");
-            await RunCore(type, method, args, 1); // 0 is type selector
-        }
-
-        public async Task RunAsync(Type type, string[] args)
+        public async Task RunAsync()
         {
             logger.LogTrace("ConsoleAppEngine.Run Start");
 
-            int argsOffset = 0;
-            MethodInfo? method = null;
-            try
+            var args = options.CommandLineArguments;
+
+            if (!options.CommandDescriptors.TryGetDescriptor(args, out var commandDescriptor, out var offset))
             {
-                if (type == typeof(void))
+                if (args.Length == 0)
                 {
-                    await SetFailAsync("Type or method does not found on this Program. args: " + string.Join(" ", args));
-                    return;
-                }
-
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                if (methods.Length == 0)
-                {
-                    await SetFailAsync("Method can not select. T of Run/UseConsoleAppEngine<T> have to be contain single method or command. Type:" + type.FullName);
-                    return;
-                }
-
-                MethodInfo? helpMethod = null;
-                foreach (var item in methods)
-                {
-                    var command = item.GetCustomAttribute<CommandAttribute>();
-                    if (command != null)
+                    if (options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor))
                     {
-                        if (args.Length > 0 && command.EqualsAny(args[0]))
-                        {
-                            // command's priority is first
-                            method = item;
-                            argsOffset = 1;
-                            goto RUN;
-                        }
-                        else
-                        {
-                            if (command.EqualsAny("help"))
+                        goto RUN;
+                    }
+                }
+
+                // TryGet Single help or Version
+                if (args.Length == 1)
+                {
+                    switch (args[0].Trim('-'))
+                    {
+                        case "help":
+                            if (options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor))
                             {
-                                helpMethod = item;
+                                goto RUN;
                             }
-                        }
+                            break;
+                        case "version":
+                            if (options.CommandDescriptors.TryGetVersionMethod(out commandDescriptor))
+                            {
+                                goto RUN;
+                            }
+                            break;
+                        default:
+                            break;
                     }
-                    else
+                }
+
+                // TryGet SubCommands Help
+                if (args.Length >= 2 && args[1].Trim('-') == "help")
+                {
+                    var subCommands = options.CommandDescriptors.GetSubCommands(args[0]);
+                    if (subCommands.Length != 0)
                     {
-                        if (method != null)
-                        {
-                            await SetFailAsync("Found more than one public methods(without command). Type:" + type.FullName + " Method:" + method.Name + " and " + item.Name);
-                            return;
-                        }
-                        method = item; // found single public(non-command) method.
+                        var msg = new CommandHelpBuilder(() => args[0], isService, options).BuildHelpMessage(null, subCommands, shortCommandName: true);
+                        Console.WriteLine(msg);
+                        return;
                     }
                 }
 
-                if (method != null)
-                {
-                    goto RUN;
-                }
-
-                // completely not found, invalid command name show help.
-                if (helpMethod != null)
-                {
-                    method = helpMethod;
-                    goto RUN;
-                }
-                else
-                {
-                    Console.Write(new CommandHelpBuilder(null, options.StrictOption, options.ShowDefaultCommand).BuildHelpMessage(methods, null));
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                await SetFailAsync("Fail to get method. Type:" + type.FullName, ex);
+                await SetFailAsync("Command not found. args: " + string.Join(" ", args));
                 return;
             }
 
-            RUN:
-            await RunCore(type, method, args, argsOffset);
+            // foo --help
+            // foo bar --help
+            if (args.Skip(offset).FirstOrDefault()?.Trim('-') == "help")
+            {
+                var msg = new CommandHelpBuilder(() => commandDescriptor.GetCommandName(options), isService, options).BuildHelpMessage(commandDescriptor);
+                Console.WriteLine(msg);
+                return;
+            }
+
+            // check can invoke help
+            if (commandDescriptor.CommandType == CommandType.DefaultCommand && args.Length == 0)
+            {
+                var p = commandDescriptor.MethodInfo.GetParameters();
+                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType) || x.HasDefaultValue)))
+                {
+                    options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor);
+                }
+            }
+
+        RUN:
+            await RunCore(commandDescriptor!.MethodInfo!.DeclaringType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, offset);
         }
 
-        async Task RunCore(Type type, MethodInfo methodInfo, string?[] args, int argsOffset)
+        // Try to invoke method.
+        async Task RunCore(Type type, MethodInfo methodInfo, object? instance, string?[] args, int argsOffset)
         {
-            object instance;
             object?[] invokeArgs;
-
+            ParameterInfo[] originalParameters = methodInfo.GetParameters();
+            var isService = provider.GetService<IServiceProviderIsService>();
             try
             {
-                if (!TryGetInvokeArguments(methodInfo.GetParameters(), args, argsOffset, out invokeArgs, out var errorMessage))
+                var parameters = originalParameters;
+                if (isService != null)
+                {
+                    parameters = parameters.Where(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType))).ToArray();
+                }
+
+                if (!TryGetInvokeArguments(parameters, args, argsOffset, out invokeArgs, out var errorMessage))
                 {
                     await SetFailAsync(errorMessage + " args: " + string.Join(" ", args));
                     return;
                 }
+
             }
             catch (Exception ex)
             {
@@ -135,10 +135,39 @@ namespace ConsoleAppFramework
             }
 
             var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger, methodInfo, provider);
+
+            // re:create invokeArgs, merge with DI parameter.
+            if (invokeArgs.Length != originalParameters.Length)
+            {
+                var newInvokeArgs = new object?[originalParameters.Length];
+                var invokeArgsIndex = 0;
+                for (int i = 0; i < originalParameters.Length; i++)
+                {
+                    var p = originalParameters[i].ParameterType;
+                    if (p == typeof(ConsoleAppContext))
+                    {
+                        newInvokeArgs[i] = ctx;
+                    }
+                    else if (isService!.IsService(p))
+                    {
+                        newInvokeArgs[i] = provider.GetService(p);
+                    }
+                    else
+                    {
+                        newInvokeArgs[i] = invokeArgs[invokeArgsIndex++];
+                    }
+                }
+                invokeArgs = newInvokeArgs;
+            }
+
             try
             {
-                instance = provider.GetRequiredService(type);
-                typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context))!.SetValue(instance, ctx);
+                if (instance == null && !type.IsAbstract && !methodInfo.IsStatic)
+                {
+                    instance = ActivatorUtilities.CreateInstance(provider, type);
+                    typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context))!.SetValue(instance, ctx);
+                }
+
             }
             catch (Exception ex)
             {
@@ -149,10 +178,24 @@ namespace ConsoleAppFramework
             try
             {
                 var invoker = new WithFilterInvoker(methodInfo, instance, invokeArgs, provider, options.GlobalFilters ?? Array.Empty<ConsoleAppFilter>(), ctx);
-                var result = await invoker.InvokeAsync();
-                if (result != null)
+                try
                 {
-                    Environment.ExitCode = result.Value;
+                    var result = await invoker.InvokeAsync();
+                    if (result != null)
+                    {
+                        Environment.ExitCode = result.Value;
+                    }
+                }
+                finally
+                {
+                    if (instance is IAsyncDisposable ad)
+                    {
+                        await ad.DisposeAsync();
+                    }
+                    else if (instance is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
             catch (Exception ex)
@@ -166,12 +209,12 @@ namespace ConsoleAppFramework
 
                 if (ex is TargetInvocationException tex)
                 {
-                    await SetFailAsync("Fail in console app running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
+                    await SetFailAsync("Fail in application running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
                     return;
                 }
                 else
                 {
-                    await SetFailAsync("Fail in console app running on " + type.Name + "." + methodInfo.Name, ex);
+                    await SetFailAsync("Fail in application running on " + type.Name + "." + methodInfo.Name, ex);
                     return;
                 }
             }
@@ -204,7 +247,7 @@ namespace ConsoleAppFramework
                 var item = parameters[i];
                 var option = item.GetCustomAttribute<OptionAttribute>();
 
-                optionTypeByOptionName[(isStrict ? "--" : "") + item.Name] = item.ParameterType;
+                optionTypeByOptionName[(isStrict ? "--" : "") + options.NameConverter(item.Name!)] = item.ParameterType;
                 if (!string.IsNullOrWhiteSpace(option?.ShortName))
                 {
                     optionTypeByOptionName[(isStrict ? "-" : "") + option!.ShortName!] = item.ParameterType;
@@ -217,8 +260,9 @@ namespace ConsoleAppFramework
             for (int i = 0; i < parameters.Length; i++)
             {
                 var item = parameters[i];
+                var itemName = options.NameConverter(item.Name!);
                 var option = item.GetCustomAttribute<OptionAttribute>();
-                if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{item.Name}' has a short name, but the short name must start with A-Z or a-z.");
+                if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{itemName}' has a short name, but the short name must start with A-Z or a-z.");
 
                 var value = default(OptionParameter);
 
@@ -239,7 +283,7 @@ namespace ConsoleAppFramework
                 }
 
                 // Keyed options (e.g. -foo -bar )
-                var longName = (isStrict) ? ("--" + item.Name) : item.Name;
+                var longName = (isStrict) ? ("--" + itemName) : itemName;
                 var shortName = (isStrict) ? ("-" + option?.ShortName?.TrimStart('-')) : option?.ShortName?.TrimStart('-');
 
                 if (value.Value != null || argumentDictionary.TryGetValue(longName!, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
@@ -267,7 +311,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on Enum parsing.";
+                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on Enum parsing.";
                                 return false;
                             }
                         }
@@ -300,7 +344,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
+                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
                                 return false;
                             }
                         }
@@ -313,7 +357,7 @@ namespace ConsoleAppFramework
                             }
                             catch
                             {
-                                errorMessage = "Parameter \"" + item.Name + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
+                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
                                 return false;
                             }
                         }
@@ -331,10 +375,10 @@ namespace ConsoleAppFramework
                 }
                 else
                 {
-                    var name = item.Name;
+                    var name = itemName;
                     if (option?.ShortName != null)
                     {
-                        name = item.Name + "(" + "-" + option.ShortName + ")";
+                        name = itemName + "(" + "-" + option.ShortName + ")";
                     }
                     errorMessage = "Required parameter \"" + name + "\"" + " not found in argument.";
                     return false;

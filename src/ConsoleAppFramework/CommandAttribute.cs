@@ -28,17 +28,10 @@ namespace ConsoleAppFramework
             this.CommandNames = commandNames;
             this.Description = description;
         }
+    }
 
-        internal bool EqualsAny(string name)
-        {
-            foreach (var item in CommandNames)
-            {
-                if (string.Equals(name, item, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class RootCommandAttribute : Attribute
+    {
     }
 }

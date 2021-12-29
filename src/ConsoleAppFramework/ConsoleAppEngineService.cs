@@ -1,58 +1,44 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ConsoleAppFramework
 {
-    public sealed class ConsoleAppEngineService : IHostedService
+    // This servcie is called from ConsoleApp.Run
+    internal sealed class ConsoleAppEngineService : IHostedService
     {
-        string[] args;
-        Type type;
-        MethodInfo? methodInfo;
         IHostApplicationLifetime appLifetime;
-        ILogger<ConsoleAppEngine> logger;
-        IServiceScope scope;
+        ILogger<ConsoleApp> logger;
+        IServiceProvider provider;
+        IServiceScope? scope;
         Task? runningTask;
-        CancellationTokenSource cancellationTokenSource;
+        CancellationTokenSource? cancellationTokenSource;
 
-        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, Type type, string[] args, ILogger<ConsoleAppEngine> logger, IServiceProvider provider)
-            : this(appLifetime, type, null, args, logger, provider)
+        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, ILogger<ConsoleApp> logger, IServiceProvider provider, IOptionsMonitor<HostOptions> hostOptions)
         {
-        }
-
-        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, Type type, MethodInfo? methodInfo, string[] args, ILogger<ConsoleAppEngine> logger, IServiceProvider provider)
-        {
-            this.args = args;
-            this.type = type;
-            this.methodInfo = methodInfo;
             this.appLifetime = appLifetime;
-            this.scope = provider.CreateScope();
+            this.provider = provider;
             this.logger = logger;
-            this.cancellationTokenSource = new CancellationTokenSource();
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken ct)
         {
+            cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
             {
                 var self = (ConsoleAppEngineService)state!;
                 try
                 {
-                    var engine = new ConsoleAppEngine(self.logger, scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ConsoleAppOptions>(), self.cancellationTokenSource.Token);
-                    if (self.methodInfo != null)
-                    {
-                        self.runningTask = engine.RunAsync(self.type, self.methodInfo, self.args);
-                    }
-                    else
-                    {
-                        self.runningTask = engine.RunAsync(self.type, self.args);
-                    }
-
+                    self.scope = self.provider.CreateScope();
+                    var token = (self.cancellationTokenSource != null) ? self.cancellationTokenSource.Token : CancellationToken.None;
+                    var engine = ActivatorUtilities.CreateInstance<ConsoleAppEngine>(self.scope.ServiceProvider, token);
+                    self.runningTask = engine.RunAsync();
                     await self.runningTask;
                     self.runningTask = null;
                 }
@@ -69,7 +55,7 @@ namespace ConsoleAppFramework
             return Task.CompletedTask;
         }
 
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken ct)
         {
             try
             {
@@ -79,8 +65,38 @@ namespace ConsoleAppFramework
                 if (task != null)
                 {
                     logger.LogTrace("Detect Cancel signal, wait for running console app task canceled.");
-                    await task;
-                    logger.LogTrace("ConsoleApp cancel completed.");
+                    try
+                    {
+                        if (ct.CanBeCanceled)
+                        {
+                            var cancelTask = CreateTimeoutTask(ct);
+                            var completedTask = await Task.WhenAny(cancelTask, task);
+                            if (completedTask == cancelTask)
+                            {
+                                logger.LogTrace("ConsoleApp aborted, cancel timeout.");
+                            }
+                            else
+                            {
+                                logger.LogTrace("ConsoleApp cancel completed.");
+                            }
+                        }
+                        else
+                        {
+                            await task;
+                            logger.LogTrace("ConsoleApp cancel completed.");
+                        }
+                    }
+                    catch (OperationCanceledException ex)
+                    {
+                        if (ex.CancellationToken == ct)
+                        {
+                            logger.LogTrace("ConsoleApp aborted, cancel timeout.");
+                        }
+                        else
+                        {
+                            logger.LogTrace("ConsoleApp cancel completed.");
+                        }
+                    }
                 }
             }
             finally
@@ -91,9 +107,19 @@ namespace ConsoleAppFramework
                 }
                 else
                 {
-                    scope.Dispose();
+                    scope?.Dispose();
                 }
             }
+        }
+
+        Task CreateTimeoutTask(CancellationToken ct)
+        {
+            var tcs = new TaskCompletionSource<object>();
+            ct.Register(() =>
+            {
+                tcs.TrySetCanceled(ct);
+            });
+            return tcs.Task;
         }
     }
 }

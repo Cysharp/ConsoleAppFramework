@@ -11,12 +11,12 @@ namespace ConsoleAppFramework
         public string?[] Arguments { get; }
         public DateTime Timestamp { get; }
         public CancellationToken CancellationToken { get; }
-        public ILogger<ConsoleAppEngine> Logger { get; }
+        public ILogger<ConsoleApp> Logger { get; }
         public MethodInfo MethodInfo { get; }
         public IServiceProvider ServiceProvider { get; }
         public IDictionary<string, object> Items { get; }
 
-        public ConsoleAppContext(string?[] arguments, DateTime timestamp, CancellationToken cancellationToken, ILogger<ConsoleAppEngine> logger, MethodInfo methodInfo, IServiceProvider serviceProvider)
+        public ConsoleAppContext(string?[] arguments, DateTime timestamp, CancellationToken cancellationToken, ILogger<ConsoleApp> logger, MethodInfo methodInfo, IServiceProvider serviceProvider)
         {
             Arguments = arguments;
             Timestamp = timestamp;

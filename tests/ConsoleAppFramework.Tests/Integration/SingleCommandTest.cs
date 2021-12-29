@@ -15,12 +15,12 @@ namespace ConsoleAppFramework.Integration.Test
             using var console = new CaptureConsoleOutput();
             var args = new string[] { };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_NoOptions_NoArgs>(args);
-            console.Output.Should().Contain("Hello");
+            console.Output.Should().Contain("HelloMyWorld");
         }
 
         public class CommandTests_Single_NoOptions_NoArgs : ConsoleAppBase
         {
-            public void Hello() => Console.WriteLine("Hello");
+            public void Hello() => Console.WriteLine("HelloMyWorld");
         }
     }
 }

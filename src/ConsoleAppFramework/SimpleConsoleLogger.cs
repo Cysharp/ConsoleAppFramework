@@ -50,7 +50,7 @@ namespace ConsoleAppFramework.Logging
             return minimumLogLevel <= logLevel;
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
 

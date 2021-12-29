@@ -25,20 +25,20 @@ namespace ConsoleAppFramework.Tests
         {
             public int X;
         }
-        [Fact]
-        public async Task TestCommandName()
-        {
-            var host = Host.CreateDefaultBuilder()
-                .ConfigureServices((c, services) =>
-                {
-                    services.AddSingleton<ResultContainer>();
-                })
-                .UseConsoleAppFramework<CommandAttributeTestCommand>(new string[]{ "test", "-value", "1" })
-                .Build();
-            var result = host.Services.GetService<ResultContainer>();
-            await host.RunAsync();
-            result.X.Should().Be(1);
-        }
+        //[Fact]
+        //public async Task TestCommandName()
+        //{
+        //    var host = Host.CreateDefaultBuilder()
+        //        .ConfigureServices((c, services) =>
+        //        {
+        //            services.AddSingleton<ResultContainer>();
+        //        })
+        //        .UseConsoleAppFramework<CommandAttributeTestCommand>(new string[]{ "test", "-value", "1" })
+        //        .Build();
+        //    var result = host.Services.GetService<ResultContainer>();
+        //    await host.RunAsync();
+        //    result.X.Should().Be(1);
+        //}
 
     }
 }
