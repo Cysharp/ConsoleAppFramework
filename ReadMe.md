@@ -102,13 +102,22 @@ dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotn
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
 
-- [CLI Tools](#cli-tools)
-- [Automatically Class/Method command routing](#automatically-classmethod-command-routing)
+- [Getting Started](#getting-started)
+- [ConsoleApp / ConsoleAppBuilder](#consoleapp--consoleappbuilder)
+- [Delegate convention](#delegate-convention)
+- [AddCommand](#addcommand)
+  - [`AddRootCommand`](#addrootcommand)
+  - [`AddCommand` / `AddCommands<T>`](#addcommand--addcommandst)
+  - [`AddSubCommand` / `AddSubCommands<T>`](#addsubcommand--addsubcommandst)
+  - [`AddAllCommandType`](#addallcommandtype)
+- [Run vs RunAsync](#run-vs-runasync)
 - [Complex Argument](#complex-argument)
 - [Exit Code](#exit-code)
+- [Implicit Using](#implicit-using)
 - [CommandAttribute](#commandattribute)
 - [OptionAttribute](#optionattribute)
 - [Daemon](#daemon)
+- [Abort Timeout](#abort-timeout)
 - [Filter](#filter)
 - [Logging](#logging)
 - [Configuration](#configuration)
@@ -116,8 +125,8 @@ dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotn
 - [Cleanup](#cleanup)
 - [ConsoleAppContext](#consoleappcontext)
 - [ConsoleAppOptions](#consoleappoptions)
-- [Web Interface with Swagger](#web-interface-with-swagger)
 - [Publish to executable file](#publish-to-executable-file)
+- [v3 Legacy Compatibility](#v3-legacy-compatibility)
 - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
