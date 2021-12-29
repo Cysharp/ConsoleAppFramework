@@ -1,4 +1,5 @@
-﻿using ConsoleAppFramework;
+﻿
+using ConsoleAppFramework;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,7 @@ using Net6Console;
 using ZLogger;
 
 
-//ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
+ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 
 //args = new[] { "--message", "tako" };
 
@@ -76,202 +77,202 @@ using ZLogger;
 
 // ----
 
-[Command("db")]
-public class DatabaseApp : ConsoleAppBase, IAsyncDisposable
-{
-    readonly ILogger<DatabaseApp> logger;
-    readonly MyDbContext dbContext;
-    readonly IOptions<MyConfig> config;
-
-    // you can get DI parameters.
-    public DatabaseApp(ILogger<DatabaseApp> logger, IOptions<MyConfig> config, MyDbContext dbContext)
-    {
-        this.logger = logger;
-        this.dbContext = dbContext;
-        this.config = config;
-    }
-
-    [Command("select")]
-    public async Task QueryAsync(int id)
-    {
-        // select * from...
-    }
-
-    // also allow defaultValue.
-    [Command("insert")]
-    public async Task InsertAsync(string value, int id = 0)
-    {
-        // insert into...
-    }
-
-    // support cleanup(IDisposable/IAsyncDisposable)
-    public async ValueTask DisposeAsync()
-    {
-        await dbContext.DisposeAsync();
-    }
-}
-
-public class MyConfig
-{
-    public string FooValue { get; set; } = default!;
-    public string BarValue { get; set; } = default!;
-}
-
-
-// System.CommandLine
-// Create a root command with some options
-//using System.CommandLine;
-
-//var rootCommand = new RootCommand
+//[Command("db")]
+//public class DatabaseApp : ConsoleAppBase, IAsyncDisposable
 //{
-//    new Option<int>(
-//        "--int-option",
-//        getDefaultValue: () => 42,
-//        description: "An option whose argument is parsed as an int"),
-//    new Option<bool>(
-//        "--bool-option",
-//        "An option whose argument is parsed as a bool"),
-//    new Option<FileInfo>(
-//        "--file-option",
-//        "An option whose argument is parsed as a FileInfo")
-//};
+//    readonly ILogger<DatabaseApp> logger;
+//    readonly MyDbContext dbContext;
+//    readonly IOptions<MyConfig> config;
 
-//rootCommand.Description = "My sample app";
+//    // you can get DI parameters.
+//    public DatabaseApp(ILogger<DatabaseApp> logger, IOptions<MyConfig> config, MyDbContext dbContext)
+//    {
+//        this.logger = logger;
+//        this.dbContext = dbContext;
+//        this.config = config;
+//    }
 
-//rootCommand.SetHandler<int, bool, FileInfo>((intOption, boolOption, fileOption) =>
+//    [Command("select")]
+//    public async Task QueryAsync(int id)
+//    {
+//        // select * from...
+//    }
+
+//    // also allow defaultValue.
+//    [Command("insert")]
+//    public async Task InsertAsync(string value, int id = 0)
+//    {
+//        // insert into...
+//    }
+
+//    // support cleanup(IDisposable/IAsyncDisposable)
+//    public async ValueTask DisposeAsync()
+//    {
+//        await dbContext.DisposeAsync();
+//    }
+//}
+
+//public class MyConfig
 //{
-//    Console.WriteLine($"The value for --int-option is: {intOption}");
-//    Console.WriteLine($"The value for --bool-option is: {boolOption}");
-//    Console.WriteLine($"The value for --file-option is: {fileOption?.FullName ?? "null"}");
-//});
-
-//await rootCommand.InvokeAsync(args);
+//    public string FooValue { get; set; } = default!;
+//    public string BarValue { get; set; } = default!;
+//}
 
 
+//// System.CommandLine
+//// Create a root command with some options
+////using System.CommandLine;
 
-//args = new[] { "check-timeout" };
-
-//var builder = ConsoleApp.CreateBuilder(args);
-//builder.ConfigureHostOptions(options =>
-//{
-//    global::System.Console.WriteLine(options.ShutdownTimeout);
-//    options.ShutdownTimeout = TimeSpan.FromSeconds(10);
-//});
-
-
-//var app = builder.Build();
-
-
-//app.AddCommands<DisposeMan>();
-
-//app.Run();
-
-// System.CommandLine v2, requires many boilerplate code.
-//using System.CommandLine;
-
-//var option = new Option<string>("name");
-//var rootCommand = new RootCommand
-//{
-//    option
-//};
-
-//rootCommand.SetHandler((string name) =>
-//{
-//    Console.WriteLine($"Hello {name}");
-//}, option);
-
-//rootCommand.Invoke(args);
-
-
-
-
-//return;
-
-public class DisposeMan : ConsoleAppBase, IDisposable
-{
-    public void Tako()
-    {
-        Console.WriteLine("Tako");
-    }
-
-    public async Task CheckTimeout()
-    {
-        await Task.Delay(TimeSpan.FromSeconds(30));
-    }
-
-    public void Dispose()
-    {
-        Console.WriteLine("foo!");
-    }
-}
-
-
-//rootCommand.Handler = CommandHandler.Create<int, bool, FileInfo>((intOption, boolOption, fileOption) =>
-//{
-//    Console.WriteLine($"The value for --int-option is: {intOption}");
-//    Console.WriteLine($"The value for --bool-option is: {boolOption}");
-//    Console.WriteLine($"The value for --file-option is: {fileOption?.FullName ?? "null"}");
-//});
-
-//// Parse the incoming args and invoke the handler
-//return rootCommand.InvokeAsync(args).Result;
-
-
-
-//using ConsoleAppFramework;
-//using Microsoft.Extensions.Hosting;
-//using Microsoft.Extensions.Logging;
-
-//args = new[] { "iroiro-case", "tako", "--help" };
-////args = new[] { "console-foo", "hello-anonymous", "--help" };
-////args = new[] { "console-foo", "hello-anonymous", "--hyper-name", "takoyaki" };
-
-//var app = ConsoleApp.Create(args);
-
-////app.AddCommand("foo", (ConsoleAppContext context, [Option(0)] int x, ILogger<string> oreLogger, [Option(1)] int y) =>
+////var rootCommand = new RootCommand
 ////{
-////    global::System.Console.WriteLine(context.Timestamp);
-////    global::System.Console.WriteLine(x + ":" + y);
+////    new Option<int>(
+////        "--int-option",
+////        getDefaultValue: () => 42,
+////        description: "An option whose argument is parsed as an int"),
+////    new Option<bool>(
+////        "--bool-option",
+////        "An option whose argument is parsed as a bool"),
+////    new Option<FileInfo>(
+////        "--file-option",
+////        "An option whose argument is parsed as a FileInfo")
+////};
+
+////rootCommand.Description = "My sample app";
+
+////rootCommand.SetHandler<int, bool, FileInfo>((intOption, boolOption, fileOption) =>
+////{
+////    Console.WriteLine($"The value for --int-option is: {intOption}");
+////    Console.WriteLine($"The value for --bool-option is: {boolOption}");
+////    Console.WriteLine($"The value for --file-option is: {fileOption?.FullName ?? "null"}");
 ////});
-//app.AddRoutedCommands();
-//app.AddDefaultCommand((string foo) => { });
 
-////app.AddCommands<ConsoleFoo>();
+////await rootCommand.InvokeAsync(args);
 
-//app.Run();
 
-//static class Foo
+
+////args = new[] { "check-timeout" };
+
+////var builder = ConsoleApp.CreateBuilder(args);
+////builder.ConfigureHostOptions(options =>
+////{
+////    global::System.Console.WriteLine(options.ShutdownTimeout);
+////    options.ShutdownTimeout = TimeSpan.FromSeconds(10);
+////});
+
+
+////var app = builder.Build();
+
+
+////app.AddCommands<DisposeMan>();
+
+////app.Run();
+
+//// System.CommandLine v2, requires many boilerplate code.
+////using System.CommandLine;
+
+////var option = new Option<string>("name");
+////var rootCommand = new RootCommand
+////{
+////    option
+////};
+
+////rootCommand.SetHandler((string name) =>
+////{
+////    Console.WriteLine($"Hello {name}");
+////}, option);
+
+////rootCommand.Invoke(args);
+
+
+
+
+////return;
+
+//public class DisposeMan : ConsoleAppBase, IDisposable
 //{
-//    public static void Barrier(int x, int y)
+//    public void Tako()
 //    {
-//        Console.WriteLine($"OK:{x + y}");
+//        Console.WriteLine("Tako");
+//    }
+
+//    public async Task CheckTimeout()
+//    {
+//        await Task.Delay(TimeSpan.FromSeconds(30));
+//    }
+
+//    public void Dispose()
+//    {
+//        Console.WriteLine("foo!");
 //    }
 //}
 
-//public class ConsoleFoo : ConsoleAppBase
-//{
-//    // [DefaultCommand]
-//    public void HelloAnonymous(string hyperName)
-//    {
-//        Console.WriteLine("OK:" + hyperName);
-//    }
 
-//    public void Hello2([Option("n", "name of send user.")] string name, [Option("r", "repeat count.")] int repeat = 3)
-//    {
-//    }
+////rootCommand.Handler = CommandHandler.Create<int, bool, FileInfo>((intOption, boolOption, fileOption) =>
+////{
+////    Console.WriteLine($"The value for --int-option is: {intOption}");
+////    Console.WriteLine($"The value for --bool-option is: {boolOption}");
+////    Console.WriteLine($"The value for --file-option is: {fileOption?.FullName ?? "null"}");
+////});
 
-
-//}
-
-//public class IroiroCase : ConsoleAppBase
-//{
-//    [Command(new[] { "tako", "Yaki", "nanobee", "hatchi" })]
-//    public void Tes(int I, int i, int ID, int XML, int Xml, int Id, int IdCheck, int IDCheck, int IdCheckZ, int IdCheckXML, int IdCheckXml)
-//    {
-//    }
+////// Parse the incoming args and invoke the handler
+////return rootCommand.InvokeAsync(args).Result;
 
 
-//    public void Hot()
-//    {
-//    }
-//}
+
+////using ConsoleAppFramework;
+////using Microsoft.Extensions.Hosting;
+////using Microsoft.Extensions.Logging;
+
+////args = new[] { "iroiro-case", "tako", "--help" };
+//////args = new[] { "console-foo", "hello-anonymous", "--help" };
+//////args = new[] { "console-foo", "hello-anonymous", "--hyper-name", "takoyaki" };
+
+////var app = ConsoleApp.Create(args);
+
+//////app.AddCommand("foo", (ConsoleAppContext context, [Option(0)] int x, ILogger<string> oreLogger, [Option(1)] int y) =>
+//////{
+//////    global::System.Console.WriteLine(context.Timestamp);
+//////    global::System.Console.WriteLine(x + ":" + y);
+//////});
+////app.AddRoutedCommands();
+////app.AddDefaultCommand((string foo) => { });
+
+//////app.AddCommands<ConsoleFoo>();
+
+////app.Run();
+
+////static class Foo
+////{
+////    public static void Barrier(int x, int y)
+////    {
+////        Console.WriteLine($"OK:{x + y}");
+////    }
+////}
+
+////public class ConsoleFoo : ConsoleAppBase
+////{
+////    // [DefaultCommand]
+////    public void HelloAnonymous(string hyperName)
+////    {
+////        Console.WriteLine("OK:" + hyperName);
+////    }
+
+////    public void Hello2([Option("n", "name of send user.")] string name, [Option("r", "repeat count.")] int repeat = 3)
+////    {
+////    }
+
+
+////}
+
+////public class IroiroCase : ConsoleAppBase
+////{
+////    [Command(new[] { "tako", "Yaki", "nanobee", "hatchi" })]
+////    public void Tes(int I, int i, int ID, int XML, int Xml, int Id, int IdCheck, int IDCheck, int IdCheckZ, int IdCheckXML, int IdCheckXml)
+////    {
+////    }
+
+
+////    public void Hot()
+////    {
+////    }
+////}
