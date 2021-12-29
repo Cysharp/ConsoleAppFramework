@@ -7,7 +7,7 @@ namespace ConsoleAppFramework
 {
     internal class CommandDescriptorCollection
     {
-        CommandDescriptor? defaultCommandDescriptor;
+        CommandDescriptor? rootCommandDescriptor;
         readonly Dictionary<string, CommandDescriptor> descriptors = new Dictionary<string, CommandDescriptor>(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, Dictionary<string, CommandDescriptor>> subCommandDescriptors = new Dictionary<string, Dictionary<string, CommandDescriptor>>(StringComparer.OrdinalIgnoreCase);
         readonly ConsoleAppOptions options;
@@ -28,36 +28,36 @@ namespace ConsoleAppFramework
             }
         }
 
-        public void AddSubCommand(string rootCommand, CommandDescriptor commandDescriptor)
+        public void AddSubCommand(string parentCommand, CommandDescriptor commandDescriptor)
         {
-            if (descriptors.ContainsKey(rootCommand))
+            if (descriptors.ContainsKey(parentCommand))
             {
-                throw new InvalidOperationException($"Duplicate root-command is added. Name:{rootCommand} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
+                throw new InvalidOperationException($"Duplicate parent-command is added. Name:{parentCommand} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
             }
 
-            if (!subCommandDescriptors.TryGetValue(rootCommand, out var commandDict))
+            if (!subCommandDescriptors.TryGetValue(parentCommand, out var commandDict))
             {
                 commandDict = new Dictionary<string, CommandDescriptor>(StringComparer.OrdinalIgnoreCase);
-                subCommandDescriptors.Add(rootCommand, commandDict);
+                subCommandDescriptors.Add(parentCommand, commandDict);
             }
 
             foreach (var name in commandDescriptor.GetNames(options))
             {
                 if (!commandDict.TryAdd(name, commandDescriptor))
                 {
-                    throw new InvalidOperationException($"Duplicate command name is added. Name:{rootCommand} {name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
+                    throw new InvalidOperationException($"Duplicate command name is added. Name:{parentCommand} {name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
                 }
             }
         }
 
-        public void AddDefaultCommand(CommandDescriptor commandDescriptor)
+        public void AddRootCommand(CommandDescriptor commandDescriptor)
         {
-            if (this.defaultCommandDescriptor != null)
+            if (this.rootCommandDescriptor != null)
             {
-                throw new InvalidOperationException($"Found more than one default command. Method:{defaultCommandDescriptor.MethodInfo.DeclaringType?.Name}.{defaultCommandDescriptor.MethodInfo.Name} and {commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
+                throw new InvalidOperationException($"Found more than one root command. Method:{rootCommandDescriptor.MethodInfo.DeclaringType?.Name}.{rootCommandDescriptor.MethodInfo.Name} and {commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
             }
 
-            this.defaultCommandDescriptor = commandDescriptor;
+            this.rootCommandDescriptor = commandDescriptor;
         }
 
         // Only check command name(not foo)
@@ -91,10 +91,10 @@ namespace ConsoleAppFramework
             }
 
             // 3. default
-            if (defaultCommandDescriptor != null)
+            if (rootCommandDescriptor != null)
             {
                 offset = 0;
-                descriptor = defaultCommandDescriptor;
+                descriptor = rootCommandDescriptor;
                 return true;
             }
 
@@ -126,7 +126,7 @@ namespace ConsoleAppFramework
             return descriptors.TryGetValue(DefaultCommands.Version, out commandDescriptor);
         }
 
-        public CommandDescriptor? GetDefaultCommandDescriptor() => defaultCommandDescriptor;
+        public CommandDescriptor? GetRootCommandDescriptor() => rootCommandDescriptor;
 
         /// <summary>
         /// GetAll(except default) descriptors.

@@ -31,7 +31,7 @@ namespace ConsoleAppFramework
     }
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    public class DefaultCommandAttribute : Attribute
+    public class RootCommandAttribute : Attribute
     {
     }
 }

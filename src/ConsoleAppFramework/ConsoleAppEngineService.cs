@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,18 +16,19 @@ namespace ConsoleAppFramework
         IServiceProvider provider;
         IServiceScope? scope;
         Task? runningTask;
-        CancellationTokenSource cancellationTokenSource;
+        CancellationTokenSource? cancellationTokenSource;
 
-        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, ILogger<ConsoleApp> logger, IServiceProvider provider)
+        public ConsoleAppEngineService(IHostApplicationLifetime appLifetime, ILogger<ConsoleApp> logger, IServiceProvider provider, IOptionsMonitor<HostOptions> hostOptions)
         {
             this.appLifetime = appLifetime;
             this.provider = provider;
             this.logger = logger;
-            this.cancellationTokenSource = new CancellationTokenSource();
         }
 
-        public Task StartAsync(CancellationToken _) // TODO: use _(this is used ShutdownTimeout ??? )
+        public Task StartAsync(CancellationToken ct)
         {
+            cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
             // raise after all event registered
             appLifetime.ApplicationStarted.Register(async state =>
             {
@@ -34,7 +36,8 @@ namespace ConsoleAppFramework
                 try
                 {
                     self.scope = self.provider.CreateScope();
-                    var engine = ActivatorUtilities.CreateInstance<ConsoleAppEngine>(self.scope.ServiceProvider, self.cancellationTokenSource.Token);
+                    var token = (self.cancellationTokenSource != null) ? self.cancellationTokenSource.Token : CancellationToken.None;
+                    var engine = ActivatorUtilities.CreateInstance<ConsoleAppEngine>(self.scope.ServiceProvider, token);
                     self.runningTask = engine.RunAsync();
                     await self.runningTask;
                     self.runningTask = null;
@@ -52,7 +55,7 @@ namespace ConsoleAppFramework
             return Task.CompletedTask;
         }
 
-        public async Task StopAsync(CancellationToken _) // TODO:use _???
+        public async Task StopAsync(CancellationToken ct)
         {
             try
             {
@@ -62,9 +65,38 @@ namespace ConsoleAppFramework
                 if (task != null)
                 {
                     logger.LogTrace("Detect Cancel signal, wait for running console app task canceled.");
-                    // TODO:require timeout.
-                    await task;
-                    logger.LogTrace("ConsoleApp cancel completed.");
+                    try
+                    {
+                        if (ct.CanBeCanceled)
+                        {
+                            var cancelTask = CreateTimeoutTask(ct);
+                            var completedTask = await Task.WhenAny(cancelTask, task);
+                            if (completedTask == cancelTask)
+                            {
+                                logger.LogTrace("ConsoleApp aborted, cancel timeout.");
+                            }
+                            else
+                            {
+                                logger.LogTrace("ConsoleApp cancel completed.");
+                            }
+                        }
+                        else
+                        {
+                            await task;
+                            logger.LogTrace("ConsoleApp cancel completed.");
+                        }
+                    }
+                    catch (OperationCanceledException ex)
+                    {
+                        if (ex.CancellationToken == ct)
+                        {
+                            logger.LogTrace("ConsoleApp aborted, cancel timeout.");
+                        }
+                        else
+                        {
+                            logger.LogTrace("ConsoleApp cancel completed.");
+                        }
+                    }
                 }
             }
             finally
@@ -78,6 +110,16 @@ namespace ConsoleAppFramework
                     scope?.Dispose();
                 }
             }
+        }
+
+        Task CreateTimeoutTask(CancellationToken ct)
+        {
+            var tcs = new TaskCompletionSource<object>();
+            ct.Register(() =>
+            {
+                tcs.TrySetCanceled(ct);
+            });
+            return tcs.Task;
         }
     }
 }

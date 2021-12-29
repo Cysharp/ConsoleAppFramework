@@ -17,7 +17,7 @@ namespace ConsoleAppFramework
         public MethodInfo MethodInfo { get; }
         public object? Instance { get; }
         public CommandAttribute? CommandAttribute { get; }
-        public string? RootCommand { get; }
+        public string? ParentCommand { get; }
 
         public string[] GetNames(ConsoleAppOptions options)
         {
@@ -47,9 +47,9 @@ namespace ConsoleAppFramework
 
         public string GetCommandName(ConsoleAppOptions options)
         {
-            if (RootCommand != null)
+            if (ParentCommand != null)
             {
-                return $"{RootCommand} {GetNamesFormatted(options)}";
+                return $"{ParentCommand} {GetNamesFormatted(options)}";
             }
             else
             {
@@ -72,13 +72,13 @@ namespace ConsoleAppFramework
             }
         }
 
-        public CommandDescriptor(CommandType commandType, MethodInfo methodInfo, object? instance = null, CommandAttribute? additionalCommandAttribute = null, string? rootCommand = null)
+        public CommandDescriptor(CommandType commandType, MethodInfo methodInfo, object? instance = null, CommandAttribute? additionalCommandAttribute = null, string? parentCommand = null)
         {
             CommandType = commandType;
             MethodInfo = methodInfo;
             Instance = instance;
             CommandAttribute = additionalCommandAttribute ?? methodInfo.GetCustomAttribute<CommandAttribute>();
-            RootCommand = rootCommand;
+            ParentCommand = parentCommand;
         }
     }
 }

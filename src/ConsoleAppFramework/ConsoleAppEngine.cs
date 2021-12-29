@@ -178,11 +178,24 @@ namespace ConsoleAppFramework
             try
             {
                 var invoker = new WithFilterInvoker(methodInfo, instance, invokeArgs, provider, options.GlobalFilters ?? Array.Empty<ConsoleAppFilter>(), ctx);
-                // TODO:dispose or dispose async instance.
-                var result = await invoker.InvokeAsync();
-                if (result != null)
+                try
                 {
-                    Environment.ExitCode = result.Value;
+                    var result = await invoker.InvokeAsync();
+                    if (result != null)
+                    {
+                        Environment.ExitCode = result.Value;
+                    }
+                }
+                finally
+                {
+                    if (instance is IAsyncDisposable ad)
+                    {
+                        await ad.DisposeAsync();
+                    }
+                    else if (instance is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
             catch (Exception ex)
