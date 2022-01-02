@@ -41,12 +41,6 @@ namespace ConsoleAppFramework
             this.builder = AddConsoleAppFramework(hostBuilder, args, options, (_, __) => { });
         }
 
-        public ConsoleApp Build()
-        {
-            var host = builder.Build();
-            return new ConsoleApp(host);
-        }
-
         IHostBuilder AddConsoleAppFramework(IHostBuilder builder, string[] args, ConsoleAppOptions options, Action<HostBuilderContext, ConsoleAppOptions>? configureOptions)
         {
             return builder
@@ -78,36 +72,80 @@ namespace ConsoleAppFramework
             return builder.Build();
         }
 
-        public IHostBuilder ConfigureAppConfiguration(Action<HostBuilderContext, IConfigurationBuilder> configureDelegate)
+        IHostBuilder IHostBuilder.ConfigureAppConfiguration(Action<HostBuilderContext, IConfigurationBuilder> configureDelegate)
         {
             return builder.ConfigureAppConfiguration(configureDelegate);
         }
 
-        public IHostBuilder ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate)
+        IHostBuilder IHostBuilder.ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate)
         {
             return builder.ConfigureContainer(configureDelegate);
         }
 
-        public IHostBuilder ConfigureHostConfiguration(Action<IConfigurationBuilder> configureDelegate)
+        IHostBuilder IHostBuilder.ConfigureHostConfiguration(Action<IConfigurationBuilder> configureDelegate)
         {
             return builder.ConfigureHostConfiguration(configureDelegate);
         }
 
-        public IHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate)
+        IHostBuilder IHostBuilder.ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate)
         {
             return builder.ConfigureServices(configureDelegate);
         }
 
-        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory)
-            where TContainerBuilder : notnull
+        IHostBuilder IHostBuilder.UseServiceProviderFactory<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory)
         {
             return builder.UseServiceProviderFactory(factory);
         }
 
-        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(Func<HostBuilderContext, IServiceProviderFactory<TContainerBuilder>> factory)
-            where TContainerBuilder : notnull
+        IHostBuilder IHostBuilder.UseServiceProviderFactory<TContainerBuilder>(Func<HostBuilderContext, IServiceProviderFactory<TContainerBuilder>> factory)
         {
             return builder.UseServiceProviderFactory(factory);
+        }
+
+        // override implementations that returns ConsoleAppBuilder
+
+        public ConsoleApp Build()
+        {
+            var host = builder.Build();
+            return new ConsoleApp(host);
+        }
+
+        public ConsoleAppBuilder ConfigureAppConfiguration(Action<HostBuilderContext, IConfigurationBuilder> configureDelegate)
+        {
+            builder.ConfigureAppConfiguration(configureDelegate);
+            return this;
+        }
+
+        public ConsoleAppBuilder ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate)
+        {
+            builder.ConfigureContainer(configureDelegate);
+            return this;
+        }
+
+        public ConsoleAppBuilder ConfigureHostConfiguration(Action<IConfigurationBuilder> configureDelegate)
+        {
+            builder.ConfigureHostConfiguration(configureDelegate);
+            return this;
+        }
+
+        public ConsoleAppBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate)
+        {
+            builder.ConfigureServices(configureDelegate);
+            return this;
+        }
+
+        public ConsoleAppBuilder UseServiceProviderFactory<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory)
+            where TContainerBuilder : notnull
+        {
+            builder.UseServiceProviderFactory(factory);
+            return this;
+        }
+
+        public ConsoleAppBuilder UseServiceProviderFactory<TContainerBuilder>(Func<HostBuilderContext, IServiceProviderFactory<TContainerBuilder>> factory)
+            where TContainerBuilder : notnull
+        {
+            builder.UseServiceProviderFactory(factory);
+            return this;
         }
 
         // Override Configure methods(Microsoft.Extensions.Hosting.HostingHostBuilderExtensions) tor return ConsoleAppBuilder
