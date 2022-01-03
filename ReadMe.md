@@ -36,12 +36,6 @@ var app = ConsoleApp.Create(args);
 app.AddCommands<Foo>();
 app.Run();
 
-// // AddSubCommands register as sub(nested) command.
-// // foo echo --msg --repeat(default = 3)
-// // foo sum [x] [y]
-// app.AddSubCommands<Foo>();
-// app.Run();
-
 public class Foo : ConsoleAppBase
 {
     public void Echo(string msg, int repeat = 3)
@@ -62,7 +56,7 @@ public class Foo : ConsoleAppBase
 If you have many commands, you can define class separetely and use `AddAllCommandType` to register all commands one-line.
 
 ```csharp
-// register `Foo` and `Bar` as SubCommands.
+// Register `Foo` and `Bar` as SubCommands(You can also use AddSubCommands<T> to register manually).
 // foo echo --msg
 // foo sum [x] [y]
 // bar hello2
