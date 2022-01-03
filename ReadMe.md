@@ -398,6 +398,19 @@ var app = ConsoleApp.Create(args, options =>
 });
 ```
 
+`ConsoleAppBuilder` itself is `IHostBuilder` so you can use any configuration methods like `ConfigureServices`, `ConfigureLogging`, etc. If method chain is not returns `ConsoleAppBuilder`(for example,  using external lib's extension methods), can not get `ConsoleApp` directly. In that case, use `BuildAsConsoleApp()` instead of `Build()`.
+
+`ConsoleApp` exposes some utility properties.
+
+* `IHost` Host
+* `ILogger<ConsoleApp>` Logger
+* `IServiceProvider` Services
+* `IConfiguration` Configuration
+* `IHostEnvironment` Environment
+* `IHostApplicationLifetime` Lifetime
+
+`Run()` and `RunAsync(CancellationToken)` to finally invoke application. Run is shorthand of `RunAsync().GetAwaiter().GetResult()` so receives same result of `await RunAsync()`. On Entrypoint, there is not much need to do `await RunAsync()`. Therefore, it is usually a good to choose `Run()`.
+
 Delegate convention
 ---
 `AddCommand` accepts `Delegate` in argument. In C# 10.0 allows naturaly syntax of lambda expressions.
@@ -549,10 +562,6 @@ public class Bar : ConsoleAppBase
 This is most easy to create many commands so useful for application batch that requires many many command. 
 
 Commands are searched from loaded assemblies(in default `AppDomain.CurrentDomain.GetAssemblies()`), when does not touch other assemblies type, it will be trimmed and can not load it. In that case, use `AddAllCommandType(params Assembly[] searchAssemblies)` overload to pass target assembly, for example `AddAllCommandType(typeof(Foo).Assembly)` preserve types.
-
-Run vs RunAsync
----
-`ConsoleApp` has `Run` and `RunAsync` methods to finally invoke application. `Run` is shorthand of `RunAsync().GetAwaiter().GetResult()` so receives same result of `await RunAsync()`. On Entrypoint, there is not much need to do `await RunAsync()`. Therefore, it is usually a good to choose `Run`.
 
 Complex Argument
 ---
