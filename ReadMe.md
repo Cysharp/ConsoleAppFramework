@@ -190,7 +190,6 @@ dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotn
   - [`AddCommand` / `AddCommands<T>`](#addcommand--addcommandst)
   - [`AddSubCommand` / `AddSubCommands<T>`](#addsubcommand--addsubcommandst)
   - [`AddAllCommandType`](#addallcommandtype)
-- [Run vs RunAsync](#run-vs-runasync)
 - [Complex Argument](#complex-argument)
 - [Exit Code](#exit-code)
 - [Implicit Using](#implicit-using)
