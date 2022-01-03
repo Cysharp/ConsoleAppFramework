@@ -145,7 +145,7 @@ namespace ConsoleAppFramework
         {
             var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-            var rootName = typeof(T).GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? typeof(T).Name;
+            var rootName = typeof(T).GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? options.NameConverter(typeof(T).Name);
 
             foreach (var method in methods)
             {

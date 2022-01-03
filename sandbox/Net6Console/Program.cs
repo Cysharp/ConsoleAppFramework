@@ -8,10 +8,32 @@ using Net6Console;
 using ZLogger;
 
 
-ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
+
+var app = ConsoleApp.Create(args);
+
+app.AddSubCommands<FooBarBaz>();
+
+//app.AddAllCommandType();
+
+app.Run();
 
 //args = new[] { "--message", "tako" };
 
+public class FooBarBaz : ConsoleAppBase
+{
+	public void EchoNano(string msg, int repeat = 3)
+	{
+		for (var i = 0; i < repeat; i++)
+		{
+			Console.WriteLine(msg);
+		}
+	}
+
+	public void Sum([Option(0)] int x, [Option(1)] int y)
+	{
+		Console.WriteLine((x + y).ToString());
+	}
+}
 
 
 //static int Hello([Option("m")]string message, [Option("e")] bool end, [Option("r")] int repeat = 3)
