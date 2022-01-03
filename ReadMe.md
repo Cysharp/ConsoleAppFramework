@@ -6,7 +6,97 @@ ConsoleAppFramework is an infrastructure of creating CLI(Command-line interface)
 
 ![image](https://user-images.githubusercontent.com/46207/147662718-f7756523-67a9-4295-b090-3cfc94203017.png)
 
-This simplicity is by C# 10.0 and .NET 6 new features, similar as [ASP.NET Core 6.0 Minimal APIs](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis). ConsoleAppFramework is built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host), you can use configuration, logging, DI, lifetime management by Microsoft.Extensions packages.
+This simplicity is by C# 10.0 and .NET 6 new features, similar as [ASP.NET Core 6.0 Minimal APIs](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis).
+
+Most minimal API is one-line(with top-level-statements, global-usings).
+
+```csharp
+ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
+```
+
+Of course, ConsoleAppFramework has extensibility.
+
+```csharp
+// Regsiter two commands(use short-name, argument)
+// hello -m
+// sum [x] [y]
+var app = ConsoleApp.Create(args);
+app.AddCommand("hello", ([Option("m", "Message to display.")] string message) => Console.WriteLine($"Hello {message}"));
+app.AddCommand("sum", ([Option(0)] int x, [Option(1)] int y) => Console.WriteLine(x + y));
+app.Run();
+```
+
+You can register public method as command. This provides a simple way to registering multiple commands.
+
+```csharp
+// AddCommands register as command.
+// echo --msg --repeat(default = 3)
+// sum [x] [y]
+var app = ConsoleApp.Create(args);
+app.AddCommands<Foo>();
+app.Run();
+
+// // AddSubCommands register as sub(nested) command.
+// // foo echo --msg --repeat(default = 3)
+// // foo sum [x] [y]
+// app.AddSubCommands<Foo>();
+// app.Run();
+
+public class Foo : ConsoleAppBase
+{
+    public void Echo(string msg, int repeat = 3)
+    {
+        for (var i = 0; i < repeat; i++)
+        {
+            Console.WriteLine(msg);
+        }
+    }
+
+    public void Sum([Option(0)]int x, [Option(1)]int y)
+    {
+        Console.WriteLine((x + y).ToString());
+    }
+}
+```
+
+If you have many commands, you can define class separetely and use `AddAllCommandType` to register all commands one-line.
+
+```csharp
+// register `Foo` and `Bar` as SubCommands.
+// foo echo --msg
+// foo sum [x] [y]
+// bar hello2
+var app = ConsoleApp.Create(args);
+app.AddAllCommandType();
+app.Run();
+
+public class Foo : ConsoleAppBase
+{
+    public void Echo(string msg)
+    {
+        Console.WriteLine(msg);
+    }
+
+    public void Sum([Option(0)]int x, [Option(1)]int y)
+    {
+        Console.WriteLine((x + y).ToString());
+    }
+}
+
+public class Bar : ConsoleAppBase
+{
+    public void Hello2()
+    {
+        Console.WriteLine("H E L L O");
+    }
+}
+```
+
+ ConsoleAppFramework is built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host), you can use configuration, logging, DI, lifetime management by Microsoft.Extensions packages. ConsoleAppFramework do parameter binding from string args, routing many commands, dotnet style help builder, etc.
+
+![image](https://user-images.githubusercontent.com/46207/72047323-a08e0c80-32fd-11ea-850a-7f926adf3d22.png)
+
+Here is the full-sample of power of ConsoleAppFramework.
 
 ```csharp
 // You can use full feature of Generic Host(same as ASP.NET Core).
@@ -91,10 +181,6 @@ public class MyConfig
 ```
 
 ConsoleAppFramework can create easily to many command application. Also enable to use GenericHost configuration is best way to share configuration/workflow when creating batch application for other .NET web app. If tool is for CI, git pull and run by `dotnet run -- [Command] [Option]` is very helpful.
-
-ConsoleAppFramework do parameter binding from string args, routing many commands, dotnet style help builder, etc.
-
-![image](https://user-images.githubusercontent.com/46207/72047323-a08e0c80-32fd-11ea-850a-7f926adf3d22.png)
 
 dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotnet/command-line-api) is low level, require many boilerplate codes. ConsoleAppFramework is like ASP.NET Core in CLI Applications, no needs boilerplate. However, with the power of Generic Host, it is simple and easy, but much more powerful.
 
