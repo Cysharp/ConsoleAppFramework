@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -18,6 +19,10 @@ namespace ConsoleAppFramework
 
         public IHost Host { get; }
         public ILogger<ConsoleApp> Logger { get; }
+        public IServiceProvider Services => Host.Services;
+        public IConfiguration Configuration => Host.Services.GetRequiredService<IConfiguration>();
+        public IHostEnvironment Environment => Host.Services.GetRequiredService<IHostEnvironment>();
+        public IHostApplicationLifetime Lifetime => Host.Services.GetRequiredService<IHostApplicationLifetime>();
 
         internal ConsoleApp(IHost host)
         {

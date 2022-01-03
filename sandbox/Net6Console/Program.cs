@@ -11,6 +11,12 @@ using ZLogger;
 
 var app = ConsoleApp.Create(args);
 
+var a = app.Services;
+var b = app.Configuration;
+var c = app.Environment;
+var d = app.Lifetime;
+var e = app.Logger;
+
 app.AddSubCommands<FooBarBaz>();
 
 //app.AddAllCommandType();
