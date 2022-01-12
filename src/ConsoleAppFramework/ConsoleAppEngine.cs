@@ -150,7 +150,15 @@ namespace ConsoleAppFramework
                     }
                     else if (isService!.IsService(p))
                     {
-                        newInvokeArgs[i] = provider.GetService(p);
+                        try
+                        {
+                            newInvokeArgs[i] = provider.GetService(p);
+                        }
+                        catch (Exception ex)
+                        {
+                            await SetFailAsync("Fail to get service parameter. ParameterType:" + p.FullName, ex);
+                            return;
+                        }
                     }
                     else
                     {
@@ -238,155 +246,164 @@ namespace ConsoleAppFramework
 
         bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object?[] invokeArgs, out string? errorMessage)
         {
-            var jsonOption = options.JsonSerializerOptions;
-
-            // Collect option types for parsing command-line arguments.
-            var optionTypeByOptionName = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < parameters.Length; i++)
+            try
             {
-                var item = parameters[i];
-                var option = item.GetCustomAttribute<OptionAttribute>();
+                var jsonOption = options.JsonSerializerOptions;
 
-                optionTypeByOptionName[(isStrict ? "--" : "") + options.NameConverter(item.Name!)] = item.ParameterType;
-                if (!string.IsNullOrWhiteSpace(option?.ShortName))
+                // Collect option types for parsing command-line arguments.
+                var optionTypeByOptionName = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    optionTypeByOptionName[(isStrict ? "-" : "") + option!.ShortName!] = item.ParameterType;
-                }
-            }
+                    var item = parameters[i];
+                    var option = item.GetCustomAttribute<OptionAttribute>();
 
-            var (argumentDictionary, optionByIndex) = ParseArgument(args, argsOffset, optionTypeByOptionName, isStrict);
-            invokeArgs = new object[parameters.Length];
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var item = parameters[i];
-                var itemName = options.NameConverter(item.Name!);
-                var option = item.GetCustomAttribute<OptionAttribute>();
-                if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{itemName}' has a short name, but the short name must start with A-Z or a-z.");
-
-                var value = default(OptionParameter);
-
-                // Indexed arguments (e.g. [Option(0)])
-                if (option != null && option.Index != -1)
-                {
-                    if (optionByIndex.Count <= option.Index)
+                    optionTypeByOptionName[(isStrict ? "--" : "") + options.NameConverter(item.Name!)] = item.ParameterType;
+                    if (!string.IsNullOrWhiteSpace(option?.ShortName))
                     {
-                        if (!item.HasDefaultValue)
-                        {
-                            throw new InvalidOperationException($"Required argument {option.Index} was not found in specified arguments.");
-                        }
-                    }
-                    else
-                    {
-                        value = optionByIndex[option.Index];
+                        optionTypeByOptionName[(isStrict ? "-" : "") + option!.ShortName!] = item.ParameterType;
                     }
                 }
 
-                // Keyed options (e.g. -foo -bar )
-                var longName = (isStrict) ? ("--" + itemName) : itemName;
-                var shortName = (isStrict) ? ("-" + option?.ShortName?.TrimStart('-')) : option?.ShortName?.TrimStart('-');
+                var (argumentDictionary, optionByIndex) = ParseArgument(args, argsOffset, optionTypeByOptionName, isStrict);
+                invokeArgs = new object[parameters.Length];
 
-                if (value.Value != null || argumentDictionary.TryGetValue(longName!, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    if (parameters[i].ParameterType == typeof(bool) && value.Value == null)
-                    {
-                        invokeArgs[i] = value.BooleanSwitch;
-                        continue;
-                    }
+                    var item = parameters[i];
+                    var itemName = options.NameConverter(item.Name!);
+                    var option = item.GetCustomAttribute<OptionAttribute>();
+                    if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{itemName}' has a short name, but the short name must start with A-Z or a-z.");
 
-                    if (value.Value != null)
+                    var value = default(OptionParameter);
+
+                    // Indexed arguments (e.g. [Option(0)])
+                    if (option != null && option.Index != -1)
                     {
-                        if (parameters[i].ParameterType == typeof(string))
+                        if (optionByIndex.Count <= option.Index)
                         {
-                            // when string, invoke directly(avoid JSON escape)
-                            invokeArgs[i] = value.Value;
-                            continue;
-                        }
-                        else if (parameters[i].ParameterType.IsEnum)
-                        {
-                            try
+                            if (!item.HasDefaultValue)
                             {
-                                invokeArgs[i] = Enum.Parse(parameters[i].ParameterType, value.Value, true);
-                                continue;
-                            }
-                            catch
-                            {
-                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on Enum parsing.";
-                                return false;
-                            }
-                        }
-                        else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(parameters[i].ParameterType) && !typeof(System.Collections.IDictionary).IsAssignableFrom(parameters[i].ParameterType))
-                        {
-                            var v = value.Value;
-                            if (!(v.StartsWith("[") && v.EndsWith("]")))
-                            {
-                                var elemType = UnwrapCollectionElementType(parameters[i].ParameterType);
-                                if (elemType == typeof(string))
-                                {
-                                    if (!(v.StartsWith("\"") && v.EndsWith("\"")))
-                                    {
-                                        v = "[" + string.Join(",", v.Split(' ', ',').Select(x => "\"" + x + "\"")) + "]";
-                                    }
-                                    else
-                                    {
-                                        v = "[" + v + "]";
-                                    }
-                                }
-                                else
-                                {
-                                    v = "[" + string.Join(",", v.Trim('\'', '\"').Split(' ', ',')) + "]";
-                                }
-                            }
-                            try
-                            {
-                                invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
-                                continue;
-                            }
-                            catch
-                            {
-                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
-                                return false;
+                                throw new InvalidOperationException($"Required argument {option.Index} was not found in specified arguments.");
                             }
                         }
                         else
                         {
-                            try
+                            value = optionByIndex[option.Index];
+                        }
+                    }
+
+                    // Keyed options (e.g. -foo -bar )
+                    var longName = (isStrict) ? ("--" + itemName) : itemName;
+                    var shortName = (isStrict) ? ("-" + option?.ShortName?.TrimStart('-')) : option?.ShortName?.TrimStart('-');
+
+                    if (value.Value != null || argumentDictionary.TryGetValue(longName!, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
+                    {
+                        if (parameters[i].ParameterType == typeof(bool) && value.Value == null)
+                        {
+                            invokeArgs[i] = value.BooleanSwitch;
+                            continue;
+                        }
+
+                        if (value.Value != null)
+                        {
+                            if (parameters[i].ParameterType == typeof(string))
                             {
-                                invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType, jsonOption);
+                                // when string, invoke directly(avoid JSON escape)
+                                invokeArgs[i] = value.Value;
                                 continue;
                             }
-                            catch
+                            else if (parameters[i].ParameterType.IsEnum)
                             {
-                                errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
-                                return false;
+                                try
+                                {
+                                    invokeArgs[i] = Enum.Parse(parameters[i].ParameterType, value.Value, true);
+                                    continue;
+                                }
+                                catch
+                                {
+                                    errorMessage = "Parameter \"" + itemName + "\"" + " fail on Enum parsing.";
+                                    return false;
+                                }
+                            }
+                            else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(parameters[i].ParameterType) && !typeof(System.Collections.IDictionary).IsAssignableFrom(parameters[i].ParameterType))
+                            {
+                                var v = value.Value;
+                                if (!(v.StartsWith("[") && v.EndsWith("]")))
+                                {
+                                    var elemType = UnwrapCollectionElementType(parameters[i].ParameterType);
+                                    if (elemType == typeof(string))
+                                    {
+                                        if (!(v.StartsWith("\"") && v.EndsWith("\"")))
+                                        {
+                                            v = "[" + string.Join(",", v.Split(' ', ',').Select(x => "\"" + x + "\"")) + "]";
+                                        }
+                                        else
+                                        {
+                                            v = "[" + v + "]";
+                                        }
+                                    }
+                                    else
+                                    {
+                                        v = "[" + string.Join(",", v.Trim('\'', '\"').Split(' ', ',')) + "]";
+                                    }
+                                }
+                                try
+                                {
+                                    invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
+                                    continue;
+                                }
+                                catch
+                                {
+                                    errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType, jsonOption);
+                                    continue;
+                                }
+                                catch
+                                {
+                                    errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
+                                    return false;
+                                }
                             }
                         }
                     }
-                }
 
-                if (item.HasDefaultValue)
-                {
-                    invokeArgs[i] = item.DefaultValue;
-                }
-                else if (item.ParameterType == typeof(bool))
-                {
-                    // bool without default value should be considered that it has implicit default value of false.
-                    invokeArgs[i] = false;
-                }
-                else
-                {
-                    var name = itemName;
-                    if (option?.ShortName != null)
+                    if (item.HasDefaultValue)
                     {
-                        name = itemName + "(" + "-" + option.ShortName + ")";
+                        invokeArgs[i] = item.DefaultValue;
                     }
-                    errorMessage = "Required parameter \"" + name + "\"" + " not found in argument.";
-                    return false;
+                    else if (item.ParameterType == typeof(bool))
+                    {
+                        // bool without default value should be considered that it has implicit default value of false.
+                        invokeArgs[i] = false;
+                    }
+                    else
+                    {
+                        var name = itemName;
+                        if (option?.ShortName != null)
+                        {
+                            name = itemName + "(" + "-" + option.ShortName + ")";
+                        }
+                        errorMessage = "Required parameter \"" + name + "\"" + " not found in argument.";
+                        return false;
+                    }
                 }
-            }
 
-            errorMessage = null;
-            return true;
+                errorMessage = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                invokeArgs = null;
+                errorMessage = ex.Message;
+                return false;
+            }
         }
 
         static Type? UnwrapCollectionElementType(Type collectionType)
