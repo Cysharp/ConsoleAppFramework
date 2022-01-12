@@ -400,7 +400,7 @@ namespace ConsoleAppFramework
             }
             catch (Exception ex)
             {
-                invokeArgs = null;
+                invokeArgs = default!;
                 errorMessage = ex.Message;
                 return false;
             }
