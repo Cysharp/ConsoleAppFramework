@@ -51,17 +51,32 @@ namespace ConsoleAppFramework
 
         public static ConsoleAppBuilder CreateBuilder(string[] args)
         {
-            return new ConsoleAppBuilder(args);
+            return new ConsoleAppBuilder(args, Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args));
         }
 
         public static ConsoleAppBuilder CreateBuilder(string[] args, Action<ConsoleAppOptions> configureOptions)
         {
-            return new ConsoleAppBuilder(args, configureOptions);
+            return new ConsoleAppBuilder(args, Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args), configureOptions);
         }
 
         public static ConsoleAppBuilder CreateBuilder(string[] args, Action<HostBuilderContext, ConsoleAppOptions> configureOptions)
         {
-            return new ConsoleAppBuilder(args, configureOptions);
+            return new ConsoleAppBuilder(args, Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args), configureOptions);
+        }
+
+        public static ConsoleApp CreateFromHostBuilder(IHostBuilder hostBuilder, string[] args)
+        {
+            return new ConsoleAppBuilder(args, hostBuilder).Build();
+        }
+
+        public static ConsoleApp CreateFromHostBuilder(IHostBuilder hostBuilder, string[] args, Action<ConsoleAppOptions> configureOptions)
+        {
+            return new ConsoleAppBuilder(args, hostBuilder, configureOptions).Build();
+        }
+
+        public static ConsoleApp CreateFromHostBuilder(IHostBuilder hostBuilder, string[] args, Action<HostBuilderContext, ConsoleAppOptions> configureOptions)
+        {
+            return new ConsoleAppBuilder(args, hostBuilder, configureOptions).Build();
         }
 
         public static void Run(string[] args, Delegate rootCommand)
