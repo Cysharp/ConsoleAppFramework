@@ -41,7 +41,9 @@ namespace ConsoleAppFramework
                 sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultCommand, shortCommandName), showCommandName: false, fromMultiCommand: false));
             }
 
-            var orderedCommands = commands.OrderBy(x => x.GetNamesFormatted(options)).ToArray();
+            var orderedCommands = options.HelpSortCommandsByFullName
+                ? commands.OrderBy(x => x.GetCommandName(options)).ToArray()
+                : commands.OrderBy(x => x.GetNamesFormatted(options)).ToArray();
             if (orderedCommands.Length > 0)
             {
                 if (defaultCommand == null)
