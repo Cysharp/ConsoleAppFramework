@@ -16,8 +16,7 @@ namespace ConsoleAppFramework
 		/// Validate <paramref name="parameters"/> of command based on validation attributes
 		/// applied to method's parameters.
 		/// </summary>
-		public ValidationResult? ValidateParameters(
-			IEnumerable<(ParameterInfo Parameter, object? Value)> parameters);
+		ValidationResult? ValidateParameters(IEnumerable<(ParameterInfo Parameter, object? Value)> parameters);
 	}
 
 	/// <inheritdoc />
@@ -58,7 +57,7 @@ namespace ConsoleAppFramework
 				.ToImmutableArray();
 
 			return failedResults.Any()
-				? new ValidationResult(string.Concat(';', failedResults.Select(res => res?.ErrorMessage)))
+				? new ValidationResult(string.Concat("; ", failedResults.Select(res => res?.ErrorMessage)))
 				: ValidationResult.Success;
 		}
 
