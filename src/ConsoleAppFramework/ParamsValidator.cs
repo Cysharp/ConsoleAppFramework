@@ -57,7 +57,7 @@ namespace ConsoleAppFramework
 				.ToImmutableArray();
 
 			return failedResults.Any()
-				? new ValidationResult(string.Concat("; ", failedResults.Select(res => res?.ErrorMessage)))
+				? new ValidationResult(string.Join("; ", failedResults.Select(res => res?.ErrorMessage)))
 				: ValidationResult.Success;
 		}
 
