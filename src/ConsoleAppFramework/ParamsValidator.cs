@@ -22,6 +22,10 @@ namespace ConsoleAppFramework
 	/// <inheritdoc />
 	public class ParamsValidator : IParamsValidator
 	{
+		private readonly ConsoleAppOptions options;
+
+		public ParamsValidator(ConsoleAppOptions options) => this.options = options;
+
 		/// <inheritdoc />
 		ValidationResult? IParamsValidator.ValidateParameters(
 			IEnumerable<(ParameterInfo Parameter, object? Value)> parameters)
@@ -38,10 +42,13 @@ namespace ConsoleAppFramework
 
 			var errorMessage = string.Join(Environment.NewLine,
 				invalidParameters
-					.Select(tuple => $"{tuple.Parameter.Name!.ToLower()} ({tuple.Value}): {tuple.Result!.ErrorMessage}")
+					.Select(tuple => 
+						$"{options.NameConverter(tuple.Parameter.Name!)} " +
+						$"({tuple.Value}): " +
+						$"{tuple.Result!.ErrorMessage}")
 			);
 
-			return new ValidationResult($"Some parameters have invalid value:{Environment.NewLine}{errorMessage}");
+			return new ValidationResult($"Some parameters have invalid values:{Environment.NewLine}{errorMessage}");
 		}
 
 		private static ValidationResult? Validate(ParameterInfo parameterInfo, object? value)
