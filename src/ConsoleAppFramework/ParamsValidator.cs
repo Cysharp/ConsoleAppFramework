@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
@@ -26,9 +27,23 @@ namespace ConsoleAppFramework
 		ValidationResult? IParamsValidator.ValidateParameters(
 			IEnumerable<(ParameterInfo Parameter, object? Value)> parameters)
 		{
-			var res = parameters
-				.Select(tuple => Validate(tuple.Parameter, tuple.Value))
-				.Wh
+			var invalidParameters = parameters
+				.Select(tuple => (tuple.Parameter, tuple.Value, Result: Validate(tuple.Parameter, tuple.Value)))
+				.Where(tuple => tuple.Result != ValidationResult.Success)
+				.ToImmutableArray();
+
+			if (!invalidParameters.Any())
+			{
+				return ValidationResult.Success;
+			}
+
+			// todo: parameter may have overridden name via OptionAttribute
+			var errorMessage = string.Join(Environment.NewLine,
+				invalidParameters
+					.Select(tuple => $"{tuple.Parameter.Name!.ToLower()} ({tuple.Value}): {tuple.Result!.ErrorMessage}")
+			);
+
+			return new ValidationResult($"Some parameters have invalid value:{Environment.NewLine}{errorMessage}");
 		}
 
 		private static ValidationResult? Validate(ParameterInfo parameterInfo, object? value)
