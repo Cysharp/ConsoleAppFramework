@@ -36,7 +36,6 @@ namespace ConsoleAppFramework
 				return ValidationResult.Success;
 			}
 
-			// todo: parameter may have overridden name via OptionAttribute
 			var errorMessage = string.Join(Environment.NewLine,
 				invalidParameters
 					.Select(tuple => $"{tuple.Parameter.Name!.ToLower()} ({tuple.Value}): {tuple.Result!.ErrorMessage}")
