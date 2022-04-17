@@ -41,6 +41,7 @@ namespace ConsoleAppFramework
                     configureOptions?.Invoke(ctx, options);
                     options.CommandLineArguments = args;
                     services.AddSingleton(options);
+                    services.AddSingleton<IParamsValidator, ParamsValidator>();
 
                     if (options.ReplaceToUseSimpleConsoleLogger)
                     {
