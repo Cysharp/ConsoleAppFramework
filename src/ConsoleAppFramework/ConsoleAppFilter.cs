@@ -75,12 +75,9 @@ namespace ConsoleAppFramework
             var methodFilters = methodInfo.GetCustomAttributes<ConsoleAppFilterAttribute>(true);
             foreach (var item in classFilters.Concat(methodFilters))
             {
-                var filter = ActivatorUtilities.CreateInstance<ConsoleAppFilter>(serviceProvider, item.Type);
-                if (filter != null)
-                {
-                    filter.Order = item.Order;
-                    list.Add(filter);
-                }
+                var filter = (ConsoleAppFilter) ActivatorUtilities.CreateInstance(serviceProvider, item.Type);
+                filter.Order = item.Order;
+                list.Add(filter);
             }
 
             var sortedAndReversedFilters = list.OrderBy(x => x.Order).Reverse().ToArray();
