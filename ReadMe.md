@@ -733,6 +733,32 @@ public void UrlUnescape([Option(null, "input of this command")]string input)
 }
 ```
 
+## Command parameters validation
+
+Values of command parameters can be validated via validation attributes from `System.ComponentModel.DataAnnotations`
+namespace and custom ones inheriting `ValidationAttribute` type.
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+// ...
+
+internal class TestConsoleApp : ConsoleAppBase
+{
+    [Command("some-command")]
+    public void SomeCommand(
+        [EmailAddress] string firstArg,
+        [Range(0, 2)]  int secondArg) => Console.WriteLine($"hello from {nameof(TestConsoleApp)}");
+}
+```
+
+Output (command invoked with params [**--first-arg "invalid-email-address" --second-arg" 10**])
+
+```
+Some parameters have invalid values:
+first-arg (invalid-email-address): The String field is not a valid e-mail address.
+second-arg (10): The field Int32 must be between 0 and 2.
+```
+
 Daemon
 ---
 If use infinite-loop, it becomes daemon program. `ConsoleAppContext.CancellationToken` is lifecycle token of application. You can check `CancellationToken.IsCancellationRequested` and shutdown gracefully. 
