@@ -199,6 +199,21 @@ namespace ConsoleAppFramework.Integration.Test
             console.Output.Should().Contain("Hello Cysharp");
         }
 
+        [Fact]
+        public void Attempt_To_Call_Without_Parameter_Value_Multiple()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new[] { "--first-name", "--last-name", "TestLastName" };
+            ConsoleApp.Run<CommandTests_Single_Two_Required>(args);
+            console.Output.Should().Contain(@"Value for parameter ""first-name"" is not provided.");
+        }
+
+        public class CommandTests_Single_Two_Required : ConsoleAppBase
+        {
+            [RootCommand]
+            public void Hello(string firstName, string lastName) => Console.WriteLine($"Hello {firstName} {lastName}");
+        }
+
         public class CommandTests_Single_OptionalBoolAndRequiredOtherOption_NoArgs : ConsoleAppBase
         {
             public void Hello(string name, bool hello = false) => Console.WriteLine($"{(hello ? "Hello" : "Konnichiwa")} {name}");
