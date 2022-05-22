@@ -203,7 +203,7 @@ namespace ConsoleAppFramework.Integration.Test
         public void Attempt_To_Call_Without_Parameter_Value()
         {
             using var console = new CaptureConsoleOutput();
-            var args = new[] { "--hello", "--name" };
+            var args = new[] { "--name" };
             Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_OptionalBoolAndRequiredOtherOption_NoArgs>(args);
             console.Output.Should().Contain(@"Value for parameter ""name"" is not provided.");
         }

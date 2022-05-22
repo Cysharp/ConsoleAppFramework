@@ -478,6 +478,11 @@ namespace ConsoleAppFramework
                     }
                     else
                     {
+                        if (args.Length <= i)
+                        {
+                            throw new ArgumentException($@"Value for parameter ""{key}"" is not provided.");
+                        }
+
                         var value = args[i];
                         dict.Add(key, new OptionParameter { Value = value });
                         i++;
