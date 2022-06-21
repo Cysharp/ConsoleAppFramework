@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -18,12 +20,19 @@ namespace ConsoleAppFramework
         readonly CancellationTokenSource cancellationTokenSource;
         readonly ConsoleAppOptions options;
         readonly IServiceProviderIsService isService;
+        readonly IParamsValidator paramsValidator;
         readonly bool isStrict;
 
-        public ConsoleAppEngine(ILogger<ConsoleApp> logger, IServiceProvider provider, ConsoleAppOptions options, IServiceProviderIsService isService, CancellationTokenSource cancellationTokenSource)
+        public ConsoleAppEngine(ILogger<ConsoleApp> logger,
+            IServiceProvider provider,
+            ConsoleAppOptions options,
+            IServiceProviderIsService isService,
+            IParamsValidator paramsValidator,
+            CancellationTokenSource cancellationTokenSource)
         {
             this.logger = logger;
             this.provider = provider;
+            this.paramsValidator = paramsValidator;
             this.cancellationTokenSource = cancellationTokenSource;
             this.options = options;
             this.isService = isService;
@@ -166,6 +175,13 @@ namespace ConsoleAppFramework
                     }
                 }
                 invokeArgs = newInvokeArgs;
+            }
+
+            var validationResult = paramsValidator.ValidateParameters(originalParameters.Zip(invokeArgs));
+            if (validationResult != ValidationResult.Success)
+            {
+                await SetFailAsync(validationResult!.ErrorMessage!);
+                return;
             }
 
             try

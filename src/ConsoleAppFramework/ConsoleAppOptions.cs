@@ -24,6 +24,8 @@ namespace ConsoleAppFramework
 
         public Func<string, string> NameConverter { get; set; } = KebabCaseConvert;
 
+        public bool HelpSortCommandsByFullName { get; set; } = false;
+
         // internal store values for execute engine.
 
         internal string[] CommandLineArguments { get; set; } = default!;

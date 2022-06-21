@@ -365,7 +365,7 @@ This converting behaviour can configure by `ConsoleAppOptions.NameConverter`.
 
 ConsoleApp / ConsoleAppBuilder
 ---
-`ConsoleApp` is an entrypoint of creating ConsoleAppFramework app. It has three APIs, `Create`, `CreateBuilder` and `Run`.
+`ConsoleApp` is an entrypoint of creating ConsoleAppFramework app. It has three APIs, `Create`, `CreateBuilder`, `CreateFromHostBuilder` and `Run`.
 
 ```csharp
 // Create is shorthand of CraeteBuilder(args).Build();
@@ -387,7 +387,7 @@ ConsoleApp.Run(args, /* lambda expression */);
 ConsoleApp.Run<MyCommands>(args);
 ```
 
-When calling `Create/CreateBuilder`, also configure `ConsoleAppOptions`. Full option details, see [ConsoleAppOptions](#consoleappoptions) section.
+When calling `Create/CreateBuilder/CreateFromHostBuilder`, also configure `ConsoleAppOptions`. Full option details, see [ConsoleAppOptions](#consoleappoptions) section.
 
 ```csharp
 var app = ConsoleApp.Create(args, options =>
@@ -395,6 +395,16 @@ var app = ConsoleApp.Create(args, options =>
     options.ShowDefaultCommand = false;
     options.NameConverter = x => x.ToLower();
 });
+```
+
+Advanced API of `ConsoleApp`, `CreateFromHostBuilder` creates ConsoleApp from IHostBuilder.
+
+```csharp
+// Setup services outside of ConsoleAppFramework.
+var hostBuilder = Host.CreateDefaultBuilder()
+    .ConfigureServices();
+    
+var app = ConsoleApp.CreateFromHostBuilder(hostBuilder);
 ```
 
 `ConsoleAppBuilder` itself is `IHostBuilder` so you can use any configuration methods like `ConfigureServices`, `ConfigureLogging`, etc. If method chain is not returns `ConsoleAppBuilder`(for example,  using external lib's extension methods), can not get `ConsoleApp` directly. In that case, use `BuildAsConsoleApp()` instead of `Build()`.

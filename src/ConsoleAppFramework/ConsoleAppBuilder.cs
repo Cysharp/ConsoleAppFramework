@@ -11,34 +11,24 @@ namespace ConsoleAppFramework
     {
         readonly IHostBuilder builder;
 
-        internal ConsoleAppBuilder(string[] args)
-            : this(args, (_, __) => { })
+        internal ConsoleAppBuilder(string[] args, IHostBuilder hostBuilder)
+            : this(args, hostBuilder, (_, __) => { })
         {
         }
 
-        internal ConsoleAppBuilder(string[] args, ConsoleAppOptions consoleAppOptions)
+        internal ConsoleAppBuilder(string[] args, IHostBuilder hostBuilder, ConsoleAppOptions consoleAppOptions)
         {
-            var hostBuilder = new HostBuilder();
-            hostBuilder.ConfigureDefaults(args);
             this.builder = AddConsoleAppFramework(hostBuilder, args, consoleAppOptions, null);
         }
 
-        internal ConsoleAppBuilder(string[] args, Action<ConsoleAppOptions> configureOptions)
-            : this(args, (_, options) => configureOptions(options))
+        internal ConsoleAppBuilder(string[] args, IHostBuilder hostBuilder, Action<ConsoleAppOptions> configureOptions)
+            : this(args, hostBuilder, (_, options) => configureOptions(options))
         {
         }
 
-        internal ConsoleAppBuilder(string[] args, Action<HostBuilderContext, ConsoleAppOptions> configureOptions)
+        internal ConsoleAppBuilder(string[] args, IHostBuilder hostBuilder, Action<HostBuilderContext, ConsoleAppOptions> configureOptions)
         {
-            var hostBuilder = new HostBuilder();
-            hostBuilder.ConfigureDefaults(args);
             this.builder = AddConsoleAppFramework(hostBuilder, args, new ConsoleAppOptions(), configureOptions);
-        }
-
-        // internal use for legacy compatible
-        internal ConsoleAppBuilder(string[] args, IHostBuilder hostBuilder, ConsoleAppOptions options)
-        {
-            this.builder = AddConsoleAppFramework(hostBuilder, args, options, (_, __) => { });
         }
 
         IHostBuilder AddConsoleAppFramework(IHostBuilder builder, string[] args, ConsoleAppOptions options, Action<HostBuilderContext, ConsoleAppOptions>? configureOptions)
@@ -51,6 +41,7 @@ namespace ConsoleAppFramework
                     configureOptions?.Invoke(ctx, options);
                     options.CommandLineArguments = args;
                     services.AddSingleton(options);
+                    services.AddSingleton<IParamsValidator, ParamsValidator>();
 
                     if (options.ReplaceToUseSimpleConsoleLogger)
                     {
