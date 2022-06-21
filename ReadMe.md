@@ -1039,8 +1039,13 @@ public class ConsoleAppContext
     public MethodInfo MethodInfo { get; }
     public IServiceProvider ServiceProvider { get; }
     public IDictionary<string, object> Items { get; }
+
+    public void Cancel();
+    public void Terminate();
 }
 ```
+
+`Cancel()` set `CancellationToken` to canceled. Also `Terminate()` set token to cancled and terminate process(internal throws `OperationCanceledException` immediately).
 
 ConsoleAppOptions
 ---
@@ -1109,6 +1114,27 @@ public class MyCommand
 ```
 
 You can set func to change this behaviour like `NameConverter = x => x.ToLower();`.
+
+Terminate handling in Console.Read
+---
+ConsoleAppFramework handle terminate signal(Ctrl+C) gracefully with `ConsoleAppContext.CancellationToken`. If your application waiting with Console.Read/ReadLine/ReadKey, requires additional handling.
+
+```csharp
+// case of Console.Read/ReadLine, pressed Ctrl+C, Read returns null.
+ConsoleApp.Run(args, async (ConsoleAppContext ctx) =>
+{
+    var read = Console.ReadLine();
+    if (read == null) ctx.Terminate();
+});
+```
+
+```csharp
+// case of Console.ReadKey, can not cancel itself so use with Task.Run and WaitAsync.
+ConsoleApp.Run(args, async (ConsoleAppContext ctx) =>
+{
+    var key = await Task.Run(() => Console.ReadKey()).WaitAsync(ctx.CancellationToken);
+});
+```
 
 Publish to executable file
 ---
