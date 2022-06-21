@@ -1131,7 +1131,7 @@ ConsoleAppFramework handle terminate signal(Ctrl+C) gracefully with `ConsoleAppC
 
 ```csharp
 // case of Console.Read/ReadLine, pressed Ctrl+C, Read returns null.
-ConsoleApp.Run(args, async (ConsoleAppContext ctx) =>
+ConsoleApp.Run(args, (ConsoleAppContext ctx) =>
 {
     var read = Console.ReadLine();
     if (read == null) ctx.Terminate();
