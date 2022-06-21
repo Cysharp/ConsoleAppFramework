@@ -204,6 +204,7 @@ dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotn
 - [Cleanup](#cleanup)
 - [ConsoleAppContext](#consoleappcontext)
 - [ConsoleAppOptions](#consoleappoptions)
+- [Terminate handling in Console.Read](#terminate-handling-in-consoleread)
 - [Publish to executable file](#publish-to-executable-file)
 - [v3 Legacy Compatibility](#v3-legacy-compatibility)
 - [License](#license)
