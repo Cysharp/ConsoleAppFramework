@@ -52,11 +52,18 @@ namespace ConsoleAppFramework
                 }
             }, this);
 
+            // call from Ctrl+C, etc...
+            appLifetime.ApplicationStopping.Register(state =>
+            {
+                var cts = (CancellationTokenSource?)state;
+                cts?.Cancel();
+            }, cancellationTokenSource);
+
             return Task.CompletedTask;
         }
 
         public async Task StopAsync(CancellationToken ct)
-        {
+        { 
             try
             {
                 cancellationTokenSource?.Cancel();

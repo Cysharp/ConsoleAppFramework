@@ -1,38 +1,24 @@
 ﻿using ConsoleAppFramework;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
-args = new[] { "test" };
 
-var builder = ConsoleApp.CreateBuilder(args);
-builder.ConfigureServices(x =>
+// RegisterShutdownHandlers();
+
+//var r2 = Console.ReadKey();
+
+
+// Console.ReadKey
+ConsoleApp.Run(args, async (ConsoleAppContext ctx) =>
 {
-    x.AddSingleton(typeof(ISingletonPublisher<>), typeof(MessageBroker<>));
+    var key = await Task.Run(() => Console.ReadKey(intercept: true), ctx.CancellationToken);
+    Console.WriteLine(key.KeyChar);
+    //while (true)
+    //{
+    //    var r = Console.ReadLine();
+
+    //    Console.WriteLine(r == null);
+
+    //    Console.WriteLine("end:" + ctx.CancellationToken.IsCancellationRequested);
+    //}
+
 });
-
-
-var app = builder.Build();
-
-app.AddCommand("test", (ISingletonPublisher<string> logger) =>
-{
-    Console.WriteLine("OK");
-});
-
-app.Run();
-
-public interface IPublisher<TMessage>
-{
-    void Publish(TMessage message);
-}
-public interface ISingletonPublisher<TMessage> : IPublisher<TMessage> { }
-
-public class MessageBroker<TMessage> : IPublisher<TMessage>
-{
-    public void Publish(TMessage message)
-    {
-        throw new NotImplementedException();
-    }
-}
-public class SingletonMessageBroker<TMessage> : MessageBroker<TMessage>
-{
-}
