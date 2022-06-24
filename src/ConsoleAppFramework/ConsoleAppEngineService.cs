@@ -36,8 +36,8 @@ namespace ConsoleAppFramework
                 try
                 {
                     self.scope = self.provider.CreateScope();
-                    var token = (self.cancellationTokenSource != null) ? self.cancellationTokenSource.Token : CancellationToken.None;
-                    var engine = ActivatorUtilities.CreateInstance<ConsoleAppEngine>(self.scope.ServiceProvider, token);
+                    if (self.cancellationTokenSource == null) self.cancellationTokenSource = new CancellationTokenSource();
+                    var engine = ActivatorUtilities.CreateInstance<ConsoleAppEngine>(self.scope.ServiceProvider, self.cancellationTokenSource!);
                     self.runningTask = engine.RunAsync();
                     await self.runningTask;
                     self.runningTask = null;
@@ -51,6 +51,13 @@ namespace ConsoleAppFramework
                     self.appLifetime.StopApplication();
                 }
             }, this);
+
+            // call from Ctrl+C, etc...
+            appLifetime.ApplicationStopping.Register(state =>
+            {
+                var cts = (CancellationTokenSource?)state;
+                cts?.Cancel();
+            }, cancellationTokenSource);
 
             return Task.CompletedTask;
         }

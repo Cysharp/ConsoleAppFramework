@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -15,16 +17,23 @@ namespace ConsoleAppFramework
     {
         readonly ILogger<ConsoleApp> logger;
         readonly IServiceProvider provider;
-        readonly CancellationToken cancellationToken;
+        readonly CancellationTokenSource cancellationTokenSource;
         readonly ConsoleAppOptions options;
         readonly IServiceProviderIsService isService;
+        readonly IParamsValidator paramsValidator;
         readonly bool isStrict;
 
-        public ConsoleAppEngine(ILogger<ConsoleApp> logger, IServiceProvider provider, ConsoleAppOptions options, IServiceProviderIsService isService, CancellationToken cancellationToken)
+        public ConsoleAppEngine(ILogger<ConsoleApp> logger,
+            IServiceProvider provider,
+            ConsoleAppOptions options,
+            IServiceProviderIsService isService,
+            IParamsValidator paramsValidator,
+            CancellationTokenSource cancellationTokenSource)
         {
             this.logger = logger;
             this.provider = provider;
-            this.cancellationToken = cancellationToken;
+            this.paramsValidator = paramsValidator;
+            this.cancellationTokenSource = cancellationTokenSource;
             this.options = options;
             this.isService = isService;
             this.isStrict = options.StrictOption;
@@ -134,7 +143,7 @@ namespace ConsoleAppFramework
                 return;
             }
 
-            var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationToken, logger, methodInfo, provider);
+            var ctx = new ConsoleAppContext(args, DateTime.UtcNow, cancellationTokenSource, logger, methodInfo, provider);
 
             // re:create invokeArgs, merge with DI parameter.
             if (invokeArgs.Length != originalParameters.Length)
@@ -166,6 +175,13 @@ namespace ConsoleAppFramework
                     }
                 }
                 invokeArgs = newInvokeArgs;
+            }
+
+            var validationResult = paramsValidator.ValidateParameters(originalParameters.Zip(invokeArgs));
+            if (validationResult != ValidationResult.Success)
+            {
+                await SetFailAsync(validationResult!.ErrorMessage!);
+                return;
             }
 
             try
@@ -208,23 +224,20 @@ namespace ConsoleAppFramework
             }
             catch (Exception ex)
             {
-                if (ex is OperationCanceledException operationCanceledException && operationCanceledException.CancellationToken == cancellationToken)
+                if (ex is TargetInvocationException tex)
+                {
+                    ex = tex.InnerException ?? tex;
+                }
+
+                if (ex is OperationCanceledException operationCanceledException && operationCanceledException.CancellationToken == cancellationTokenSource.Token)
                 {
                     // NOTE: Do nothing if the exception has thrown by the CancellationToken of ConsoleAppEngine.
                     // If the user code throws OperationCanceledException, ConsoleAppEngine should not handle that.
                     return;
                 }
 
-                if (ex is TargetInvocationException tex)
-                {
-                    await SetFailAsync("Fail in application running on " + type.Name + "." + methodInfo.Name, tex.InnerException);
-                    return;
-                }
-                else
-                {
-                    await SetFailAsync("Fail in application running on " + type.Name + "." + methodInfo.Name, ex);
-                    return;
-                }
+                await SetFailAsync("Fail in application running on " + type.Name + "." + methodInfo.Name, ex);
+                return;
             }
 
             logger.LogTrace("ConsoleAppEngine.Run Complete Successfully");
