@@ -373,10 +373,24 @@ namespace ConsoleAppFramework
                             }
                             else
                             {
+                                var v = value.Value;
                                 try
                                 {
-                                    invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType, jsonOption);
-                                    continue;
+                                    try
+                                    {
+                                        invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
+                                        continue;
+                                    }
+                                    catch (JsonException)
+                                    {
+                                        // retry with double quotations
+                                        if (!(v.StartsWith("\"") && v.EndsWith("\"")))
+                                        {
+                                            v = $"\"{v}\"";
+                                        }
+                                        invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
+                                        continue;
+                                    }
                                 }
                                 catch
                                 {
