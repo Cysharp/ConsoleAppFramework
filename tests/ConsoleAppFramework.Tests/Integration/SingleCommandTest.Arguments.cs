@@ -127,5 +127,28 @@ namespace ConsoleAppFramework.Integration.Test
         {
             public void Hello([Option(0)]string name = "Anonymous") => Console.WriteLine($"Hello {name}");
         }
+
+        [Fact]
+        public void CommandTests_Single_DateTimeOption_WithDoubleQuote()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new[] { "\"2022-07-01\"" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_DateTimeOption>(args);
+            console.Output.Trim().Should().Be(@"2022-07-01");
+        }
+
+        [Fact]
+        public void CommandTests_Single_DateTimeOption_WithoutDoubleQuote()
+        {
+            using var console = new CaptureConsoleOutput();
+            var args = new[] { "2022-07-01" };
+            Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<CommandTests_Single_DateTimeOption>(args);
+            console.Output.Trim().Should().Be(@"2022-07-01");
+        }
+
+        public class CommandTests_Single_DateTimeOption: ConsoleAppBase
+        {
+            public void Hello([Option(0)]DateTime dt) => Console.WriteLine($"{dt:yyyy-MM-dd}");
+        }
     }
 }
