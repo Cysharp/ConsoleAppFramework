@@ -26,6 +26,8 @@ namespace ConsoleAppFramework
 
         public bool HelpSortCommandsByFullName { get; set; } = false;
 
+        public string? ApplicationName { get; set; } = null;
+
         // internal store values for execute engine.
 
         internal string[] CommandLineArguments { get; set; } = default!;
