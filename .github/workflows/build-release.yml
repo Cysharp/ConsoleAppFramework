@@ -9,7 +9,8 @@ on:
       dry-run:
         description: "dry-run: true will never create release/nuget."
         required: true
-        default: "false"
+        default: false
+        type: boolean
 
 env:
   GIT_TAG: ${{ github.event.inputs.tag }}
@@ -32,7 +33,7 @@ jobs:
           path: ./publish
 
   create-release:
-    if: github.event.inputs.dry-run == 'false'
+    if: ${{ github.event.inputs.dry-run == 'false' }}
     needs: [build-dotnet]
     runs-on: ubuntu-latest
     timeout-minutes: 10
