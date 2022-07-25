@@ -10,6 +10,7 @@
 		<!-- NuGet -->
 		<PackageId>ConsoleAppFramework</PackageId>
 		<Description>Micro-framework for console applications.</Description>
+        <IsPackable>true</IsPackable>
 	</PropertyGroup>
 
 	<PropertyGroup>
