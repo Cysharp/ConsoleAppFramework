@@ -195,6 +195,7 @@ dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotn
 - [Implicit Using](#implicit-using)
 - [CommandAttribute](#commandattribute)
 - [OptionAttribute](#optionattribute)
+- [Command parameters validation](#command-parameters-validation)
 - [Daemon](#daemon)
 - [Abort Timeout](#abort-timeout)
 - [Filter](#filter)
