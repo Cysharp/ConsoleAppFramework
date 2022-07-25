@@ -1073,19 +1073,6 @@ var app = ConsoleApp.Create(args, options =>
 ```csharp
 public class ConsoleAppOptions
 {
-    /// <summary>Argument parser uses strict(-short, --long) option. Default is false.</summary>
-    public bool StrictOption { get; set; } = false;
-
-    /// <summary>Show default command(help/version) to help. Default is true.</summary>
-    public bool ShowDefaultCommand { get; set; } = true;
-
-    public JsonSerializerOptions? JsonSerializerOptions { get; set; }
-
-    public ConsoleAppFilter[]? GlobalFilters { get; set; }
-}
-
-public class ConsoleAppOptions
-{
     /// <summary>Argument parser uses strict(-short, --long) option. Default is true.</summary>
     public bool StrictOption { get; set; } = true;
 
@@ -1101,6 +1088,8 @@ public class ConsoleAppOptions
     public bool NoAttributeCommandAsImplicitlyDefault { get; set; }
 
     public Func<string, string> NameConverter { get; set; } = KebabCaseConvert;
+
+    public string? ApplicationName { get; set; } = null;
 }
 ```
 
@@ -1125,6 +1114,8 @@ public class MyCommand
 ```
 
 You can set func to change this behaviour like `NameConverter = x => x.ToLower();`.
+
+`ApplicationName` configure help usages `Usage: ***`, default(null) shows filename without extension.
 
 Terminate handling in Console.Read
 ---
