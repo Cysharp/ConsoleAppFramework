@@ -6,14 +6,14 @@ on:
       tag:
         description: "tag: git tag you want create. (sample 1.0.0)"
         required: true
-      dry_run:
-        description: "dry_run: true will never create release/nuget."
+      dry-run:
+        description: "dry-run: true will never create release/nuget."
         required: true
         default: "false"
 
 env:
   GIT_TAG: ${{ github.event.inputs.tag }}
-  DRY_RUN: ${{ github.event.inputs.dry_run }}
+  DRY_RUN: ${{ github.event.inputs.dry-run }}
 
 jobs:
   build-dotnet:
@@ -32,7 +32,7 @@ jobs:
           path: ./publish
 
   create-release:
-    if: github.event.inputs.dry_run == 'false'
+    if: github.event.inputs.dry-run == 'false'
     needs: [build-dotnet]
     runs-on: ubuntu-latest
     timeout-minutes: 10
