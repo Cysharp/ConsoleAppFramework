@@ -380,10 +380,24 @@ namespace ConsoleAppFramework
                             }
                             else
                             {
+                                var v = value.Value;
                                 try
                                 {
-                                    invokeArgs[i] = JsonSerializer.Deserialize(value.Value, parameters[i].ParameterType, jsonOption);
-                                    continue;
+                                    try
+                                    {
+                                        invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
+                                        continue;
+                                    }
+                                    catch (JsonException)
+                                    {
+                                        // retry with double quotations
+                                        if (!(v.StartsWith("\"") && v.EndsWith("\"")))
+                                        {
+                                            v = $"\"{v}\"";
+                                        }
+                                        invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
+                                        continue;
+                                    }
                                 }
                                 catch
                                 {
@@ -482,6 +496,11 @@ namespace ConsoleAppFramework
                     }
                     else
                     {
+                        if (args.Length <= i)
+                        {
+                            throw new ArgumentException($@"Value for parameter ""{key}"" is not provided.");
+                        }
+
                         var value = args[i];
                         dict.Add(key, new OptionParameter { Value = value });
                         i++;

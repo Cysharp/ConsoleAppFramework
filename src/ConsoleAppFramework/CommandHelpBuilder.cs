@@ -23,9 +23,16 @@ namespace ConsoleAppFramework
             this.options = options;
         }
 
-        private static string GetExecutionCommandNameDefault()
+        private string GetExecutionCommandNameDefault()
         {
-            return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly()!.Location);
+            if (options.ApplicationName != null)
+            {
+                return options.ApplicationName;
+            }
+            else
+            {
+                return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly()!.Location);
+            }
         }
 
         public string GetExecutionCommandName() => getExecutionCommandName();

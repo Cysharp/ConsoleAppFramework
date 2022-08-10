@@ -195,6 +195,7 @@ dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotn
 - [Implicit Using](#implicit-using)
 - [CommandAttribute](#commandattribute)
 - [OptionAttribute](#optionattribute)
+- [Command parameters validation](#command-parameters-validation)
 - [Daemon](#daemon)
 - [Abort Timeout](#abort-timeout)
 - [Filter](#filter)
@@ -734,6 +735,32 @@ public void UrlUnescape([Option(null, "input of this command")]string input)
 }
 ```
 
+## Command parameters validation
+
+Values of command parameters can be validated via validation attributes from `System.ComponentModel.DataAnnotations`
+namespace and custom ones inheriting `ValidationAttribute` type.
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+// ...
+
+internal class TestConsoleApp : ConsoleAppBase
+{
+    [Command("some-command")]
+    public void SomeCommand(
+        [EmailAddress] string firstArg,
+        [Range(0, 2)]  int secondArg) => Console.WriteLine($"hello from {nameof(TestConsoleApp)}");
+}
+```
+
+Output (command invoked with params [**--first-arg "invalid-email-address" --second-arg" 10**])
+
+```
+Some parameters have invalid values:
+first-arg (invalid-email-address): The String field is not a valid e-mail address.
+second-arg (10): The field Int32 must be between 0 and 2.
+```
+
 Daemon
 ---
 If use infinite-loop, it becomes daemon program. `ConsoleAppContext.CancellationToken` is lifecycle token of application. You can check `CancellationToken.IsCancellationRequested` and shutdown gracefully. 
@@ -1073,19 +1100,6 @@ var app = ConsoleApp.Create(args, options =>
 ```csharp
 public class ConsoleAppOptions
 {
-    /// <summary>Argument parser uses strict(-short, --long) option. Default is false.</summary>
-    public bool StrictOption { get; set; } = false;
-
-    /// <summary>Show default command(help/version) to help. Default is true.</summary>
-    public bool ShowDefaultCommand { get; set; } = true;
-
-    public JsonSerializerOptions? JsonSerializerOptions { get; set; }
-
-    public ConsoleAppFilter[]? GlobalFilters { get; set; }
-}
-
-public class ConsoleAppOptions
-{
     /// <summary>Argument parser uses strict(-short, --long) option. Default is true.</summary>
     public bool StrictOption { get; set; } = true;
 
@@ -1101,6 +1115,8 @@ public class ConsoleAppOptions
     public bool NoAttributeCommandAsImplicitlyDefault { get; set; }
 
     public Func<string, string> NameConverter { get; set; } = KebabCaseConvert;
+
+    public string? ApplicationName { get; set; } = null;
 }
 ```
 
@@ -1125,6 +1141,8 @@ public class MyCommand
 ```
 
 You can set func to change this behaviour like `NameConverter = x => x.ToLower();`.
+
+`ApplicationName` configure help usages `Usage: ***`, default(null) shows filename without extension.
 
 Terminate handling in Console.Read
 ---
