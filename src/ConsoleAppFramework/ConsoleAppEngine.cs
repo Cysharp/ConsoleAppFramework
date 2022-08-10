@@ -106,7 +106,7 @@ namespace ConsoleAppFramework
             if (commandDescriptor.CommandType == CommandType.DefaultCommand && args.Length == 0)
             {
                 var p = commandDescriptor.MethodInfo.GetParameters();
-                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType) || x.HasDefaultValue)))
+                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType) || x.HasDefaultValue())))
                 {
                     options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor);
                 }
@@ -294,7 +294,7 @@ namespace ConsoleAppFramework
                     {
                         if (optionByIndex.Count <= option.Index)
                         {
-                            if (!item.HasDefaultValue)
+                            if (!item.HasDefaultValue())
                             {
                                 throw new InvalidOperationException($"Required argument {option.Index} was not found in specified arguments.");
                             }
@@ -394,9 +394,9 @@ namespace ConsoleAppFramework
                         }
                     }
 
-                    if (item.HasDefaultValue)
+                    if (item.HasDefaultValue())
                     {
-                        invokeArgs[i] = item.DefaultValue;
+                        invokeArgs[i] = item.DefaultValue();
                     }
                     else if (item.ParameterType == typeof(bool))
                     {
