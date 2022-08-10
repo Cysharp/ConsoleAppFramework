@@ -347,11 +347,11 @@ namespace ConsoleAppFramework
                                     if (elemType == typeof(string))
                                     {
                                         if (parameters.Length == i + 1)
-										{
+                                        {
                                             v = "[" + string.Join(",", optionByIndex.Skip(parameters[i].Position).Select(x => "\"" + x.Value + "\"")) + "]";
                                         }
                                         else
-										{
+                                        {
                                             if (!(v.StartsWith("\"") && v.EndsWith("\"")))
                                             {
                                                 v = "[" + string.Join(",", v.Split(' ', ',').Select(x => "\"" + x + "\"")) + "]";
