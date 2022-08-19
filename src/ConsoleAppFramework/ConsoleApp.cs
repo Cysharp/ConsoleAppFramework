@@ -174,9 +174,9 @@ namespace ConsoleAppFramework
                 if (method.GetCustomAttribute<RootCommandAttribute>() != null)
                 {
                     var command = new CommandDescriptor(CommandType.DefaultCommand, method);
-                    commands.AddRootCommand(command);
+                    commands.AddSubRootCommand(rootName, command);
                 }
-                else
+                if (method.GetCustomAttribute<CommandAttribute>() != null)
                 {
                     var command = new CommandDescriptor(CommandType.SubCommand, method, parentCommand: rootName);
                     commands.AddSubCommand(rootName, command);

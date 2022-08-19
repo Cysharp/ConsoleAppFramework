@@ -9,7 +9,7 @@ namespace ConsoleAppFramework
     {
         CommandDescriptor? rootCommandDescriptor;
         readonly Dictionary<string, CommandDescriptor> descriptors = new Dictionary<string, CommandDescriptor>(StringComparer.OrdinalIgnoreCase);
-        readonly Dictionary<string, Dictionary<string, CommandDescriptor>> subCommandDescriptors = new Dictionary<string, Dictionary<string, CommandDescriptor>>(StringComparer.OrdinalIgnoreCase);
+        readonly Dictionary<string, CommandDescriptorCollection> subCommandDescriptors = new Dictionary<string, CommandDescriptorCollection>(StringComparer.OrdinalIgnoreCase);
         readonly ConsoleAppOptions options;
 
         public CommandDescriptorCollection(ConsoleAppOptions options)
@@ -37,17 +37,11 @@ namespace ConsoleAppFramework
 
             if (!subCommandDescriptors.TryGetValue(parentCommand, out var commandDict))
             {
-                commandDict = new Dictionary<string, CommandDescriptor>(StringComparer.OrdinalIgnoreCase);
+                commandDict = new CommandDescriptorCollection(options);
                 subCommandDescriptors.Add(parentCommand, commandDict);
             }
 
-            foreach (var name in commandDescriptor.GetNames(options))
-            {
-                if (!commandDict.TryAdd(name, commandDescriptor))
-                {
-                    throw new InvalidOperationException($"Duplicate command name is added. Name:{parentCommand} {name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
-                }
-            }
+            commandDict.AddCommand(commandDescriptor);
         }
 
         public void AddRootCommand(CommandDescriptor commandDescriptor)
@@ -60,17 +54,28 @@ namespace ConsoleAppFramework
             this.rootCommandDescriptor = commandDescriptor;
         }
 
-        // Only check command name(not foo)
-        public bool TryGetDescriptor(string[] args, [MaybeNullWhen(false)] out CommandDescriptor descriptor, out int offset)
+		public void AddSubRootCommand(string parentCommand, CommandDescriptor commandDescriptor)
+		{
+			if (this.rootCommandDescriptor != null)
+			{
+				throw new InvalidOperationException($"Found more than one root command. Method:{rootCommandDescriptor.MethodInfo.DeclaringType?.Name}.{rootCommandDescriptor.MethodInfo.Name} and {commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
+			}
+
+			if (subCommandDescriptors.TryGetValue(parentCommand, out var commandDict))
+				commandDict.rootCommandDescriptor = commandDescriptor;
+		}
+
+		// Only check command name(not foo)
+		public bool TryGetDescriptor(string[] args, [MaybeNullWhen(false)] out CommandDescriptor descriptor, out int offset)
         {
             // 1. Try to match sub command
             if (args.Length >= 2)
             {
                 if (subCommandDescriptors.TryGetValue(args[0], out var dict))
                 {
-                    if (dict.TryGetValue(args[1], out descriptor))
+                    if (dict.TryGetDescriptor(args.Skip(1).ToArray(), out descriptor, out var suboffset))
                     {
-                        offset = 2;
+                        offset = 1 + suboffset;
                         return true;
                     }
                     else
@@ -88,7 +93,14 @@ namespace ConsoleAppFramework
                     offset = 1;
                     return true;
                 }
-            }
+
+				if (subCommandDescriptors.TryGetValue(args[0], out var dict))
+				{
+                    descriptor = dict.rootCommandDescriptor!;
+					offset = 1;
+					return true;
+				}
+			}
 
             // 3. default
             if (rootCommandDescriptor != null)
@@ -141,7 +153,7 @@ namespace ConsoleAppFramework
                 }
                 foreach (var item in subCommandDescriptors.Values)
                 {
-                    foreach (var item2 in item.Values)
+                    foreach (var item2 in item.descriptors.Values)
                     {
                         yield return item2;
                     }
@@ -155,7 +167,7 @@ namespace ConsoleAppFramework
         {
             if (subCommandDescriptors.TryGetValue(rootCommand, out var dict))
             {
-                return dict.Values.Distinct().ToArray();
+                return dict.descriptors.Values.ToArray();
             }
 
             return Array.Empty<CommandDescriptor>();
