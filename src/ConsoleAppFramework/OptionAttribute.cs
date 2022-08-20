@@ -2,7 +2,7 @@
 
 namespace ConsoleAppFramework
 {
-    [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field, AllowMultiple = false)]
     public class OptionAttribute : Attribute
     {
         public int Index { get; }

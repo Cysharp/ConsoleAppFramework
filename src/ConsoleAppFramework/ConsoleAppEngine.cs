@@ -5,8 +5,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -119,18 +122,25 @@ namespace ConsoleAppFramework
         // Try to invoke method.
         async Task RunCore(Type type, MethodInfo methodInfo, object? instance, string?[] args, int argsOffset)
         {
-            object?[] invokeArgs;
-            ParameterInfo[] originalParameters = methodInfo.GetParameters();
+            object?[] invokeArgs, fieldVals;
+            var originalFields =
+                type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Select(x => (x, x.GetCustomAttribute<OptionAttribute>()))
+                .ToArray();
+            var originalParameters =
+                 methodInfo.GetParameters().Select(x => (x, x.GetCustomAttribute<OptionAttribute>()))
+                .ToArray();
             var isService = provider.GetService<IServiceProviderIsService>();
             try
             {
                 var parameters = originalParameters;
+                var fields = originalFields;
                 if (isService != null)
                 {
-                    parameters = parameters.Where(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType))).ToArray();
+                    parameters = parameters.Where(x => !(x.Item1.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.Item1.ParameterType))).ToArray();
                 }
 
-                if (!TryGetInvokeArguments(parameters, args, argsOffset, out invokeArgs, out var errorMessage))
+                if (!TryGetInvokeArguments(parameters, fields, args, argsOffset, out invokeArgs, out fieldVals, out var errorMessage))
                 {
                     await SetFailAsync(errorMessage + " args: " + string.Join(" ", args));
                     return;
@@ -152,20 +162,21 @@ namespace ConsoleAppFramework
                 var invokeArgsIndex = 0;
                 for (int i = 0; i < originalParameters.Length; i++)
                 {
-                    var p = originalParameters[i].ParameterType;
-                    if (p == typeof(ConsoleAppContext))
+                    var parameter = originalParameters[i].Item1;
+                    var ParameterType = parameter.ParameterType;
+                    if (ParameterType == typeof(ConsoleAppContext))
                     {
                         newInvokeArgs[i] = ctx;
                     }
-                    else if (isService!.IsService(p))
+                    else if (isService!.IsService(ParameterType))
                     {
                         try
                         {
-                            newInvokeArgs[i] = provider.GetService(p);
+                            newInvokeArgs[i] = provider.GetService(ParameterType);
                         }
                         catch (Exception ex)
                         {
-                            await SetFailAsync("Fail to get service parameter. ParameterType:" + p.FullName, ex);
+                            await SetFailAsync("Fail to get service parameter. ParameterType:" + ParameterType.FullName, ex);
                             return;
                         }
                     }
@@ -177,7 +188,7 @@ namespace ConsoleAppFramework
                 invokeArgs = newInvokeArgs;
             }
 
-            var validationResult = paramsValidator.ValidateParameters(originalParameters.Zip(invokeArgs));
+            var validationResult = paramsValidator.ValidateParameters(originalParameters.Select(x => x.Item1).Zip(invokeArgs));
             if (validationResult != ValidationResult.Success)
             {
                 await SetFailAsync(validationResult!.ErrorMessage!);
@@ -190,6 +201,17 @@ namespace ConsoleAppFramework
                 {
                     instance = ActivatorUtilities.CreateInstance(provider, type);
                     typeof(ConsoleAppBase).GetProperty(nameof(ConsoleAppBase.Context))!.SetValue(instance, ctx);
+
+                    for (int i = 0; i < originalFields.Length; i++)
+                    {
+                        var field = originalFields[i].Item1;
+                        var fieldValue = fieldVals[i];
+
+                        if (fieldValue == null)
+                            continue;
+
+                        field.SetValue(instance, fieldValue);
+                    }
                 }
 
             }
@@ -257,7 +279,7 @@ namespace ConsoleAppFramework
             return default;
         }
 
-        bool TryGetInvokeArguments(ParameterInfo[] parameters, string?[] args, int argsOffset, out object?[] invokeArgs, out string? errorMessage)
+        bool TryGetInvokeArguments((ParameterInfo, OptionAttribute)[] parameters, (FieldInfo, OptionAttribute)[] fields, string?[] args, int argsOffset, out object?[] invokeArgs, out object?[] fieldVals, out string? errorMessage)
         {
             try
             {
@@ -265,26 +287,35 @@ namespace ConsoleAppFramework
 
                 // Collect option types for parsing command-line arguments.
                 var optionTypeByOptionName = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-                for (int i = 0; i < parameters.Length; i++)
+                void AddOptionByName(OptionAttribute option, string name, Type type)
                 {
-                    var item = parameters[i];
-                    var option = item.GetCustomAttribute<OptionAttribute>();
-
-                    optionTypeByOptionName[(isStrict ? "--" : "") + options.NameConverter(item.Name!)] = item.ParameterType;
+                    optionTypeByOptionName[(isStrict ? "--" : "") + options.NameConverter(name!)] = type;
                     if (!string.IsNullOrWhiteSpace(option?.ShortName))
                     {
-                        optionTypeByOptionName[(isStrict ? "-" : "") + option!.ShortName!] = item.ParameterType;
+                        optionTypeByOptionName[(isStrict ? "-" : "") + option!.ShortName!] = type;
                     }
+                }
+
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    var parameter = parameters[i].Item1;
+                    AddOptionByName(parameters[i].Item2, parameter.Name!, parameter.ParameterType);
+                }
+
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    var field = fields[i].Item1;
+                    AddOptionByName(fields[i].Item2, field.Name, field.FieldType);
                 }
 
                 var (argumentDictionary, optionByIndex) = ParseArgument(args, argsOffset, optionTypeByOptionName, isStrict);
                 invokeArgs = new object[parameters.Length];
+                fieldVals = new object[fields.Length];
 
-                for (int i = 0; i < parameters.Length; i++)
+                void SetParameter(OptionAttribute option, string parameterName, Type parameterType, int parameterPosition, int i, Func<bool> hasDefaultValue, Func<object?> getDefaultValue, out object parameterValue)
                 {
-                    var item = parameters[i];
-                    var itemName = options.NameConverter(item.Name!);
-                    var option = item.GetCustomAttribute<OptionAttribute>();
+                    var itemName = options.NameConverter(parameterName);
+
                     if (!string.IsNullOrWhiteSpace(option?.ShortName) && char.IsDigit(option!.ShortName, 0)) throw new InvalidOperationException($"Option '{itemName}' has a short name, but the short name must start with A-Z or a-z.");
 
                     var value = default(OptionParameter);
@@ -294,7 +325,7 @@ namespace ConsoleAppFramework
                     {
                         if (optionByIndex.Count <= option.Index)
                         {
-                            if (!item.HasDefaultValue())
+                            if (!hasDefaultValue())
                             {
                                 throw new InvalidOperationException($"Required argument {option.Index} was not found in specified arguments.");
                             }
@@ -311,44 +342,43 @@ namespace ConsoleAppFramework
 
                     if (value.Value != null || argumentDictionary.TryGetValue(longName!, out value) || argumentDictionary.TryGetValue(shortName ?? "", out value))
                     {
-                        if (parameters[i].ParameterType == typeof(bool) && value.Value == null)
+                        if (parameterType == typeof(bool) && value.Value == null)
                         {
-                            invokeArgs[i] = value.BooleanSwitch;
-                            continue;
+                            parameterValue = value.BooleanSwitch;
+                            return;
                         }
 
                         if (value.Value != null)
                         {
-                            if (parameters[i].ParameterType == typeof(string))
+                            if (parameterType == typeof(string))
                             {
                                 // when string, invoke directly(avoid JSON escape)
-                                invokeArgs[i] = value.Value;
-                                continue;
+                                parameterValue = value.Value;
+                                return;
                             }
-                            else if (parameters[i].ParameterType.IsEnum)
+                            else if (parameterType.IsEnum)
                             {
                                 try
                                 {
-                                    invokeArgs[i] = Enum.Parse(parameters[i].ParameterType, value.Value, true);
-                                    continue;
+                                    parameterValue = Enum.Parse(parameterType, value.Value, true);
+                                    return;
                                 }
                                 catch
                                 {
-                                    errorMessage = "Parameter \"" + itemName + "\"" + " fail on Enum parsing.";
-                                    return false;
+                                    throw new Exception("Parameter \"" + itemName + "\"" + " fail on Enum parsing.");
                                 }
                             }
-                            else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(parameters[i].ParameterType) && !typeof(System.Collections.IDictionary).IsAssignableFrom(parameters[i].ParameterType))
+                            else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(parameterType) && !typeof(System.Collections.IDictionary).IsAssignableFrom(parameterType))
                             {
                                 var v = value.Value;
                                 if (!(v.StartsWith("[") && v.EndsWith("]")))
                                 {
-                                    var elemType = UnwrapCollectionElementType(parameters[i].ParameterType);
+                                    var elemType = UnwrapCollectionElementType(parameterType);
                                     if (elemType == typeof(string))
                                     {
                                         if (parameters.Length == i + 1)
                                         {
-                                            v = "[" + string.Join(",", optionByIndex.Skip(parameters[i].Position).Select(x => "\"" + x.Value + "\"")) + "]";
+                                            v = "[" + string.Join(",", optionByIndex.Skip(parameterPosition).Select(x => "\"" + x.Value + "\"")) + "]";
                                         }
                                         else
                                         {
@@ -369,13 +399,12 @@ namespace ConsoleAppFramework
                                 }
                                 try
                                 {
-                                    invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
-                                    continue;
+                                    parameterValue = JsonSerializer.Deserialize(v, parameterType, jsonOption);
+                                    return;
                                 }
                                 catch
                                 {
-                                    errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
-                                    return false;
+                                    throw new Exception("Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.");
                                 }
                             }
                             else
@@ -385,8 +414,8 @@ namespace ConsoleAppFramework
                                 {
                                     try
                                     {
-                                        invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
-                                        continue;
+                                        parameterValue = JsonSerializer.Deserialize(v, parameterType, jsonOption);
+                                        return;
                                     }
                                     catch (JsonException)
                                     {
@@ -395,27 +424,26 @@ namespace ConsoleAppFramework
                                         {
                                             v = $"\"{v}\"";
                                         }
-                                        invokeArgs[i] = JsonSerializer.Deserialize(v, parameters[i].ParameterType, jsonOption);
-                                        continue;
+                                        parameterValue = JsonSerializer.Deserialize(v, parameterType, jsonOption);
+                                        return;
                                     }
                                 }
                                 catch
                                 {
-                                    errorMessage = "Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.";
-                                    return false;
+                                    throw new Exception("Parameter \"" + itemName + "\"" + " fail on JSON deserialize, please check type or JSON escape or add double-quotation.");
                                 }
                             }
                         }
                     }
 
-                    if (item.HasDefaultValue())
+                    if (hasDefaultValue())
                     {
-                        invokeArgs[i] = item.DefaultValue();
+                        parameterValue = getDefaultValue();
                     }
-                    else if (item.ParameterType == typeof(bool))
+                    else if (parameterType == typeof(bool))
                     {
                         // bool without default value should be considered that it has implicit default value of false.
-                        invokeArgs[i] = false;
+                        parameterValue = false;
                     }
                     else
                     {
@@ -424,9 +452,28 @@ namespace ConsoleAppFramework
                         {
                             name = itemName + "(" + "-" + option.ShortName + ")";
                         }
-                        errorMessage = "Required parameter \"" + name + "\"" + " not found in argument.";
-                        return false;
+                        throw new Exception("Required parameter \"" + name + "\"" + " not found in argument.");
                     }
+                }
+
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    var parameter = parameters[i].Item1;
+                    var option = parameters[i].Item2;
+
+                    SetParameter(option, parameter.Name!, parameter.ParameterType, parameter.Position, i
+                        , () => parameter.HasDefaultValue(), () => parameter.DefaultValue()
+                        , out invokeArgs[i]);
+                }
+
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    var field = fields[i].Item1;
+                    var option = fields[i].Item2;
+
+                    SetParameter(option, field.Name!, field.FieldType, -1, i
+                        , () => true, () => null
+                        , out fieldVals[i]);
                 }
 
                 errorMessage = null;
@@ -435,6 +482,7 @@ namespace ConsoleAppFramework
             catch (Exception ex)
             {
                 invokeArgs = default!;
+                fieldVals = default!;
                 errorMessage = ex.Message;
                 return false;
             }
