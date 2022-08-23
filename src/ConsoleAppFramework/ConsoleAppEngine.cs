@@ -106,7 +106,7 @@ namespace ConsoleAppFramework
             if (commandDescriptor.CommandType == CommandType.DefaultCommand && args.Length == 0)
             {
                 var p = commandDescriptor.MethodInfo.GetParameters();
-                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType) || x.HasDefaultValue)))
+                if (p.Any(x => !(x.ParameterType == typeof(ConsoleAppContext) || isService.IsService(x.ParameterType) || x.HasDefaultValue())))
                 {
                     options.CommandDescriptors.TryGetHelpMethod(out commandDescriptor);
                 }
@@ -294,7 +294,7 @@ namespace ConsoleAppFramework
                     {
                         if (optionByIndex.Count <= option.Index)
                         {
-                            if (!item.HasDefaultValue)
+                            if (!item.HasDefaultValue())
                             {
                                 throw new InvalidOperationException($"Required argument {option.Index} was not found in specified arguments.");
                             }
@@ -346,13 +346,20 @@ namespace ConsoleAppFramework
                                     var elemType = UnwrapCollectionElementType(parameters[i].ParameterType);
                                     if (elemType == typeof(string))
                                     {
-                                        if (!(v.StartsWith("\"") && v.EndsWith("\"")))
-                                        {
-                                            v = "[" + string.Join(",", v.Split(' ', ',').Select(x => "\"" + x + "\"")) + "]";
+                                        if (parameters.Length == i + 1)
+										{
+                                            v = "[" + string.Join(",", optionByIndex.Skip(parameters[i].Position).Select(x => "\"" + x.Value + "\"")) + "]";
                                         }
                                         else
-                                        {
-                                            v = "[" + v + "]";
+										{
+                                            if (!(v.StartsWith("\"") && v.EndsWith("\"")))
+                                            {
+                                                v = "[" + string.Join(",", v.Split(' ', ',').Select(x => "\"" + x + "\"")) + "]";
+                                            }
+                                            else
+                                            {
+                                                v = "[" + v + "]";
+                                            }
                                         }
                                     }
                                     else
@@ -401,9 +408,9 @@ namespace ConsoleAppFramework
                         }
                     }
 
-                    if (item.HasDefaultValue)
+                    if (item.HasDefaultValue())
                     {
-                        invokeArgs[i] = item.DefaultValue;
+                        invokeArgs[i] = item.DefaultValue();
                     }
                     else if (item.ParameterType == typeof(bool))
                     {

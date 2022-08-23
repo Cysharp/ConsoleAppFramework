@@ -305,7 +305,7 @@ namespace ConsoleAppFramework
                 var isFlag = item.ParameterType == typeof(bool);
 
                 var defaultValue = default(string);
-                if (item.HasDefaultValue)
+                if (item.HasDefaultValue())
                 {
                     if (option?.DefaultValue != null)
                     {
@@ -313,16 +313,16 @@ namespace ConsoleAppFramework
                     }
                     else
                     {
-                        defaultValue = (item.DefaultValue?.ToString() ?? "null");
+                        defaultValue = (item.DefaultValue()?.ToString() ?? "null");
                     }
                     if (isFlag)
                     {
-                        if (item.DefaultValue is true)
+                        if (item.DefaultValue() is true)
                         {
                             // bool option with true default value is not flag.
                             isFlag = false;
                         }
-                        else if (item.DefaultValue is false)
+                        else if (item.DefaultValue() is false)
                         {
                             // false default value should be omitted for flag.
                             defaultValue = null;
