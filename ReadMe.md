@@ -17,7 +17,7 @@ ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 Of course, ConsoleAppFramework has extensibility.
 
 ```csharp
-// Regsiter two commands(use short-name, argument)
+// Register two commands(use short-name, argument)
 // hello -m
 // sum [x] [y]
 var app = ConsoleApp.Create(args);
@@ -381,7 +381,7 @@ var app = ConsoleApp.CreateBuilder(args)
     .Build();
 
 // Run is shorthand of Create(args).AddRootCommand(rootCommand).Run();
-// If you want to create simple app, this API is most fast.
+// If you want to create simple app, this API is faster.
 ConsoleApp.Run(args, /* lambda expression */);
 
 // Run<T> is shorthand of Create(args).AddCommands<T>().Run();
@@ -491,7 +491,7 @@ public class MyCommands : ConsoleAppBase, IDisposable
         this.logger = logger;
     }
 
-    // All public methods is registred.
+    // All public methods is registered.
 
     // Using [RootCommand] attribute will be root-command
     [RootCommand]
