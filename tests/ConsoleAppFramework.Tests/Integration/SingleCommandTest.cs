@@ -18,6 +18,48 @@ namespace ConsoleAppFramework.Integration.Test
             console.Output.Should().Contain("HelloMyWorld");
         }
 
+        [Fact]
+        public void IntArguments()
+        {
+            using var console = new CaptureConsoleOutput();
+
+            var args = "--foo 1,2,3".Split(' ');
+
+            ConsoleApp.RunAsync(args, (string[] foo) =>
+            {
+                foreach (var item in foo)
+                {
+                    Console.WriteLine(item);
+                }
+            });
+
+            console.Output.Should().Be(@"1
+2
+3
+");
+        }
+
+        [Fact]
+        public void StringArguments()
+        {
+            using var console = new CaptureConsoleOutput();
+
+            var args = "--foo a,b,c".Split(' ');
+
+            ConsoleApp.RunAsync(args, (string[] foo) =>
+            {
+                foreach (var item in foo)
+                {
+                    Console.WriteLine(item);
+                }
+            });
+
+            console.Output.Should().Be(@"a
+b
+c
+");
+        }
+
         public class CommandTests_Single_NoOptions_NoArgs : ConsoleAppBase
         {
             public void Hello() => Console.WriteLine("HelloMyWorld");
