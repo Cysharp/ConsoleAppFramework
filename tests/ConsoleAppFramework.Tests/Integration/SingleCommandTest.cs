@@ -25,7 +25,7 @@ namespace ConsoleAppFramework.Integration.Test
 
             var args = "--foo 1,2,3".Split(' ');
 
-            ConsoleApp.RunAsync(args, (string[] foo) =>
+            ConsoleApp.RunAsync(args, (int[] foo) =>
             {
                 foreach (var item in foo)
                 {
