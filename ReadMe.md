@@ -968,7 +968,7 @@ Here's single contained batch with Config loading sample.
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
 
-var app = ConsoleApp.CrateBuilder(args)
+var app = ConsoleApp.CreateBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
         // mapping config json to IOption<MyConfig>
