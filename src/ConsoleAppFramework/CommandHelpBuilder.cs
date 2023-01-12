@@ -231,7 +231,7 @@ namespace ConsoleAppFramework
         internal string BuildMethodListMessage(IEnumerable<CommandHelpDefinition> commandHelpDefinitions, bool appendCommand, out int maxWidth)
         {
             var formatted = commandHelpDefinitions
-                .Select(x => (Command: $"{(x.CommandAliases.Length != 0 ? ((appendCommand ? x.Command + " " : "") + string.Join(", ", x.CommandAliases)) : x.Command)}", Description: x.Description))
+                .Select(x => (Command: x.Command, Description: x.Description))
                 .ToArray();
             maxWidth = formatted.Max(x => x.Command.Length);
 
@@ -349,7 +349,7 @@ namespace ConsoleAppFramework
             }
 
             return new CommandHelpDefinition(
-                shortCommandName ? descriptor.GetNamesFormatted(options) : descriptor.GetCommandName(options),
+                shortCommandName ? descriptor.GetNames(options)[0] : descriptor.GetCommandName(options),
                 descriptor.Aliases,
                 parameterDefinitions.OrderBy(x => x.Index ?? int.MaxValue).ToArray(),
                 descriptor.Description

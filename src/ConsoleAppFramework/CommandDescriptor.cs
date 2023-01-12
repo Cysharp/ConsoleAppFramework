@@ -49,11 +49,11 @@ namespace ConsoleAppFramework
         {
             if (ParentCommand != null)
             {
-                return $"{ParentCommand} {GetNamesFormatted(options)}";
+                return $"{ParentCommand} {GetNames(options)[0]}";
             }
             else
             {
-                return GetNamesFormatted(options);
+                return GetNames(options)[0];
             }
         }
 
