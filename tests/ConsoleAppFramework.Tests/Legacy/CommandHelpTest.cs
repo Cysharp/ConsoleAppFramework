@@ -10,9 +10,9 @@ namespace ConsoleAppFramework.Tests
 {
     public class CommandHelpTest
     {
-        private CommandHelpBuilder CreateCommandHelpBuilder() => new CommandHelpBuilder(() => "Nantoka", null, new ConsoleAppOptions() { NameConverter = x => x.ToLower() });
-        private CommandHelpBuilder CreateCommandHelpBuilder2() => new CommandHelpBuilder(() => "Nantoka", null, new ConsoleAppOptions() { NameConverter = x => x.ToLower() });
-        private CommandHelpBuilder CreateCommandHelpBuilder3() => new CommandHelpBuilder(() => "Nantoka", null, new ConsoleAppOptions() { NameConverter = x => x.ToLower() });
+        private CommandHelpBuilder CreateCommandHelpBuilder() => new CommandHelpBuilder(() => "Nantoka", null, null, new ConsoleAppOptions() { NameConverter = x => x.ToLower() });
+        private CommandHelpBuilder CreateCommandHelpBuilder2() => new CommandHelpBuilder(() => "Nantoka", null, null, new ConsoleAppOptions() { NameConverter = x => x.ToLower() });
+        private CommandHelpBuilder CreateCommandHelpBuilder3() => new CommandHelpBuilder(() => "Nantoka", null, null, new ConsoleAppOptions() { NameConverter = x => x.ToLower() });
 
         [Fact]
         public void BuildMethodListMessage()
