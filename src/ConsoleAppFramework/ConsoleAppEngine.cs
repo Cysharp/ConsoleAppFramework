@@ -83,7 +83,11 @@ namespace ConsoleAppFramework
                     var subCommands = options.CommandDescriptors.GetSubCommands(args[0]);
                     if (subCommands.Length != 0)
                     {
-                        var msg = new CommandHelpBuilder(() => args[0], isService, options).BuildHelpMessage(null, subCommands, shortCommandName: true);
+                        var msg = new CommandHelpBuilder(
+                                () => commandDescriptor?.GetCommandName(options) ?? args[0],
+                                () => commandDescriptor?.Aliases ?? new string[0],
+                                isService, options)
+                            .BuildHelpMessage(null, subCommands, shortCommandName: true);
                         Console.WriteLine(msg);
                         return;
                     }
@@ -97,7 +101,8 @@ namespace ConsoleAppFramework
             // foo bar --help
             if (args.Skip(offset).FirstOrDefault()?.Trim('-') == "help")
             {
-                var msg = new CommandHelpBuilder(() => commandDescriptor.GetCommandName(options), isService, options).BuildHelpMessage(commandDescriptor);
+                var msg = new CommandHelpBuilder(() => commandDescriptor.GetCommandName(options), () => commandDescriptor.Aliases, isService, options)
+                    .BuildHelpMessage(commandDescriptor);
                 Console.WriteLine(msg);
                 return;
             }

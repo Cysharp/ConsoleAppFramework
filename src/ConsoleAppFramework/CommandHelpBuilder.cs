@@ -11,13 +11,15 @@ namespace ConsoleAppFramework
     internal class CommandHelpBuilder
     {
         readonly Func<string> getExecutionCommandName;
+        readonly Func<string[]> getExecutionCommandAliases;
         readonly bool isStrictOption;
         readonly IServiceProviderIsService isService;
         readonly ConsoleAppOptions options;
 
-        public CommandHelpBuilder(Func<string>? getExecutionCommandName, IServiceProviderIsService isService, ConsoleAppOptions options)
+        public CommandHelpBuilder(Func<string>? getExecutionCommandName, Func<string[]>? getExecutionCommandAliases, IServiceProviderIsService isService, ConsoleAppOptions options)
         {
             this.getExecutionCommandName = getExecutionCommandName ?? GetExecutionCommandNameDefault;
+            this.getExecutionCommandAliases = getExecutionCommandAliases ?? (() => new string[0]);
             this.isStrictOption = options.StrictOption;
             this.isService = isService;
             this.options = options;
@@ -93,6 +95,13 @@ namespace ConsoleAppFramework
                 sb.AppendLine("Options:");
                 sb.AppendLine("  ()");
                 sb.AppendLine();
+            }
+
+            var aliases = getExecutionCommandAliases();
+            if(aliases.Length > 0)
+            {
+                sb.Append("Aliases: ");
+                sb.AppendLine(string.Join(", ", aliases));
             }
 
             return sb.ToString();
