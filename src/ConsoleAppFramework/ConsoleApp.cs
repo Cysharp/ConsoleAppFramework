@@ -16,6 +16,15 @@ namespace ConsoleAppFramework
         // Keep this reference as ConsoleApOptions.CommandDescriptors.
         readonly CommandDescriptorCollection commands;
         readonly ConsoleAppOptions options;
+        readonly string[] invalidMethodNames =
+        {
+            "Dispose",
+            "DisposeAsync",
+            "GetType",
+            "ToString",
+            "Equals",
+            "GetHashCode"
+        };
 
         public IHost Host { get; }
         public ILogger<ConsoleApp> Logger { get; }
@@ -128,10 +137,11 @@ namespace ConsoleAppFramework
         public ConsoleApp AddCommands<T>()
             where T : ConsoleAppBase
         {
-            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m => !m.IsSpecialName);
+
             foreach (var method in methods)
             {
-                if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
+                if (invalidMethodNames.Contains(method.Name)) continue;
 
                 if (method.GetCustomAttribute<RootCommandAttribute>() != null || (options.NoAttributeCommandAsImplicitlyDefault && method.GetCustomAttribute<CommandAttribute>() == null))
                 {
@@ -163,13 +173,13 @@ namespace ConsoleAppFramework
 
         public ConsoleApp AddSubCommands<T>()
         {
-            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m => !m.IsSpecialName);
 
             var rootName = typeof(T).GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? options.NameConverter(typeof(T).Name);
 
             foreach (var method in methods)
             {
-                if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
+                if (invalidMethodNames.Contains(method.Name)) continue;
 
                 if (method.GetCustomAttribute<RootCommandAttribute>() != null)
                 {
