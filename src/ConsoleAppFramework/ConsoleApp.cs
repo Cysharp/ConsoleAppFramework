@@ -128,7 +128,7 @@ namespace ConsoleAppFramework
         public ConsoleApp AddCommands<T>()
             where T : ConsoleAppBase
         {
-            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance);
             foreach (var method in methods)
             {
                 if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
@@ -163,7 +163,7 @@ namespace ConsoleAppFramework
 
         public ConsoleApp AddSubCommands<T>()
         {
-            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance);
 
             var rootName = typeof(T).GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? options.NameConverter(typeof(T).Name);
 
@@ -194,7 +194,7 @@ namespace ConsoleAppFramework
         {
             foreach (var type in GetConsoleAppTypes(searchAssemblies))
             {
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
                 var rootName = type.GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? options.NameConverter(type.Name);
                 foreach (var method in methods)
                 {
