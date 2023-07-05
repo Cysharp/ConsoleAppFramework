@@ -41,11 +41,13 @@ namespace ConsoleAppFramework
                 subCommandDescriptors.Add(parentCommand, commandDict);
             }
 
-            foreach (var name in commandDescriptor.GetNames(options))
+            var names = commandDescriptor.GetNames(options);
+
+            foreach (var name in names)
             {
                 if (!commandDict.TryAdd(name, commandDescriptor))
                 {
-                    throw new InvalidOperationException($"Duplicate command name is added. Name:{parentCommand} {name} Method:{commandDescriptor.MethodInfo.DeclaringType?.Name}.{commandDescriptor.MethodInfo.Name}");
+                    throw new InvalidOperationException($"Duplicate command name is added. Name:{parentCommand} {name} Method:{commandDescriptor.MethodInfo.ReflectedType?.Name}.{commandDescriptor.MethodInfo.Name}");
                 }
             }
         }
