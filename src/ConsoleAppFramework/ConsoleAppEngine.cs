@@ -113,7 +113,7 @@ namespace ConsoleAppFramework
             }
 
         RUN:
-            await RunCore(commandDescriptor!.MethodInfo!.DeclaringType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, offset);
+            await RunCore(commandDescriptor!.MethodInfo!.ReflectedType!, commandDescriptor.MethodInfo, commandDescriptor.Instance, args, offset);
         }
 
         // Try to invoke method.

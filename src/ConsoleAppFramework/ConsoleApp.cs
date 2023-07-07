@@ -16,6 +16,13 @@ namespace ConsoleAppFramework
         // Keep this reference as ConsoleApOptions.CommandDescriptors.
         readonly CommandDescriptorCollection commands;
         readonly ConsoleAppOptions options;
+        readonly string[] notInheritedMethods =
+        {
+            "GetType",
+            "ToString",
+            "Equals",
+            "GetHashCode"
+        };
 
         public IHost Host { get; }
         public ILogger<ConsoleApp> Logger { get; }
@@ -128,10 +135,13 @@ namespace ConsoleAppFramework
         public ConsoleApp AddCommands<T>()
             where T : ConsoleAppBase
         {
-            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var type = typeof(T);
+
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m => !m.IsSpecialName);
+
             foreach (var method in methods)
             {
-                if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
+                if (notInheritedMethods.Contains(method.Name) && method.DeclaringType != type) continue;
 
                 if (method.GetCustomAttribute<RootCommandAttribute>() != null || (options.NoAttributeCommandAsImplicitlyDefault && method.GetCustomAttribute<CommandAttribute>() == null))
                 {
@@ -163,13 +173,15 @@ namespace ConsoleAppFramework
 
         public ConsoleApp AddSubCommands<T>()
         {
-            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var type = typeof(T);
+
+            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m => !m.IsSpecialName);
 
             var rootName = typeof(T).GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? options.NameConverter(typeof(T).Name);
 
             foreach (var method in methods)
             {
-                if (method.Name == "Dispose" || method.Name == "DisposeAsync") continue; // ignore IDisposable
+                if (notInheritedMethods.Contains(method.Name) && method.DeclaringType != type) continue;
 
                 if (method.GetCustomAttribute<RootCommandAttribute>() != null)
                 {
@@ -194,7 +206,7 @@ namespace ConsoleAppFramework
         {
             foreach (var type in GetConsoleAppTypes(searchAssemblies))
             {
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
                 var rootName = type.GetCustomAttribute<CommandAttribute>()?.CommandNames[0] ?? options.NameConverter(type.Name);
                 foreach (var method in methods)
                 {
