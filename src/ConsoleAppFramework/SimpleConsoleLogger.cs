@@ -40,17 +40,17 @@ namespace ConsoleAppFramework.Logging
             this.minimumLogLevel = minimumLogLevel;
         }
 
-        public IDisposable BeginScope<TState>(TState state)
+        IDisposable ILogger.BeginScope<TState>(TState state)
         {
             return NullDisposable.Instance;
         }
 
-        public bool IsEnabled(LogLevel logLevel)
+        bool ILogger.IsEnabled(LogLevel logLevel)
         {
             return minimumLogLevel <= logLevel;
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
 
