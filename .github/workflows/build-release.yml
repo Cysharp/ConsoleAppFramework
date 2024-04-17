@@ -23,7 +23,7 @@ jobs:
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet test -c Release --no-build
       - run: dotnet pack -c Release --no-build -p:Version=${{ inputs.tag }} -o ./publish
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: nuget
           path: ./publish
