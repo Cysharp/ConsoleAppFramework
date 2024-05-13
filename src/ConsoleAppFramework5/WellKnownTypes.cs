@@ -19,8 +19,15 @@ public class WellKnownTypes(Compilation compilation)
     INamedTypeSymbol? cancellationToken;
     public INamedTypeSymbol? CancellationToken => cancellationToken ??= compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
 
+    INamedTypeSymbol? task;
+    public INamedTypeSymbol? Task => task ??= compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
+
+    INamedTypeSymbol? task_T;
+    public INamedTypeSymbol? Task_T => task_T ??= compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+
     public bool HasTryParse(ITypeSymbol type)
     {
+
         if (SymbolEqualityComparer.Default.Equals(type, DateTimeOffset)
          || SymbolEqualityComparer.Default.Equals(type, Guid)
          || SymbolEqualityComparer.Default.Equals(type, Version)

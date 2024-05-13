@@ -216,6 +216,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         }
 
         // TODO: check for Task, Task<int>
+        //methodSymbol.ReturnType.SpecialType == SpecialType.System_Threading_Tasks_Task_T
+        var task = methodSymbol.ReturnType.Name == "Task";
 
         var parameters = methodSymbol.Parameters
             .Select(x =>

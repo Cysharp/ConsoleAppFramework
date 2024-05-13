@@ -11,7 +11,7 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 using Takoyaki;
 
-args = ["--x", "10", "--y", "20"]; // test.
+args = ["--hello", "10", "--world", "20"]; // test.
 
 
 // var s = "foo";
@@ -28,9 +28,12 @@ args = ["--x", "10", "--y", "20"]; // test.
 
 // --x
 
+unsafe
+{
 
-ConsoleApp.Run(args, Command.Execute);
+    ConsoleApp.Run(args, &Command.Execute);
 
+}
 
 // description
 // 
@@ -41,37 +44,10 @@ var provider = sc.BuildServiceProvider();
 ConsoleApp.ServiceProvider = provider;
 
 
-//var cts = new CancellationTokenSource();
-
-//var iii = 0;
-//while (true)
-//{
-//    Thread.Sleep(TimeSpan.FromSeconds(1));
-//    Console.WriteLine(iii++ + ", " + cts.IsCancellationRequested);
-//}
-
-
-//delegate* managed<int, int, void> a = &Method;
-
-// sp.GetService();
-
-//await ConsoleApp.RunAsync(args, static async (int x, [FromServices] MyClass mc, CancellationToken cancellationToken) =>
-//{
-//    Console.WriteLine((x, mc));
-//    await Task.Yield();
-//    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
-//    Console.WriteLine("end");
-//});
-
-
-//ConsoleApp.Run(args, &Methods.Method);
-
-static void Foo(RunRun rrrr)
+static void RunRun(int x, int y)
 {
+    Console.WriteLine("Hello World!" + x + y);
 }
-
-
-internal delegate void RunRun(int x, int y = 100);
 
 
 public static class Command
@@ -83,7 +59,9 @@ public static class Command
     /// <param name="world">-w|--woorong, world</param>
     public static void Execute(int hello, int world = 12345, CancellationToken cancellationToken = default)
     {
-
+        Console.WriteLine("go");
+        Thread.Sleep(TimeSpan.FromSeconds(10));
+        Console.WriteLine("end");
     }
 }
 
@@ -158,127 +136,36 @@ public readonly struct Vector3Parser : IParser<Vector3>
 
 namespace ConsoleAppFramework
 {
-    partial class ConsoleApp
-    {
-        public static async void Run2(string[] args, Action<int, int, global::System.Threading.CancellationToken> command)
-        {
-            using var posixSignalHandler = PosixSignalHandler.Register();
-            var arg0 = default(int);
-            var arg0Parsed = false;
-            var arg1 = (int)12345;
-            var arg2 = posixSignalHandler.Token;
-
-            for (int i = 0; i < args.Length; i++)
-            {
-                var name = args[i];
-
-                switch (name)
-                {
-                    case "--hello":
-                    case "-h":
-                        if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("hello", args[i]);
-                        arg0Parsed = true;
-                        break;
-                    case "--world":
-                    case "-w":
-                    case "--woorong":
-                        if (!int.TryParse(args[++i], out arg1)) ThrowArgumentParseFailed("world", args[i]);
-                        break;
-
-                    default:
-                        if (string.Equals(name, "--hello", StringComparison.OrdinalIgnoreCase)
-                         || string.Equals(name, "-h", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("hello", args[i]);
-                            arg0Parsed = true;
-                            break;
-                        }
-                        if (string.Equals(name, "--world", StringComparison.OrdinalIgnoreCase)
-                         || string.Equals(name, "-w", StringComparison.OrdinalIgnoreCase)
-                         || string.Equals(name, "--woorong", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (!int.TryParse(args[++i], out arg1)) ThrowArgumentParseFailed("world", args[i]);
-                            break;
-                        }
-
-                        ThrowArgumentNameNotFound(name);
-                        break;
-                }
-            }
-
-            if (!arg0Parsed) ThrowRequiredArgumentNotParsed("hello");
+    //partial class ConsoleApp
+    //{
 
 
-            //posixSignalHandler.
+    //    public ConsoleAppBuilder CreateBuilder()
+    //    {
+    //        return new ConsoleAppBuilder();
+    //    }
+    //}
 
-            try
-            {
-                var commandRun = Task.Run(() => command(arg0!, arg1!, arg2!));
-                var t = await Task.WhenAny(commandRun, new PosixSignalHandler2().TimeoutAfterCanceled);
-                if (t != commandRun) // success
-                {
-                    // Timeout.
 
-                }
-            }
-            catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token) { }
+    //public class ConsoleAppBuilder
+    //{
+    //    public void Add()
+    //    {
+    //    }
 
-        }
-    }
 
-    sealed class PosixSignalHandler2 : IDisposable
-    {
-        public CancellationToken Token => cancellationTokenSource.Token;
-        public Task TimeoutAfterCanceled => timeoutTask.Task;
-        public TimeSpan Timeout;
 
-        CancellationTokenSource cancellationTokenSource;
-        CancellationTokenSource? timeoutCancellationTokenSource;
-        TaskCompletionSource timeoutTask;
+    //    public void Run(string[] args)
+    //    {
+    //        if (args.Length == 0 || args[0].StartsWith('-'))
+    //        {
+    //            // invoke root command
+    //        }
+    //    }
 
-        PosixSignalRegistration? sigInt;
-        PosixSignalRegistration? sigQuit;
-        PosixSignalRegistration? sigTerm;
-
-        public PosixSignalHandler2()
-        {
-            cancellationTokenSource = new CancellationTokenSource();
-            timeoutTask = new();
-        }
-
-        public static PosixSignalHandler2 Register()
-        {
-            var handler = new PosixSignalHandler2();
-
-            Action<PosixSignalContext> handleSignal = handler.HandlePosixSignal;
-
-            handler.sigInt = PosixSignalRegistration.Create(PosixSignal.SIGINT, handleSignal);
-            handler.sigQuit = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, handleSignal);
-            handler.sigTerm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, handleSignal);
-
-            return handler;
-        }
-
-        async void HandlePosixSignal(PosixSignalContext context)
-        {
-            context.Cancel = true;
-            cancellationTokenSource?.Cancel();
-            timeoutCancellationTokenSource = new CancellationTokenSource();
-            try
-            {
-                await Task.Delay(Timeout, timeoutCancellationTokenSource.Token);
-            }
-            catch (OperationCanceledException) { }
-            timeoutTask.TrySetResult();
-        }
-
-        public void Dispose()
-        {
-            sigInt?.Dispose();
-            sigQuit?.Dispose();
-            sigTerm?.Dispose();
-            timeoutCancellationTokenSource?.Cancel();
-        }
-    }
+    //    public void RunAsync(string[] args)
+    //    {
+    //    }
+    //}
 }
 

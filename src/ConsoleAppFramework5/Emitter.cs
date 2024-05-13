@@ -3,7 +3,7 @@ using System.Text;
 
 namespace ConsoleAppFramework;
 
-internal class Emitter(SourceProductionContext context, Command command, WellKnownTypes wellKnownTypes)
+internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
 {
     public string EmitRun(bool isRunAsync)
     {
@@ -13,7 +13,7 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
         var prepareArgument = new StringBuilder();
         if (hasCancellationToken)
         {
-            prepareArgument.AppendLine("        using var posixSignalHandler = PosixSignalHandler.Register();");
+            prepareArgument.AppendLine("        using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
         }
         for (var i = 0; i < command.Parameters.Length; i++)
         {
@@ -45,17 +45,17 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
             var parameter = command.Parameters[i];
             if (!parameter.IsParsable) continue;
 
-            fastParseCase.AppendLine($"                case \"--{parameter.Name}\":");
+            fastParseCase.AppendLine($"                    case \"--{parameter.Name}\":");
             foreach (var alias in parameter.Aliases)
             {
-                fastParseCase.AppendLine($"                case \"{alias}\":");
+                fastParseCase.AppendLine($"                    case \"{alias}\":");
             }
-            fastParseCase.AppendLine($"                    {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes)}");
+            fastParseCase.AppendLine($"                        {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes)}");
             if (!parameter.HasDefaultValue)
             {
-                fastParseCase.AppendLine($"                    arg{i}Parsed = true;");
+                fastParseCase.AppendLine($"                        arg{i}Parsed = true;");
             }
-            fastParseCase.AppendLine("                    break;");
+            fastParseCase.AppendLine("                        break;");
         }
 
         // parse argument(slow, if ignorecase) ->
@@ -65,20 +65,20 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
             var parameter = command.Parameters[i];
             if (!parameter.IsParsable) continue;
 
-            slowIgnoreCaseParse.AppendLine($"                    if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
+            slowIgnoreCaseParse.AppendLine($"                        if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
             for (int j = 0; j < parameter.Aliases.Length; j++)
             {
                 var alias = parameter.Aliases[j];
-                slowIgnoreCaseParse.AppendLine($"                     || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
+                slowIgnoreCaseParse.AppendLine($"                         || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
             }
-            slowIgnoreCaseParse.AppendLine("                    {");
-            slowIgnoreCaseParse.AppendLine($"                        {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes)}");
+            slowIgnoreCaseParse.AppendLine("                        {");
+            slowIgnoreCaseParse.AppendLine($"                            {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes)}");
             if (!parameter.HasDefaultValue)
             {
-                slowIgnoreCaseParse.AppendLine($"                        arg{i}Parsed = true;");
+                slowIgnoreCaseParse.AppendLine($"                            arg{i}Parsed = true;");
             }
-            slowIgnoreCaseParse.AppendLine($"                        break;");
-            slowIgnoreCaseParse.AppendLine("                    }");
+            slowIgnoreCaseParse.AppendLine($"                            break;");
+            slowIgnoreCaseParse.AppendLine("                        }");
         }
 
         // validate parsed ->
@@ -90,61 +90,45 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
 
             if (!parameter.HasDefaultValue)
             {
-                validateParsed.AppendLine($"        if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
+                validateParsed.AppendLine($"            if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
             }
         }
 
         // invoke for sync/async, void/int
         var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
-        var invoke = new StringBuilder();
+        var invokeCommand = $"command({methodArguments})";
         if (hasCancellationToken)
         {
-            invoke.AppendLine("        try");
-            invoke.AppendLine("        {");
-            invoke.Append("    ");
+            invokeCommand = $"Task.Run(() => {invokeCommand}).WaitAsync(posixSignalHandler.TimeoutToken)";
         }
-
-        if (command.IsAsync)
+        if (command.IsAsync || hasCancellationToken)
         {
-            if (command.IsVoid)
+            if (isRunAsync)
             {
-                if (isRunAsync)
-                {
-                    invoke.AppendLine($"        await command({methodArguments});");
-                }
-                else
-                {
-                    invoke.AppendLine($"        command({methodArguments}).GetAwaiter().GetResult();");
-                }
+                invokeCommand = $"await {invokeCommand}";
             }
             else
             {
-                if (isRunAsync)
-                {
-                    invoke.AppendLine($"        Environment.ExitCode = await command({methodArguments});");
-                }
-                else
-                {
-                    invoke.AppendLine($"        Environment.ExitCode = command({methodArguments}).GetAwaiter().GetResult();");
-                }
+                invokeCommand = $"{invokeCommand}.GetAwaiter().GetResult()";
             }
+        }
+
+        var invoke = new StringBuilder();
+        if (command.IsVoid)
+        {
+            invoke.AppendLine($"            {invokeCommand};");
         }
         else
         {
-            if (command.IsVoid)
-            {
-                invoke.AppendLine($"        command({methodArguments});");
-            }
-            else
-            {
-                invoke.AppendLine($"        Environment.ExitCode = command({methodArguments});");
-            }
+            invoke.AppendLine($"            Environment.ExitCode = {invokeCommand};");
         }
-
+        invoke.AppendLine("        }"); // try close
         if (hasCancellationToken)
         {
+            invoke.AppendLine("        catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)");
+            invoke.AppendLine("        {");
+            invoke.AppendLine("            Environment.ExitCode = 130;");
             invoke.AppendLine("        }");
-            invoke.AppendLine("        catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token) { }");
         }
 
         var returnType = isRunAsync ? "async Task" : "void";
@@ -157,22 +141,28 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
     public static {{unsafeCode}}{{returnType}} {{methodName}}(string[] args, {{commandMethodType}} command)
     {
 {{prepareArgument}}
-        for (int i = 0; i < args.Length; i++)
+        try
         {
-            var name = args[i];
-
-            switch (name)
+            for (int i = 0; i < args.Length; i++)
             {
-{{fastParseCase}}
-                default:
-{{slowIgnoreCaseParse}}
-                    ThrowArgumentNameNotFound(name);
-                    break;
-            }
-        }
+                var name = args[i];
 
+                switch (name)
+                {
+{{fastParseCase}}
+                    default:
+{{slowIgnoreCaseParse}}
+                        ThrowArgumentNameNotFound(name);
+                        break;
+                }
+            }
 {{validateParsed}}
 {{invoke}}
+        catch (Exception ex)
+        {
+            Environment.ExitCode = 1;
+            LogError(ex.ToString());
+        }
     }
 """;
 
