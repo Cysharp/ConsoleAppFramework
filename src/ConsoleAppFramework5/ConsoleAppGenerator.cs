@@ -98,6 +98,11 @@ internal static partial class ConsoleApp
         throw new ArgumentException($"Require argument '{name}' does not parsed.");
     }
 
+    static void ThrowArgumentNameNotFound(string argumentName)
+    {
+        throw new ArgumentException($"Argument '{argumentName}' does not found in command prameters.");
+    }
+
     static System.Collections.Generic.IEnumerable<(int start, int end)> Split(string str)
     {
         var start = 0;

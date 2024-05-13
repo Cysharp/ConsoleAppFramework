@@ -48,11 +48,12 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
     Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda)
     {
-        if (!lambda.Modifiers.Any(x => x.IsKind(SyntaxKind.StaticKeyword)))
-        {
-            // TODO: validation(need static)
-            return null;
-        }
+        // allow not static...
+        //if (!lambda.Modifiers.Any(x => x.IsKind(SyntaxKind.StaticKeyword)))
+        //{
+        //    // TODO: validation(need static)
+        //    return null;
+        //}
 
         // TODO: check return type
 
@@ -169,7 +170,9 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     DefaultValue = defaultValue,
                     CustomParserType = customParserType,
                     IsCancellationToken = isCancellationToken,
-                    IsFromServices = isFromServices
+                    IsFromServices = isFromServices,
+                    Aliases = [],
+                    Description = ""
                 };
             })
             .Where(x => x.Type != null)
@@ -182,7 +185,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             IsRootCommand = true,
             IsVoid = isVoid,
             Parameters = parameters,
-            MethodKind = MethodKind.Lambda
+            MethodKind = MethodKind.Lambda,
+            Description = ""
         };
 
         return cmd;
@@ -190,6 +194,15 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
     Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf)
     {
+        var docComment = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax().GetDocumentationCommentTriviaSyntax();
+        var summary = "";
+        Dictionary<string, string>? parameterDescriptions = null;
+        if (docComment != null)
+        {
+            summary = docComment.GetSummary();
+            parameterDescriptions = docComment.GetParams().ToDictionary(x => x.Name, x => x.Description);
+        }
+
         // allow returnType = void, int, Task, Task<int>
         var isVoid = false;
         var isAsync = false;
@@ -216,8 +229,14 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
                 // TODO: check FromServcies Attribute
 
-
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
+
+                string description = "";
+                string[] aliases = [];
+                if (parameterDescriptions != null && parameterDescriptions.TryGetValue(x.Name, out var desc))
+                {
+                    ParseParameterDescription(desc, out aliases, out description);
+                }
 
                 return new CommandParameter
                 {
@@ -227,7 +246,9 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
                     CustomParserType = null,
                     IsCancellationToken = isCancellationToken,
-                    IsFromServices = false
+                    IsFromServices = false,
+                    Aliases = aliases,
+                    Description = description
                 };
             })
             .ToArray();
@@ -239,9 +260,30 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             IsRootCommand = true,
             IsVoid = isVoid,
             Parameters = parameters,
-            MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method
+            MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
+            Description = summary
         };
 
         return cmd;
+    }
+
+    void ParseParameterDescription(string originalDescription, out string[] aliases, out string description)
+    {
+        // Example:
+        // -h|--help, This is a help.
+
+        var splitOne = originalDescription.Split(',');
+
+        // has alias
+        if (splitOne[0].TrimStart().StartsWith("-"))
+        {
+            aliases = splitOne[0].Split(['|'], StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
+            description = string.Join("", splitOne.Skip(1)).Trim();
+        }
+        else
+        {
+            aliases = [];
+            description = originalDescription;
+        }
     }
 }

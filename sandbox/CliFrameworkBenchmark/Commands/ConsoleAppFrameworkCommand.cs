@@ -14,3 +14,17 @@
 //    {
 //    }
 //}
+
+public class ConsoleAppFrameworkCommand
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="str">-s</param>
+    /// <param name="intOption">-i</param>
+    /// <param name="boolOption">-b</param>
+    public static void Execute(string? str, int intOption, bool boolOption)
+    {
+
+    }
+}

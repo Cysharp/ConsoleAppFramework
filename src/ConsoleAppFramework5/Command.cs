@@ -15,8 +15,9 @@ public record class Command
     public required bool IsAsync { get; init; } // Task or Task<int>
     public required bool IsVoid { get; init; }  // void or int
     public required bool IsRootCommand { get; init; }
-    public required string CommandName { get; set; }
+    public required string CommandName { get; init; }
     public required CommandParameter[] Parameters { get; init; }
+    public required string Description { get; init; }
     public required MethodKind MethodKind { get; init; }
 
     public string BuildDelegateSignature(out string? delegateType)
@@ -130,6 +131,8 @@ public record class CommandParameter
     public required bool IsFromServices { get; init; }
     public required bool IsCancellationToken { get; init; }
     public bool IsParsable => !(IsFromServices || IsCancellationToken);
+    public required string[] Aliases { get; init; }
+    public required string Description { get; init; }
 
     public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes)
     {

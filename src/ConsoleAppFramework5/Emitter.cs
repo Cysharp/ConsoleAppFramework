@@ -46,6 +46,10 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
             if (!parameter.IsParsable) continue;
 
             fastParseCase.AppendLine($"                case \"--{parameter.Name}\":");
+            foreach (var alias in parameter.Aliases)
+            {
+                fastParseCase.AppendLine($"                case \"{alias}\":");
+            }
             fastParseCase.AppendLine($"                    {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes)}");
             if (!parameter.HasDefaultValue)
             {
@@ -61,7 +65,12 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
             var parameter = command.Parameters[i];
             if (!parameter.IsParsable) continue;
 
-            slowIgnoreCaseParse.AppendLine($"                    if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase))");
+            slowIgnoreCaseParse.AppendLine($"                    if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
+            for (int j = 0; j < parameter.Aliases.Length; j++)
+            {
+                var alias = parameter.Aliases[j];
+                slowIgnoreCaseParse.AppendLine($"                     || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
+            }
             slowIgnoreCaseParse.AppendLine("                    {");
             slowIgnoreCaseParse.AppendLine($"                        {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes)}");
             if (!parameter.HasDefaultValue)
@@ -157,6 +166,7 @@ internal class Emitter(SourceProductionContext context, Command command, WellKno
 {{fastParseCase}}
                 default:
 {{slowIgnoreCaseParse}}
+                    ThrowArgumentNameNotFound(name);
                     break;
             }
         }
