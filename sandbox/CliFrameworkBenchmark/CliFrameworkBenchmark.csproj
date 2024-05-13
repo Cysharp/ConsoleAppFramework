@@ -5,19 +5,28 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<nullable>annotations</nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
+		<PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
 		<PackageReference Include="CliFx" Version="2.3.5" />
 		<PackageReference Include="clipr" Version="1.6.1" />
 		<PackageReference Include="Cocona" Version="2.2.0" />
 		<PackageReference Include="Cocona.Lite" Version="2.2.0" />
 		<PackageReference Include="CommandLineParser" Version="2.9.1" />
-		<PackageReference Include="ConsoleAppFramework" Version="4.2.4" />
-		<PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.0" />
+		<!--<PackageReference Include="ConsoleAppFramework" Version="4.2.4" />-->
+		<PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
 		<PackageReference Include="PowerArgs" Version="4.0.3" />
 		<PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20071.2" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ConsoleAppFramework5\ConsoleAppFramework5.csproj">
+			<OutputItemType>Analyzer</OutputItemType>
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+		</ProjectReference>
 	</ItemGroup>
 
 </Project>

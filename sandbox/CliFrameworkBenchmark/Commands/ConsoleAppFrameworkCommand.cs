@@ -1,16 +1,16 @@
-using ConsoleAppFramework;
+//using ConsoleAppFramework;
 
-namespace Cocona.Benchmark.External.Commands;
+//namespace Cocona.Benchmark.External.Commands;
 
-public class ConsoleAppFrameworkCommand : ConsoleAppBase
-{
-    public void Execute(
-        [global::ConsoleAppFramework.Option("s")]
-        string? str,
-        [global::ConsoleAppFramework.Option("i")]
-        int intOption,
-        [global::ConsoleAppFramework.Option("b")]
-        bool boolOption)
-    {
-    }
-}
+//public class ConsoleAppFrameworkCommand : ConsoleAppBase
+//{
+//    public void Execute(
+//        [global::ConsoleAppFramework.Option("s")]
+//        string? str,
+//        [global::ConsoleAppFramework.Option("i")]
+//        int intOption,
+//        [global::ConsoleAppFramework.Option("b")]
+//        bool boolOption)
+//    {
+//    }
+//}

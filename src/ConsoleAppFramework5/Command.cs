@@ -1,7 +1,14 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection.Metadata;
+using System.Text;
 
 namespace ConsoleAppFramework;
+
+public enum MethodKind
+{
+    Lambda, Method, FunctionPointer
+}
 
 public record class Command
 {
@@ -10,21 +17,47 @@ public record class Command
     public required bool IsRootCommand { get; init; }
     public required string CommandName { get; set; }
     public required CommandParameter[] Parameters { get; init; }
+    public required MethodKind MethodKind { get; init; }
 
-    public string BuildDelegateSignature()
+    public string BuildDelegateSignature(out string? delegateType)
     {
+        if (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue))
+        {
+            delegateType = BuildDelegateType("RunCommand");
+            return "RunCommand";
+        }
+
+        delegateType = null;
+        if (MethodKind == MethodKind.FunctionPointer) return BuildFunctionPointerDelegateSignature();
+
         if (IsAsync)
         {
             if (IsVoid)
             {
                 // Func<...,Task>
+                if (Parameters.Length == 0)
+                {
+                    return $"Func<Task>";
+                }
+                else
+                {
+                    var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+                    return $"Func<{parameters}, Task>";
+                }
             }
             else
             {
                 // Func<...,Task<int>>
+                if (Parameters.Length == 0)
+                {
+                    return $"Func<Task<int>>";
+                }
+                else
+                {
+                    var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+                    return $"Func<{parameters}, Task<int>>";
+                }
             }
-            // TODO: not yet.
-            throw new NotImplementedException();
         }
         else
         {
@@ -56,6 +89,35 @@ public record class Command
             }
         }
     }
+
+    public string BuildFunctionPointerDelegateSignature()
+    {
+        var retType = (IsAsync, IsVoid) switch
+        {
+            (true, true) => "Task",
+            (true, false) => "Task<int>",
+            (false, true) => "void",
+            (false, false) => "int"
+        };
+
+        var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+        var comma = Parameters.Length > 0 ? ", " : "";
+        return $"delegate* managed<{parameters}{comma}{retType}>";
+    }
+
+    public string BuildDelegateType(string delegateName)
+    {
+        var retType = (IsAsync, IsVoid) switch
+        {
+            (true, true) => "Task",
+            (true, false) => "Task<int>",
+            (false, true) => "void",
+            (false, false) => "int"
+        };
+
+        var parameters = string.Join(", ", Parameters.Select(x => x.ToString()));
+        return $"delegate {retType} {delegateName}({parameters});";
+    }
 }
 
 public record class CommandParameter
@@ -65,6 +127,9 @@ public record class CommandParameter
     public required bool HasDefaultValue { get; init; }
     public object? DefaultValue { get; init; }
     public required ITypeSymbol? CustomParserType { get; init; }
+    public required bool IsFromServices { get; init; }
+    public required bool IsCancellationToken { get; init; }
+    public bool IsParsable => !(IsFromServices || IsCancellationToken);
 
     public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes)
     {
@@ -134,7 +199,7 @@ public record class CommandParameter
         }
     }
 
-    public string DefaultValueToString()
+    public string DefaultValueToString(bool castValue = true)
     {
         if (DefaultValue is bool b)
         {
@@ -146,8 +211,26 @@ public record class CommandParameter
         }
         if (DefaultValue == null)
         {
+            if (!castValue) return "null";
             return $"({Type.ToFullyQualifiedFormatDisplayString()})null";
         }
+
+        if (!castValue) return DefaultValue.ToString();
         return $"({Type.ToFullyQualifiedFormatDisplayString()}){DefaultValue}";
+    }
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        sb.Append(Type.ToFullyQualifiedFormatDisplayString());
+        sb.Append(" ");
+        sb.Append(Name);
+        if (HasDefaultValue)
+        {
+            sb.Append(" = ");
+            sb.Append(DefaultValueToString(castValue: false));
+        }
+
+        return sb.ToString();
     }
 }

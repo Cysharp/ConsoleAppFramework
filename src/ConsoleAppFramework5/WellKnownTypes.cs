@@ -16,6 +16,9 @@ public class WellKnownTypes(Compilation compilation)
     INamedTypeSymbol? parsable;
     public INamedTypeSymbol? IParsable => parsable ??= compilation.GetTypeByMetadataName("System.IParsable`1");
 
+    INamedTypeSymbol? cancellationToken;
+    public INamedTypeSymbol? CancellationToken => cancellationToken ??= compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
+
     public bool HasTryParse(ITypeSymbol type)
     {
         if (SymbolEqualityComparer.Default.Equals(type, DateTimeOffset)

@@ -44,6 +44,7 @@ namespace ConsoleAppFramework;
 
 using System;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
@@ -69,8 +70,15 @@ internal sealed class OptionAttribute : Attribute
     }
 }
 
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+internal sealed class FromServicesAttribute : Attribute
+{
+}
+
 internal static partial class ConsoleApp
 {
+    public static IServiceProvider? ServiceProvider { get; set; }
+
     public static void Run(string[] args)
     {
     }
@@ -83,11 +91,6 @@ internal static partial class ConsoleApp
     static void ThrowArgumentParseFailed(string argumentName, string value)
     {
         throw new ArgumentException($"Argument '{argumentName}' parse failed. value: {value}");
-    }
-
-    static void ThrowInvalidArgumentName(string name)
-    {
-        throw new ArgumentException($"Required argument '{name}' does not matched.");
     }
 
     static void ThrowRequiredArgumentNotParsed(string name)
@@ -107,6 +110,48 @@ internal static partial class ConsoleApp
             }
         }
     }
+
+    sealed class PosixSignalHandler : IDisposable
+    {
+        public CancellationToken Token => cancellationTokenSource.Token;
+
+        CancellationTokenSource cancellationTokenSource;
+
+        PosixSignalRegistration? sigInt;
+        PosixSignalRegistration? sigQuit;
+        PosixSignalRegistration? sigTerm;
+
+        PosixSignalHandler()
+        {
+            cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        public static PosixSignalHandler Register()
+        {
+            var handler = new PosixSignalHandler();
+
+            Action<PosixSignalContext> handleSignal = handler.HandlePosixSignal;
+
+            handler.sigInt = PosixSignalRegistration.Create(PosixSignal.SIGINT, handleSignal);
+            handler.sigQuit = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, handleSignal);
+            handler.sigTerm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, handleSignal);
+
+            return handler;
+        }
+
+        void HandlePosixSignal(PosixSignalContext context)
+        {
+            context.Cancel = true;
+            cancellationTokenSource?.Cancel();
+        }
+
+        public void Dispose()
+        {
+            sigInt?.Dispose();
+            sigQuit?.Dispose();
+            sigTerm?.Dispose();
+        }
+    }
 }
 """);
     }
@@ -118,7 +163,7 @@ internal static partial class ConsoleApp
 
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
-        var parser = new Parser(sourceProductionContext, node, model);
+        var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes);
         var command = parser.ParseAndValidate();
         if (command == null)
         {
@@ -126,7 +171,9 @@ internal static partial class ConsoleApp
         }
 
         var emitter = new Emitter(sourceProductionContext, command, wellKnownTypes);
-        var code = emitter.Emit();
+
+        var isRunAsync = ((node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync");
+        var code = emitter.EmitRun(isRunAsync);
 
         sourceProductionContext.AddSource("ConsoleApp.Run.cs", $$"""
 namespace ConsoleAppFramework;

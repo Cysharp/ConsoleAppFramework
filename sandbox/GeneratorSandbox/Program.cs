@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using ConsoleAppFramework;
+using Microsoft.Extensions.DependencyInjection;
 using Takoyaki;
 
 args = ["--x", "10"]; // test.
@@ -29,10 +33,59 @@ args = ["--x", "10"]; // test.
 // description
 // 
 
-ConsoleApp.Run(args, static (int x) =>
+var sc = new ServiceCollection();
+sc.AddSingleton<MyClass>();
+var provider = sc.BuildServiceProvider();
+ConsoleApp.ServiceProvider = provider;
+
+
+//var cts = new CancellationTokenSource();
+
+//var iii = 0;
+//while (true)
+//{
+//    Thread.Sleep(TimeSpan.FromSeconds(1));
+//    Console.WriteLine(iii++ + ", " + cts.IsCancellationRequested);
+//}
+
+
+//delegate* managed<int, int, void> a = &Method;
+
+// sp.GetService();
+
+await ConsoleApp.RunAsync(args, static async (int x, [FromServices] MyClass mc, CancellationToken cancellationToken) =>
 {
-    Console.WriteLine("yah:" + x);
+    Console.WriteLine((x, mc));
+    await Task.Yield();
+    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+    Console.WriteLine("end");
 });
+
+
+//ConsoleApp.Run(args, &Methods.Method);
+
+static void Foo(RunRun rrrr)
+{
+}
+
+
+internal delegate void RunRun(int x, int y = 100);
+
+
+public static class Methods
+{
+    public static void Method(int x, int y = 12345)
+    {
+
+    }
+}
+
+public class MyClass
+{
+
+}
+
+
 
 namespace Takoyaki
 {
@@ -40,17 +93,24 @@ namespace Takoyaki
     {
 
     }
-}
 
-
-
-public class MyClass
-{
-    /// <param name="takoyaki">--tako, -t, foo bar baz.</param>
-    public void Foo(int takoyaki, int y)
+    public static class Hoge
     {
+        public static void Nano(int x)
+        {
+        }
     }
 }
+
+
+
+//public class MyClass
+//{
+//    /// <param name="takoyaki">--tako, -t, foo bar baz.</param>
+//    public void Foo(int takoyaki, int y)
+//    {
+//    }
+//}
 
 
 public interface IParser<T>
@@ -90,73 +150,7 @@ public readonly struct Vector3Parser : IParser<Vector3>
 
 namespace ConsoleAppFramework
 {
-    //[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
-    //public class CommandParameterAttribute : Attribute
-    //{
-    //    public Type ParserType { get; }
-
-    //    public CommandParameterAttribute(Type parserType)
-    //    {
-    //        this.ParserType = parserType;
-    //    }
-    //}
-
-    //public interface IParser<T>
-    //{
-    //    static abstract bool TryParse([NotNullWhen(true)] string? s, [MaybeNullWhen(false)] out T result);
-    //}
 
 
-
-
-
-    //internal static partial class ConsoleAqpp
-    //{
-    //    public static void Run2(string[] args, Action<int, global::MyClass> command)
-    //    {
-    //        var arg0 = default(int);
-    //        var arg0Parsed = false;
-    //        var arg1 = default(global::MyClass);
-    //        var arg1Parsed = false;
-
-    //        for (int i = 0; i < args.Length; i++)
-    //        {
-    //            var name = args[i];
-
-    //            switch (name)
-    //            {
-    //                case "xxxx":
-    //                    if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("xxxx", args[i]);
-    //                    arg0Parsed = true;
-    //                    break;
-    //                case "zzz":
-    //                    try { arg1 = System.Text.Json.JsonSerializer.Deserialize<global::MyClass>(args[++i]); } catch { ThrowArgumentParseFailed("zzz", args[i]); }
-    //                    arg1Parsed = true;
-    //                    break;
-
-    //                default:
-    //                    if (string.Equals(name, "xxxx", StringComparison.OrdinalIgnoreCase))
-    //                    {
-    //                        if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("xxxx", args[i]);
-    //                        arg0Parsed = true;
-    //                        break;
-    //                    }
-    //                    if (string.Equals(name, "zzz", StringComparison.OrdinalIgnoreCase))
-    //                    {
-    //                        try { arg1 = System.Text.Json.JsonSerializer.Deserialize<global::MyClass>(args[++i]); } catch { ThrowArgumentParseFailed("zzz", args[i]); }
-    //                        arg1Parsed = true;
-    //                        break;
-    //                    }
-
-    //                    ThrowInvalidArgumentName(name);
-    //                    break;
-    //            }
-    //        }
-
-    //        if (!arg0Parsed) ThrowRequiredArgumentNotParsed("xxxx");
-    //        if (!arg1Parsed) ThrowRequiredArgumentNotParsed("zzz");
-
-    //        command(arg0!, arg1!);
-    //    }
-    //}
 }
+
