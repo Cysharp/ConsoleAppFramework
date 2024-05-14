@@ -92,17 +92,59 @@ internal static partial class ConsoleApp
         throw new ArgumentException($"Argument '{argumentName}' does not found in command prameters.");
     }
 
-    static System.Collections.Generic.IEnumerable<(int start, int end)> Split(string str)
+    static bool TrySplitParse<T>(ReadOnlySpan<char> s, out T[] result)
+       where T : ISpanParsable<T>
     {
-        var start = 0;
-        for (var i = 0; i < str.Length; i++)
+        if (s.StartsWith("["))
         {
-            if (str[i] == ',')
+            try
             {
-                yield return (start, i - 1);
-                start = i + 1;
+                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s)!;
+            }
+            catch
+            {
+                result = default!;
+                return false;
             }
         }
+
+        var count = s.Count(',') + 1;
+        result = new T[count];
+
+        var source = s;
+        var destination = result.AsSpan();
+        Span<Range> ranges = stackalloc Range[Math.Min(count, 128)];
+
+        while (true)
+        {
+            var splitCount = source.Split(ranges, ',');
+            var parseTo = splitCount;
+            if (splitCount == 128 && source[ranges[^1]].Contains(','))
+            {
+                parseTo = splitCount - 1;
+            }
+
+            for (int i = 0; i < parseTo; i++)
+            {
+                if (!T.TryParse(source[ranges[i]], null, out destination[i]!))
+                {
+                    return false;
+                }
+            }
+            destination = destination.Slice(parseTo);
+
+            if (destination.Length != 0)
+            {
+                source = source[ranges[^1]];
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return true;
     }
 
     sealed class PosixSignalHandler : IDisposable

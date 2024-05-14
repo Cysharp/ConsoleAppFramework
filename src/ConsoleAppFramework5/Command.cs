@@ -176,6 +176,21 @@ public record class CommandParameter
                     return $"if (!Enum.TryParse<{Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[{index}], true, out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
                 }
 
+                // Array
+                if (Type.TypeKind == TypeKind.Array)
+                {
+                    var elementType = (Type as IArrayTypeSymbol)!.ElementType;
+                    var parsable = wellKnownTypes.ISpanParsable;
+                    if (parsable != null) // has parsable
+                    {
+                        if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
+                        {
+                            return $"if (!TrySplitParse(args[{index}], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
+                        }
+                    }
+                    break;
+                }
+
                 // System.DateTimeOffset, System.Guid,  System.Version
                 tryParseKnownPrimitive = wellKnownTypes.HasTryParse(Type);
 

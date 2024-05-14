@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -9,9 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
-using Takoyaki;
 
-args = ["100", "--y", "20"]; // test.
+
+args = ["100", "--y", "1,10,100,100,1000"]; // test.
 
 
 // var s = "foo";
@@ -34,9 +35,9 @@ unsafe
     //ConsoleApp.Run(args, ([Vector3Parser] Vector3 x) =>
     //{Quaternion//
     //});
-    ConsoleApp.Run(args, ([Argument] int x, int y) =>
+    ConsoleApp.Run(args, ([Argument] int x, int[] y) =>
     {
-        Console.WriteLine(x + y);
+        Console.WriteLine((x, y));
     });
 
 
@@ -49,6 +50,10 @@ var sc = new ServiceCollection();
 sc.AddSingleton<MyClass>();
 var provider = sc.BuildServiceProvider();
 ConsoleApp.ServiceProvider = provider;
+
+
+
+
 
 
 static async Task<int> RunRun([Vector3Parser] Vector3 x, [FromServices] MyClass y)
@@ -153,6 +158,55 @@ public class Vector3ParserAttribute : Attribute, IArgumentParser<Vector3>
     }
 }
 
+
+
+[AttributeUsage(AttributeTargets.Parameter)]
+internal sealed class ArrayParserAttribute<T> : Attribute, IArgumentParser<T[]>
+    where T : ISpanParsable<T>
+{
+    public static bool TryParse(ReadOnlySpan<char> s, out T[] result)
+    {
+        var count = s.Count(',') + 1;
+        result = new T[count];
+
+        var source = s;
+        var destination = result.AsSpan();
+        Span<Range> ranges = stackalloc Range[Math.Min(count, 128)];
+
+        while (true)
+        {
+            var splitCount = source.Split(ranges, ',');
+            var parseTo = splitCount;
+            if (splitCount == 128 && source[ranges[^1]].Contains(',')) // check have more region
+            {
+                parseTo = splitCount - 1;
+            }
+
+            for (int i = 0; i < parseTo; i++)
+            {
+                if (!T.TryParse(source[ranges[i]], null, out destination[i]!))
+                {
+                    return false;
+                }
+            }
+            destination = destination.Slice(parseTo);
+
+            if (destination.Length != 0)
+            {
+                source = source[ranges[^1]];
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return true;
+    }
+}
+
+
 namespace ConsoleAppFramework
 {
     //partial class ConsoleApp
@@ -190,6 +244,61 @@ namespace ConsoleAppFramework
     partial class ConsoleApp
 
     {
+        static bool TrySplitParse2<T>(ReadOnlySpan<char> s, out T[] result)
+       where T : ISpanParsable<T>
+        {
+            if (s.StartsWith("["))
+            {
+                try
+                {
+                    result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s)!;
+                }
+                catch
+                {
+                    result = default!;
+                    return false;
+                }
+            }
+
+            var count = s.Count(',') + 1;
+            result = new T[count];
+
+            var source = s;
+            var destination = result.AsSpan();
+            Span<Range> ranges = stackalloc Range[Math.Min(count, 128)];
+
+            while (true)
+            {
+                var splitCount = source.Split(ranges, ',');
+                var parseTo = splitCount;
+                if (splitCount == 128 && source[ranges[^1]].Contains(','))
+                {
+                    parseTo = splitCount - 1;
+                }
+
+                for (int i = 0; i < parseTo; i++)
+                {
+                    if (!T.TryParse(source[ranges[i]], null, out destination[i]!))
+                    {
+                        return false;
+                    }
+                }
+                destination = destination.Slice(parseTo);
+
+                if (destination.Length != 0)
+                {
+                    source = source[ranges[^1]];
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return true;
+        }
+
         public static void Run2(string[] args, Action<int, int> command)
         {
             var arg0 = default(int);
@@ -255,4 +364,5 @@ namespace ConsoleAppFramework
         }
     }
 }
+
 
