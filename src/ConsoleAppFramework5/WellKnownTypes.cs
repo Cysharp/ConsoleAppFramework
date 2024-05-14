@@ -13,17 +13,17 @@ public class WellKnownTypes(Compilation compilation)
     INamedTypeSymbol? version;
     public INamedTypeSymbol Version => version ??= GetTypeByMetadataName("System.Version");
 
-    INamedTypeSymbol? parsable;
-    public INamedTypeSymbol? IParsable => parsable ??= compilation.GetTypeByMetadataName("System.IParsable`1");
+    INamedTypeSymbol? spanParsable;
+    public INamedTypeSymbol? ISpanParsable => spanParsable ??= compilation.GetTypeByMetadataName("System.ISpanParsable`1");
 
     INamedTypeSymbol? cancellationToken;
-    public INamedTypeSymbol? CancellationToken => cancellationToken ??= compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
+    public INamedTypeSymbol CancellationToken => cancellationToken ??= GetTypeByMetadataName("System.Threading.CancellationToken");
 
     INamedTypeSymbol? task;
-    public INamedTypeSymbol? Task => task ??= compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
+    public INamedTypeSymbol Task => task ??= GetTypeByMetadataName("System.Threading.Tasks.Task");
 
     INamedTypeSymbol? task_T;
-    public INamedTypeSymbol? Task_T => task_T ??= compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+    public INamedTypeSymbol Task_T => task_T ??= GetTypeByMetadataName("System.Threading.Tasks.Task`1");
 
     public bool HasTryParse(ITypeSymbol type)
     {

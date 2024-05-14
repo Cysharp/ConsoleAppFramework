@@ -47,18 +47,18 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
-[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
-internal sealed class ParserAttribute<T> : Attribute
+internal interface IArgumentParser<T>
 {
-}
-
-internal interface IParser<T>
-{
-    static abstract bool TryParse([NotNullWhen(true)] string? s, [MaybeNullWhen(false)] out T result);
+    static abstract bool TryParse(ReadOnlySpan<char> s, out T result);
 }
 
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
 internal sealed class FromServicesAttribute : Attribute
+{
+}
+
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+internal sealed class ArgumentAttribute : Attribute
 {
 }
 
@@ -118,7 +118,7 @@ internal static partial class ConsoleApp
         PosixSignalRegistration? sigQuit;
         PosixSignalRegistration? sigTerm;
 
-        public PosixSignalHandler(TimeSpan timeout)
+        PosixSignalHandler(TimeSpan timeout)
         {
             this.cancellationTokenSource = new CancellationTokenSource();
             this.timeoutCancellationTokenSource = new CancellationTokenSource();

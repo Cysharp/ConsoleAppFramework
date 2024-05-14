@@ -1,8 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Net.Sockets;
-using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
@@ -48,15 +46,6 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
     Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda)
     {
-        // allow not static...
-        //if (!lambda.Modifiers.Any(x => x.IsKind(SyntaxKind.StaticKeyword)))
-        //{
-        //    // TODO: validation(need static)
-        //    return null;
-        //}
-
-        // TODO: check return type
-
         var isAsync = lambda.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword);
 
         var isVoid = lambda.ReturnType == null;
@@ -97,6 +86,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             }
         }
 
+        var parsableIndex = 0;
         var parameters = lambda.ParameterList.Parameters
             .Where(x => x.Type != null)
             .Select(x =>
@@ -118,18 +108,17 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     defaultValue = false;
                 }
 
-                var parserAttr = x.AttributeLists.SelectMany(x => x.Attributes)
-                  .FirstOrDefault(x =>
-                  {
-                      var name = x.Name;
-                      if (x.Name is QualifiedNameSyntax qns)
-                      {
-                          name = qns.Right;
-                      }
-
-                      var identifier = (name as GenericNameSyntax)?.Identifier;
-                      return identifier?.ValueText is "Parser" or "ParserAttribute";
-                  });
+                var customParserType = x.AttributeLists.SelectMany(x => x.Attributes)
+                    .Select(x =>
+                    {
+                        var attr = model.GetTypeInfo(x).Type;
+                        if (attr != null && attr.AllInterfaces.Any(x => x.Name == "IArgumentParser"))
+                        {
+                            return attr;
+                        }
+                        return null;
+                    })
+                    .FirstOrDefault(x => x != null);
 
                 var isFromServices = x.AttributeLists.SelectMany(x => x.Attributes)
                   .Any(x =>
@@ -144,23 +133,33 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                       return identifier is "FromServices" or "FromServicesAttribute";
                   });
 
-                ITypeSymbol? customParserType = null;
-                if (parserAttr != null)
-                {
-                    var name = parserAttr.Name;
-                    if (parserAttr.Name is QualifiedNameSyntax qns)
-                    {
-                        name = qns.Right;
-                    }
-                    var parserType = (name as GenericNameSyntax)?.TypeArgumentList.Arguments[0];
-                    if (parserType != null)
-                    {
-                        customParserType = model.GetTypeInfo(parserType).Type;
-                    }
-                    // TODO: validation, Type is IParsable?
-                }
+                var hasArgument = x.AttributeLists.SelectMany(x => x.Attributes)
+                  .Any(x =>
+                  {
+                      var name = x.Name;
+                      if (x.Name is QualifiedNameSyntax qns)
+                      {
+                          name = qns.Right;
+                      }
+
+                      var identifier = name.ToString();
+                      return identifier is "Argument" or "ArgumentAttribute";
+                  });
 
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(type.Type!, wellKnownTypes.CancellationToken);
+
+                var argumentIndex = -1;
+                if (!(isFromServices || isCancellationToken))
+                {
+                    if (hasArgument)
+                    {
+                        argumentIndex = parsableIndex++;
+                    }
+                    else
+                    {
+                        parsableIndex++;
+                    }
+                }
 
                 return new CommandParameter
                 {
@@ -172,7 +171,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     IsCancellationToken = isCancellationToken,
                     IsFromServices = isFromServices,
                     Aliases = [],
-                    Description = ""
+                    Description = "",
+                    ArgumentIndex = argumentIndex,
                 };
             })
             .Where(x => x.Type != null)
@@ -214,23 +214,38 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         {
             isVoid = false;
         }
+        else if ((methodSymbol.ReturnType as INamedTypeSymbol)!.EqualsUnconstructedGenericType(wellKnownTypes.Task))
+        {
+            isVoid = true;
+            isAsync = true;
+        }
+        else if ((methodSymbol.ReturnType as INamedTypeSymbol)!.EqualsUnconstructedGenericType(wellKnownTypes.Task_T))
+        {
+            var typeArg = (methodSymbol.ReturnType as INamedTypeSymbol)!.TypeArguments[0];
+            if (typeArg.SpecialType == SpecialType.System_Int32)
+            {
+                isVoid = false;
+                isAsync = true;
+            }
+            else
+            {
+                // TODO: invalid return
+                return null;
+            }
+        }
+        else
+        {
+            // TODO: invalid return type
+            return null;
+        }
 
-        // TODO: check for Task, Task<int>
-        //methodSymbol.ReturnType.SpecialType == SpecialType.System_Threading_Tasks_Task_T
-        var task = methodSymbol.ReturnType.Name == "Task";
-
+        var parsableIndex = 0;
         var parameters = methodSymbol.Parameters
             .Select(x =>
             {
-                var parserAttr = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "ParserAttribute");
-
-                if (parserAttr != null)
-                {
-                    // TODO: get parser
-                }
-
-                // TODO: check FromServcies Attribute
-
+                var customParserType = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.AllInterfaces.Any(y => y.Name == "IArgumentParser") ?? false);
+                var hasFromServices = x.GetAttributes().Any(x => x.AttributeClass?.Name == "FromServicesAttribute");
+                var hasArgument = x.GetAttributes().Any(x => x.AttributeClass?.Name == "ArgumentAttribute");
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
 
                 string description = "";
@@ -238,6 +253,19 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 if (parameterDescriptions != null && parameterDescriptions.TryGetValue(x.Name, out var desc))
                 {
                     ParseParameterDescription(desc, out aliases, out description);
+                }
+
+                var argumentIndex = -1;
+                if (!(hasFromServices || isCancellationToken))
+                {
+                    if (hasArgument)
+                    {
+                        argumentIndex = parsableIndex++;
+                    }
+                    else
+                    {
+                        parsableIndex++;
+                    }
                 }
 
                 return new CommandParameter
@@ -248,8 +276,9 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
                     CustomParserType = null,
                     IsCancellationToken = isCancellationToken,
-                    IsFromServices = false,
+                    IsFromServices = hasFromServices,
                     Aliases = aliases,
+                    ArgumentIndex = argumentIndex,
                     Description = description
                 };
             })

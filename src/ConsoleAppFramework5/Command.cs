@@ -131,14 +131,18 @@ public record class CommandParameter
     public required bool IsFromServices { get; init; }
     public required bool IsCancellationToken { get; init; }
     public bool IsParsable => !(IsFromServices || IsCancellationToken);
+    public required int ArgumentIndex { get; init; } // -1 is not Argument, other than marked as [Argument]
+    public bool IsArgument => ArgumentIndex != -1;
     public required string[] Aliases { get; init; }
     public required string Description { get; init; }
 
-    public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes)
+    public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes, bool increment)
     {
+        var index = increment ? "++i" : "i";
+
         if (CustomParserType != null)
         {
-            return $"if (!{CustomParserType.ToFullyQualifiedFormatDisplayString()}.TryParse(args[++i], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
+            return $"if (!{CustomParserType.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
         }
 
         var tryParseKnownPrimitive = false;
@@ -147,7 +151,7 @@ public record class CommandParameter
         switch (Type.SpecialType)
         {
             case SpecialType.System_String:
-                return $"arg{argCount} = args[++i];"; // no parse
+                return $"arg{argCount} = args[{index}];"; // no parse
             case SpecialType.System_Boolean:
                 return $"arg{argCount} = true;"; // bool is true flag
             case SpecialType.System_Char:
@@ -169,7 +173,7 @@ public record class CommandParameter
                 // Enum
                 if (Type.TypeKind == TypeKind.Enum)
                 {
-                    return $"if (!Enum.TryParse<{Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[++i], true, out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
+                    return $"if (!Enum.TryParse<{Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[{index}], true, out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
                 }
 
                 // System.DateTimeOffset, System.Guid,  System.Version
@@ -177,8 +181,8 @@ public record class CommandParameter
 
                 if (!tryParseKnownPrimitive)
                 {
-                    // IParsable<T> (BigInteger, Complex, Half, Int128, etc...)
-                    var parsable = wellKnownTypes.IParsable;
+                    // ISpanParsable<T> (BigInteger, Complex, Half, Int128, etc...)
+                    var parsable = wellKnownTypes.ISpanParsable;
                     if (parsable != null) // has parsable
                     {
                         tryParseIParsable = Type.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable));
@@ -190,15 +194,15 @@ public record class CommandParameter
 
         if (tryParseKnownPrimitive)
         {
-            return $"if (!{Type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[++i], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
+            return $"if (!{Type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
         }
         else if (tryParseIParsable)
         {
-            return $"if (!{Type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[++i], null, out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
+            return $"if (!{Type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], null, out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
         }
         else
         {
-            return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{Type.ToFullyQualifiedFormatDisplayString()}>(args[++i]); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
+            return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{Type.ToFullyQualifiedFormatDisplayString()}>(args[{index}]); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
         }
     }
 

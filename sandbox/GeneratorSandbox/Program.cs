@@ -11,7 +11,7 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 using Takoyaki;
 
-args = ["--hello", "10", "--world", "20"]; // test.
+args = ["100", "--y", "20"]; // test.
 
 
 // var s = "foo";
@@ -31,7 +31,14 @@ args = ["--hello", "10", "--world", "20"]; // test.
 unsafe
 {
 
-    ConsoleApp.Run(args, &Command.Execute);
+    //ConsoleApp.Run(args, ([Vector3Parser] Vector3 x) =>
+    //{Quaternion//
+    //});
+    ConsoleApp.Run(args, ([Argument] int x, int y) =>
+    {
+        Console.WriteLine(x + y);
+    });
+
 
 }
 
@@ -44,24 +51,30 @@ var provider = sc.BuildServiceProvider();
 ConsoleApp.ServiceProvider = provider;
 
 
-static void RunRun(int x, int y)
+static async Task<int> RunRun([Vector3Parser] Vector3 x, [FromServices] MyClass y)
 {
     Console.WriteLine("Hello World!" + x + y);
+    return 0;
+}
+
+
+static void Tests<T>()
+    where T : ISpanParsable<int>
+{
+
+
 }
 
 
 public static class Command
 {
     /// <summary>
-    /// Fuga Fuga
+    /// 
     /// </summary>
-    /// <param name="hello">-h, left x</param>
-    /// <param name="world">-w|--woorong, world</param>
-    public static void Execute(int hello, int world = 12345, CancellationToken cancellationToken = default)
+    /// <param name="foo">-f|--cho|/tako|*nano|-ZOMBI</param>
+    /// <param name="cancellationToken"></param>
+    public static void Execute(int foo, CancellationToken cancellationToken)
     {
-        Console.WriteLine("go");
-        Thread.Sleep(TimeSpan.FromSeconds(10));
-        Console.WriteLine("end");
     }
 }
 
@@ -84,6 +97,7 @@ namespace Takoyaki
     {
         public static void Nano(int x)
         {
+
         }
     }
 }
@@ -99,21 +113,26 @@ namespace Takoyaki
 //}
 
 
-public interface IParser<T>
+//public interface IArgumentParser<T>
+//{
+//    static abstract bool TryParse(ReadOnlySpan<char> s, out T result);
+//}
+
+
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+internal sealed class ArgumentAttribute : Attribute
 {
-    static abstract bool TryParse([NotNullWhen(true)] string? s, [MaybeNullWhen(false)] out T result);
 }
 
 
 
-
-
-public readonly struct Vector3Parser : IParser<Vector3>
+[AttributeUsage(AttributeTargets.Parameter)]
+public class Vector3ParserAttribute : Attribute, IArgumentParser<Vector3>
 {
-    public static bool TryParse([NotNullWhen(true)] string? s, [MaybeNullWhen(false)] out Vector3 result)
+    public static bool TryParse(ReadOnlySpan<char> s, out Vector3 result)
     {
         Span<Range> ranges = stackalloc Range[3];
-        var splitCount = s.AsSpan().Split(ranges, ',');
+        var splitCount = s.Split(ranges, ',');
         if (splitCount != 3)
         {
             result = default;
@@ -123,7 +142,7 @@ public readonly struct Vector3Parser : IParser<Vector3>
         float x;
         float y;
         float z;
-        if (float.TryParse(s.AsSpan(ranges[0]), out x) && float.TryParse(s.AsSpan(ranges[1]), out y) && float.TryParse(s.AsSpan(ranges[2]), out z))
+        if (float.TryParse(s[ranges[0]], out x) && float.TryParse(s[ranges[1]], out y) && float.TryParse(s[ranges[2]], out z))
         {
             result = new Vector3(x, y, z);
             return true;
@@ -167,5 +186,73 @@ namespace ConsoleAppFramework
     //    {
     //    }
     //}
+
+    partial class ConsoleApp
+
+    {
+        public static void Run2(string[] args, Action<int, int> command)
+        {
+            var arg0 = default(int);
+            var arg0Parsed = false;
+            var arg1 = default(int);
+            var arg1Parsed = false;
+
+            try
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    // add this block.
+                    if (i == 0)
+                    {
+                        if (!int.TryParse(args[i], out arg0)) ThrowArgumentParseFailed("x", args[i]); // no++
+                        arg0Parsed = true;
+                        continue;
+                    }
+
+
+                    var name = args[i];
+
+                    switch (name)
+                    {
+                        case "--x":
+                            if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("x", args[i]);
+                            arg0Parsed = true;
+                            break;
+                        case "--y":
+                            if (!int.TryParse(args[++i], out arg1)) ThrowArgumentParseFailed("y", args[i]);
+                            arg1Parsed = true;
+                            break;
+
+                        default:
+                            if (string.Equals(name, "--x", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("x", args[i]);
+                                arg0Parsed = true;
+                                break;
+                            }
+                            if (string.Equals(name, "--y", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (!int.TryParse(args[++i], out arg1)) ThrowArgumentParseFailed("y", args[i]);
+                                arg1Parsed = true;
+                                break;
+                            }
+
+                            ThrowArgumentNameNotFound(name);
+                            break;
+                    }
+                }
+                if (!arg0Parsed) ThrowRequiredArgumentNotParsed("x");
+                if (!arg1Parsed) ThrowRequiredArgumentNotParsed("y");
+
+                command(arg0!, arg1!);
+            }
+
+            catch (Exception ex)
+            {
+                Environment.ExitCode = 1;
+                LogError(ex.ToString());
+            }
+        }
+    }
 }
 
