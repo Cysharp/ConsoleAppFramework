@@ -98,7 +98,14 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 if (x.Default?.Value is LiteralExpressionSyntax literal)
                 {
                     var token = literal.Token;
-                    defaultValue = token.Value;
+                    if (token.IsKind(SyntaxKind.DefaultKeyword))
+                    {
+                        defaultValue = null;
+                    }
+                    else
+                    {
+                        defaultValue = token.Value;
+                    }
                 }
 
                 // bool is always optional flag
@@ -161,9 +168,12 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     }
                 }
 
+                var isNullableReference = x.Type.IsKind(SyntaxKind.NullableType) && type.Type?.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
+
                 return new CommandParameter
                 {
                     Name = x.Identifier.Text,
+                    IsNullableReference = isNullableReference,
                     Type = type.Type!,
                     HasDefaultValue = hasDefault,
                     DefaultValue = defaultValue,
@@ -268,9 +278,12 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     }
                 }
 
+                var isNullableReference = x.NullableAnnotation == NullableAnnotation.Annotated && x.Type.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
+
                 return new CommandParameter
                 {
                     Name = x.Name,
+                    IsNullableReference = isNullableReference,
                     Type = x.Type,
                     HasDefaultValue = x.HasExplicitDefaultValue,
                     DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,

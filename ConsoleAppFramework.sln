@@ -38,6 +38,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneratorSandbox", "sandbox
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CliFrameworkBenchmark", "sandbox\CliFrameworkBenchmark\CliFrameworkBenchmark.csproj", "{F558E4F2-1AB0-4634-B613-69DFE79894AF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppFramework.GeneratorTests", "tests\ConsoleAppFramework.GeneratorTests\ConsoleAppFramework.GeneratorTests.csproj", "{C54F7FE8-650A-4DC7-877F-0DE929351800}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -84,6 +86,10 @@ Global
 		{F558E4F2-1AB0-4634-B613-69DFE79894AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F558E4F2-1AB0-4634-B613-69DFE79894AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F558E4F2-1AB0-4634-B613-69DFE79894AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C54F7FE8-650A-4DC7-877F-0DE929351800}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C54F7FE8-650A-4DC7-877F-0DE929351800}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C54F7FE8-650A-4DC7-877F-0DE929351800}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C54F7FE8-650A-4DC7-877F-0DE929351800}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -99,6 +105,7 @@ Global
 		{09BEEA7B-B6D3-4011-BCAB-6DF976713695} = {1F399F98-7439-4F05-847B-CC1267B4B7F2}
 		{ACDA48BA-0BFE-4917-B335-7836DAA5929A} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
 		{F558E4F2-1AB0-4634-B613-69DFE79894AF} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
+		{C54F7FE8-650A-4DC7-877F-0DE929351800} = {AAD2D900-C305-4449-A9FC-6C7696FFEDFA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7F3E353A-C125-4020-8481-11DC6496358C}

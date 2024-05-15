@@ -43,8 +43,10 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 namespace ConsoleAppFramework;
 
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
 internal interface IArgumentParser<T>
@@ -64,9 +66,22 @@ internal sealed class ArgumentAttribute : Attribute
 
 internal static partial class ConsoleApp
 {
-    public static Action<string> LogError { get; set; } = msg => Console.WriteLine(msg);
     public static IServiceProvider? ServiceProvider { get; set; }
     public static TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    static Action<string>? logAction;
+    public static Action<string> Log
+    {
+        get => logAction ??= Console.WriteLine;
+        set => logAction = value;
+    }
+
+    static Action<string>? logErrorAction;
+    public static Action<string> LogError
+    {
+        get => logErrorAction ??= Console.WriteLine;
+        set => logErrorAction = value;
+    }
 
     public static void Run(string[] args)
     {
@@ -145,6 +160,59 @@ internal static partial class ConsoleApp
         }
 
         return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static bool TryShowHelpOrVersion(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            ShowHelp(); // TODO: if no args root command, return false.
+            return true;
+        }
+
+        if (args.Length == 1)
+        {
+            switch (args[0])
+            {
+                case "--version":
+                    ShowVersion();
+                    return true;
+                case "-h":
+                case "--help":
+                    ShowHelp();
+                    return true;
+                default:
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    static void ShowVersion()
+    {
+        var asm = Assembly.GetEntryAssembly();
+        var version = "1.0.0";
+        var infoVersion = asm!.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        if (infoVersion != null)
+        {
+            version = infoVersion.InformationalVersion;
+        }
+        else
+        {
+            var asmVersion = asm!.GetCustomAttribute<AssemblyVersionAttribute>();
+            if (asmVersion != null)
+            {
+                version = asmVersion.Version;
+            }
+        }
+        Log(version);
+    }
+
+    static void ShowHelp()
+    {
+        Log("TODO: Build Help");
     }
 
     sealed class PosixSignalHandler : IDisposable

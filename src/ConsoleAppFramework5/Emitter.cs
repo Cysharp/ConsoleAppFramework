@@ -71,12 +71,14 @@ internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
             {
                 fastParseCase.AppendLine($"                    case \"{alias}\":");
             }
+            fastParseCase.AppendLine("                    {");
             fastParseCase.AppendLine($"                        {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
             if (!parameter.HasDefaultValue)
             {
                 fastParseCase.AppendLine($"                        arg{i}Parsed = true;");
             }
             fastParseCase.AppendLine("                        break;");
+            fastParseCase.AppendLine("                    }");
         }
 
         // parse argument(slow, if ignorecase) ->
@@ -162,6 +164,8 @@ internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
         var code = $$"""
     public static {{unsafeCode}}{{returnType}} {{methodName}}(string[] args, {{commandMethodType}} command)
     {
+        if (TryShowHelpOrVersion(args)) return;
+
 {{prepareArgument}}
         try
         {

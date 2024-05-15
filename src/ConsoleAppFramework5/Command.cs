@@ -42,7 +42,7 @@ public record class Command
                 }
                 else
                 {
-                    var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+                    var parameters = string.Join(", ", Parameters.Select(x => x.ToTypeDisplayString()));
                     return $"Func<{parameters}, Task>";
                 }
             }
@@ -55,7 +55,7 @@ public record class Command
                 }
                 else
                 {
-                    var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+                    var parameters = string.Join(", ", Parameters.Select(x => x.ToTypeDisplayString()));
                     return $"Func<{parameters}, Task<int>>";
                 }
             }
@@ -71,7 +71,7 @@ public record class Command
                 }
                 else
                 {
-                    var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+                    var parameters = string.Join(", ", Parameters.Select(x => x.ToTypeDisplayString()));
                     return $"Action<{parameters}>";
                 }
             }
@@ -84,7 +84,7 @@ public record class Command
                 }
                 else
                 {
-                    var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+                    var parameters = string.Join(", ", Parameters.Select(x => x.ToTypeDisplayString()));
                     return $"Func<{parameters}, int>";
                 }
             }
@@ -101,7 +101,7 @@ public record class Command
             (false, false) => "int"
         };
 
-        var parameters = string.Join(", ", Parameters.Select(x => x.Type.ToFullyQualifiedFormatDisplayString()));
+        var parameters = string.Join(", ", Parameters.Select(x => x.ToTypeDisplayString()));
         var comma = Parameters.Length > 0 ? ", " : "";
         return $"delegate* managed<{parameters}{comma}{retType}>";
     }
@@ -124,6 +124,7 @@ public record class Command
 public record class CommandParameter
 {
     public required ITypeSymbol Type { get; init; }
+    public required bool IsNullableReference { get; init; }
     public required string Name { get; init; }
     public required bool HasDefaultValue { get; init; }
     public object? DefaultValue { get; init; }
@@ -139,85 +140,99 @@ public record class CommandParameter
     public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes, bool increment)
     {
         var index = increment ? "++i" : "i";
+        return Core(Type, false);
 
-        if (CustomParserType != null)
+        string Core(ITypeSymbol type, bool nullable)
         {
-            return $"if (!{CustomParserType.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
-        }
+            var tryParseKnownPrimitive = false;
+            var tryParseIParsable = false;
 
-        var tryParseKnownPrimitive = false;
-        var tryParseIParsable = false;
+            var outArgVar = (!nullable) ? $"out arg{argCount}" : $"out var temp{argCount}";
+            var elseExpr = (!nullable) ? "" : $" else {{ arg{argCount} = temp{argCount}; }}";
 
-        switch (Type.SpecialType)
-        {
-            case SpecialType.System_String:
-                return $"arg{argCount} = args[{index}];"; // no parse
-            case SpecialType.System_Boolean:
-                return $"arg{argCount} = true;"; // bool is true flag
-            case SpecialType.System_Char:
-            case SpecialType.System_SByte:
-            case SpecialType.System_Byte:
-            case SpecialType.System_Int16:
-            case SpecialType.System_UInt16:
-            case SpecialType.System_Int32:
-            case SpecialType.System_UInt32:
-            case SpecialType.System_Int64:
-            case SpecialType.System_UInt64:
-            case SpecialType.System_Decimal:
-            case SpecialType.System_Single:
-            case SpecialType.System_Double:
-            case SpecialType.System_DateTime:
-                tryParseKnownPrimitive = true;
-                break;
-            default:
-                // Enum
-                if (Type.TypeKind == TypeKind.Enum)
-                {
-                    return $"if (!Enum.TryParse<{Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[{index}], true, out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
-                }
+            // Nullable
+            if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+            {
+                var valueType = (type as INamedTypeSymbol)!.TypeArguments[0];
+                return Core(valueType, true);
+            }
 
-                // Array
-                if (Type.TypeKind == TypeKind.Array)
-                {
-                    var elementType = (Type as IArrayTypeSymbol)!.ElementType;
-                    var parsable = wellKnownTypes.ISpanParsable;
-                    if (parsable != null) // has parsable
+            if (CustomParserType != null)
+            {
+                return $"if (!{CustomParserType.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+            }
+
+            switch (type.SpecialType)
+            {
+                case SpecialType.System_String:
+                    return $"arg{argCount} = args[{index}];"; // no parse
+                case SpecialType.System_Boolean:
+                    return $"arg{argCount} = true;"; // bool is true flag
+                case SpecialType.System_Char:
+                case SpecialType.System_SByte:
+                case SpecialType.System_Byte:
+                case SpecialType.System_Int16:
+                case SpecialType.System_UInt16:
+                case SpecialType.System_Int32:
+                case SpecialType.System_UInt32:
+                case SpecialType.System_Int64:
+                case SpecialType.System_UInt64:
+                case SpecialType.System_Decimal:
+                case SpecialType.System_Single:
+                case SpecialType.System_Double:
+                case SpecialType.System_DateTime:
+                    tryParseKnownPrimitive = true;
+                    break;
+                default:
+                    // Enum
+                    if (type.TypeKind == TypeKind.Enum)
                     {
-                        if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
+                        return $"if (!Enum.TryParse<{type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[{index}], true, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                    }
+
+                    // Array
+                    if (type.TypeKind == TypeKind.Array)
+                    {
+                        var elementType = (type as IArrayTypeSymbol)!.ElementType;
+                        var parsable = wellKnownTypes.ISpanParsable;
+                        if (parsable != null) // has parsable
                         {
-                            return $"if (!TrySplitParse(args[{index}], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
+                            if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
+                            {
+                                return $"if (!TrySplitParse(args[{index}], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                            }
+                        }
+                        break;
+                    }
+
+                    // System.DateTimeOffset, System.Guid,  System.Version
+                    tryParseKnownPrimitive = wellKnownTypes.HasTryParse(type);
+
+                    if (!tryParseKnownPrimitive)
+                    {
+                        // ISpanParsable<T> (BigInteger, Complex, Half, Int128, etc...)
+                        var parsable = wellKnownTypes.ISpanParsable;
+                        if (parsable != null) // has parsable
+                        {
+                            tryParseIParsable = type.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable));
                         }
                     }
+
                     break;
-                }
+            }
 
-                // System.DateTimeOffset, System.Guid,  System.Version
-                tryParseKnownPrimitive = wellKnownTypes.HasTryParse(Type);
-
-                if (!tryParseKnownPrimitive)
-                {
-                    // ISpanParsable<T> (BigInteger, Complex, Half, Int128, etc...)
-                    var parsable = wellKnownTypes.ISpanParsable;
-                    if (parsable != null) // has parsable
-                    {
-                        tryParseIParsable = Type.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable));
-                    }
-                }
-
-                break;
-        }
-
-        if (tryParseKnownPrimitive)
-        {
-            return $"if (!{Type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
-        }
-        else if (tryParseIParsable)
-        {
-            return $"if (!{Type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], null, out arg{argCount})) ThrowArgumentParseFailed(\"{argumentName}\", args[i]);";
-        }
-        else
-        {
-            return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{Type.ToFullyQualifiedFormatDisplayString()}>(args[{index}]); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
+            if (tryParseKnownPrimitive)
+            {
+                return $"if (!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+            }
+            else if (tryParseIParsable)
+            {
+                return $"if (!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], null, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+            }
+            else
+            {
+                return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{type.ToFullyQualifiedFormatDisplayString()}>(args[{index}]); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
+            }
         }
     }
 
@@ -233,18 +248,24 @@ public record class CommandParameter
         }
         if (DefaultValue == null)
         {
-            if (!castValue) return "null";
-            return $"({Type.ToFullyQualifiedFormatDisplayString()})null";
+            // null -> default(T) to support both class and struct
+            return $"default({Type.ToFullyQualifiedFormatDisplayString()})";
         }
 
         if (!castValue) return DefaultValue.ToString();
         return $"({Type.ToFullyQualifiedFormatDisplayString()}){DefaultValue}";
     }
 
+    public string ToTypeDisplayString()
+    {
+        var t = Type.ToFullyQualifiedFormatDisplayString();
+        return IsNullableReference ? $"{t}?" : t;
+    }
+
     public override string ToString()
     {
         var sb = new StringBuilder();
-        sb.Append(Type.ToFullyQualifiedFormatDisplayString());
+        sb.Append(ToTypeDisplayString());
         sb.Append(" ");
         sb.Append(Name);
         if (HasDefaultValue)

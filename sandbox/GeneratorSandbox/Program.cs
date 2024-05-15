@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +16,9 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 
 
-args = ["100", "--y", "1,10,100,100,1000"]; // test.
+args = ["--x", "100", "--y", "1000"]; // test.
+
+
 
 
 // var s = "foo";
@@ -29,16 +35,42 @@ args = ["100", "--y", "1,10,100,100,1000"]; // test.
 
 // --x
 
+
+
+
+
 unsafe
 {
+    ConsoleApp.LogError = Console.Error.WriteLine;
+
+    // GetValidationResult
+
+
+
+
+
 
     //ConsoleApp.Run(args, ([Vector3Parser] Vector3 x) =>
     //{Quaternion//
     //});
-    ConsoleApp.Run(args, ([Argument] int x, int[] y) =>
+    ConsoleApp.Run(args, ([Range(1, 10)] int x, [Range(100, 2000)] int y) =>
     {
-        Console.WriteLine((x, y));
+        
+
+
+        var m = MethodInfo.GetCurrentMethod();
+        var parameters = m!.GetParameters();
+        var context = new ValidationContext("", null, null);
+        StringBuilder? sb = null;
+
+
+        ConsoleApp.ValidateParameter(x, context, ref sb, parameters, 0);
+        ConsoleApp.ValidateParameter(y, context, ref sb, parameters, 1);
+
+        // throw new ValidationException
+
     });
+
 
 
 }
@@ -56,7 +88,7 @@ ConsoleApp.ServiceProvider = provider;
 
 
 
-static async Task<int> RunRun([Vector3Parser] Vector3 x, [FromServices] MyClass y)
+static async Task<int> RunRun(int? x = null, string? y = null)
 {
     Console.WriteLine("Hello World!" + x + y);
     return 0;
@@ -242,65 +274,45 @@ namespace ConsoleAppFramework
     //}
 
     partial class ConsoleApp
-
     {
-        static bool TrySplitParse2<T>(ReadOnlySpan<char> s, out T[] result)
-       where T : ISpanParsable<T>
+        public static void ValidateParameter(object? value, ValidationContext validationContext, ref StringBuilder? errorMessages, ParameterInfo[] parameters, int index)
         {
-            if (s.StartsWith("["))
+            var p = parameters[index];
+            validationContext.DisplayName = p.Name ?? "";
+            validationContext.Items.Clear();
+
+            foreach (var validator in p.GetCustomAttributes<ValidationAttribute>(false))
             {
-                try
+                var result = validator.GetValidationResult(value, validationContext);
+                if (result != null)
                 {
-                    result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s)!;
-                }
-                catch
-                {
-                    result = default!;
-                    return false;
-                }
-            }
-
-            var count = s.Count(',') + 1;
-            result = new T[count];
-
-            var source = s;
-            var destination = result.AsSpan();
-            Span<Range> ranges = stackalloc Range[Math.Min(count, 128)];
-
-            while (true)
-            {
-                var splitCount = source.Split(ranges, ',');
-                var parseTo = splitCount;
-                if (splitCount == 128 && source[ranges[^1]].Contains(','))
-                {
-                    parseTo = splitCount - 1;
-                }
-
-                for (int i = 0; i < parseTo; i++)
-                {
-                    if (!T.TryParse(source[ranges[i]], null, out destination[i]!))
+                    if (errorMessages == null)
                     {
-                        return false;
+                        errorMessages = new StringBuilder();
                     }
-                }
-                destination = destination.Slice(parseTo);
-
-                if (destination.Length != 0)
-                {
-                    source = source[ranges[^1]];
-                    continue;
-                }
-                else
-                {
-                    break;
+                    errorMessages.AppendLine(result.ErrorMessage);
                 }
             }
-
-            return true;
         }
 
+        // [MethodImpl
         public static void Run2(string[] args, Action<int, int> command)
         {
+
+            var parameters = command.GetMethodInfo().GetParameters();
+            {
+                var validationContext = new ValidationContext(1000, null, null);
+                // parameters[0].GetCustomAttributes<ValidationAttribute>(false).Select(x => x.Validate(
+
+
+            }
+
+
+
+
+
+            if (TryShowHelpOrVersion(args)) return;
+
             var arg0 = default(int);
             var arg0Parsed = false;
             var arg1 = default(int);
