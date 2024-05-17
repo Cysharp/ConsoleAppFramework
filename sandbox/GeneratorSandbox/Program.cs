@@ -285,10 +285,18 @@ namespace ConsoleAppFramework
         //    }
         //}
 
+
+        static Action<string>? logErrorAction2;
+        public static Action<string> LogError2
+        {
+            get => logErrorAction2 ??= (static msg => Log(msg));
+            set => logErrorAction2 = value;
+        }
+
+
         // [MethodImpl
         public static void Run2(string[] args, Action<int, int> command)
         {
-
 
             // command.Method
 
