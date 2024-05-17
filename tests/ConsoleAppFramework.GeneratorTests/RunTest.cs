@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,22 +10,8 @@ using Xunit.Abstractions;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class Test // (ITestOutputHelper output)
+public class Test(ITestOutputHelper output)
 {
-    static void Verify(int id, string code, bool allowMultipleError = false)
-    {
-        var diagnostics = CSharpGeneratorRunner.RunAndGetErrorDiagnostics(code);
-        if (!allowMultipleError)
-        {
-            diagnostics.Length.Should().Be(1);
-            diagnostics[0].Id.Should().Be("CAF" + id.ToString("000"));
-        }
-        else
-        {
-            diagnostics.Select(x => x.Id).Should().Contain("CAF" + id.ToString("000"));
-        }
-    }
-
     static string[] ToArgs(string args)
     {
         return args.Split(' ');
@@ -37,12 +24,56 @@ public class Test // (ITestOutputHelper output)
 using System;
 using ConsoleAppFramework;
 
-ConsoleApp.Run(args, (int x, int y) => { Console.WriteLine((x + y)); });
+ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });
 """, ToArgs("--x 10 --y 20"));
 
-        result.Should().Be("""
-30
+        result.Should().Be("30");
+    }
 
-""");
+    [Fact]
+    public void ValidateOne()
+    {
+        var result = CSharpGeneratorRunner.CompileAndExecute("""
+using System;
+using ConsoleAppFramework;
+using System.ComponentModel.DataAnnotations;
+
+ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
+""", ToArgs("--x 100 --y 140"));
+
+        var expected = """
+The field x must be between 1 and 10.
+
+
+""";
+
+        result.Should().Be(expected);
+
+        Environment.ExitCode.Should().Be(1);
+        Environment.ExitCode = 0;
+    }
+
+    [Fact]
+    public void ValidateTwo()
+    {
+        var result = CSharpGeneratorRunner.CompileAndExecute("""
+using System;
+using ConsoleAppFramework;
+using System.ComponentModel.DataAnnotations;
+
+ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
+""", ToArgs("--x 100 --y 240"));
+
+        var expected = """
+The field x must be between 1 and 10.
+The field y must be between 100 and 200.
+
+
+""";
+
+        result.Should().Be(expected);
+
+        Environment.ExitCode.Should().Be(1);
+        Environment.ExitCode = 0;
     }
 }

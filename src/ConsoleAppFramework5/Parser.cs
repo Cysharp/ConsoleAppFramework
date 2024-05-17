@@ -9,6 +9,12 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
     public Command? ParseAndValidate()
     {
         var args = node.ArgumentList.Arguments;
+        if (args.Count is 0 or 1)
+        {
+            context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod.Create(node.GetLocation()));
+            return null;
+        }
+
         if (args.Count == 2) // 0 = args, 1 = lambda
         {
             var lambda = args[1].Expression as ParenthesizedLambdaExpressionSyntax;
