@@ -18,6 +18,17 @@ internal static class RoslynExtensions
         return SymbolEqualityComparer.Default.Equals(l, r);
     }
 
+    public static IEnumerable<INamedTypeSymbol> GetBaseTypes(this INamedTypeSymbol type, bool includeSelf = false)
+    {
+        if (includeSelf) yield return type;
+        var baseType = type.BaseType;
+        while (baseType != null)
+        {
+            yield return baseType;
+            baseType = baseType.BaseType;
+        }
+    }
+
     public static DocumentationCommentTriviaSyntax? GetDocumentationCommentTriviaSyntax(this SyntaxNode node)
     {
         // Hack note:

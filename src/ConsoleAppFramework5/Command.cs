@@ -132,6 +132,10 @@ public record class CommandParameter
     public required bool IsFromServices { get; init; }
     public required bool IsCancellationToken { get; init; }
     public bool IsParsable => !(IsFromServices || IsCancellationToken);
+    
+    // 追加！コンパイルエラーありがたい！
+    public required bool HasValidation { get; init; }
+
     public required int ArgumentIndex { get; init; } // -1 is not Argument, other than marked as [Argument]
     public bool IsArgument => ArgumentIndex != -1;
     public required string[] Aliases { get; init; }

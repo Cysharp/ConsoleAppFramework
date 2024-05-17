@@ -127,6 +127,17 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     })
                     .FirstOrDefault(x => x != null);
 
+                var hasValidation = x.AttributeLists.SelectMany(x => x.Attributes)
+                    .Any(x =>
+                    {
+                        var attr = model.GetTypeInfo(x).Type as INamedTypeSymbol;
+                        if (attr != null && attr.GetBaseTypes().Any(x => x.Name == "ValidationAttribute"))
+                        {
+                            return true;
+                        }
+                        return false;
+                    });
+
                 var isFromServices = x.AttributeLists.SelectMany(x => x.Attributes)
                   .Any(x =>
                   {
@@ -178,6 +189,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     HasDefaultValue = hasDefault,
                     DefaultValue = defaultValue,
                     CustomParserType = customParserType,
+                    HasValidation = hasValidation,
                     IsCancellationToken = isCancellationToken,
                     IsFromServices = isFromServices,
                     Aliases = [],
@@ -256,6 +268,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var customParserType = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.AllInterfaces.Any(y => y.Name == "IArgumentParser") ?? false);
                 var hasFromServices = x.GetAttributes().Any(x => x.AttributeClass?.Name == "FromServicesAttribute");
                 var hasArgument = x.GetAttributes().Any(x => x.AttributeClass?.Name == "ArgumentAttribute");
+                var hasValidation = x.GetAttributes().Any(x => x.AttributeClass?.GetBaseTypes().Any(y => y.Name == "ValidationAttribute") ?? false);
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
 
                 string description = "";
@@ -290,6 +303,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     CustomParserType = null,
                     IsCancellationToken = isCancellationToken,
                     IsFromServices = hasFromServices,
+                    HasValidation = hasValidation,
                     Aliases = aliases,
                     ArgumentIndex = argumentIndex,
                     Description = description

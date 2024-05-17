@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,7 +17,7 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 
 
-args = ["--x", "100", "--y", "1000"]; // test.
+args = ["--x", "18", "--y", "aiueokakikukeko"]; // test.
 
 
 
@@ -53,21 +54,11 @@ unsafe
     //ConsoleApp.Run(args, ([Vector3Parser] Vector3 x) =>
     //{Quaternion//
     //});
-    ConsoleApp.Run(args, ([Range(1, 10)] int x, [Range(100, 2000)] int y) =>
+    ConsoleApp.Run(args, ([Range(1, 10)] int x, [StringLength(10)] string y) =>
     {
-        
 
+        Console.WriteLine("OK");
 
-        var m = MethodInfo.GetCurrentMethod();
-        var parameters = m!.GetParameters();
-        var context = new ValidationContext("", null, null);
-        StringBuilder? sb = null;
-
-
-        ConsoleApp.ValidateParameter(x, context, ref sb, parameters, 0);
-        ConsoleApp.ValidateParameter(y, context, ref sb, parameters, 1);
-
-        // throw new ValidationException
 
     });
 
@@ -275,40 +266,31 @@ namespace ConsoleAppFramework
 
     partial class ConsoleApp
     {
-        public static void ValidateParameter(object? value, ValidationContext validationContext, ref StringBuilder? errorMessages, ParameterInfo[] parameters, int index)
-        {
-            var p = parameters[index];
-            validationContext.DisplayName = p.Name ?? "";
-            validationContext.Items.Clear();
+        //public static void ValidateParameter(object? value, ParameterInfo parameter, ValidationContext validationContext, ref StringBuilder? errorMessages)
+        //{
+        //    validationContext.DisplayName = parameter.Name ?? "";
+        //    validationContext.Items.Clear();
 
-            foreach (var validator in p.GetCustomAttributes<ValidationAttribute>(false))
-            {
-                var result = validator.GetValidationResult(value, validationContext);
-                if (result != null)
-                {
-                    if (errorMessages == null)
-                    {
-                        errorMessages = new StringBuilder();
-                    }
-                    errorMessages.AppendLine(result.ErrorMessage);
-                }
-            }
-        }
+        //    foreach (var validator in parameter.GetCustomAttributes<ValidationAttribute>(false))
+        //    {
+        //        var result = validator.GetValidationResult(value, validationContext);
+        //        if (result != null)
+        //        {
+        //            if (errorMessages == null)
+        //            {
+        //                errorMessages = new StringBuilder();
+        //            }
+        //            errorMessages.AppendLine(result.ErrorMessage);
+        //        }
+        //    }
+        //}
 
         // [MethodImpl
         public static void Run2(string[] args, Action<int, int> command)
         {
 
-            var parameters = command.GetMethodInfo().GetParameters();
-            {
-                var validationContext = new ValidationContext(1000, null, null);
-                // parameters[0].GetCustomAttributes<ValidationAttribute>(false).Select(x => x.Validate(
 
-
-            }
-
-
-
+            // command.Method
 
 
             if (TryShowHelpOrVersion(args)) return;
@@ -365,13 +347,29 @@ namespace ConsoleAppFramework
                 if (!arg0Parsed) ThrowRequiredArgumentNotParsed("x");
                 if (!arg1Parsed) ThrowRequiredArgumentNotParsed("y");
 
+                var validationContext = new ValidationContext(1000, null, null);
+                var parameters = command.GetMethodInfo().GetParameters();
+                StringBuilder? errorMessages = null;
+                ValidateParameter(arg0, parameters[0], validationContext, ref errorMessages);
+                ValidateParameter(arg1, parameters[1], validationContext, ref errorMessages);
+                if (errorMessages != null)
+                {
+                    throw new ValidationException(errorMessages.ToString());
+                }
+
                 command(arg0!, arg1!);
             }
-
             catch (Exception ex)
             {
                 Environment.ExitCode = 1;
-                LogError(ex.ToString());
+                if (ex is ValidationException ve)
+                {
+                    LogError(ex.Message);
+                }
+                else
+                {
+                    LogError(ex.ToString());
+                }
             }
         }
     }

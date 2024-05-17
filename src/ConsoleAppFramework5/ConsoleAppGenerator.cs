@@ -43,11 +43,13 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 namespace ConsoleAppFramework;
 
 using System;
+using System.Text;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
+using System.ComponentModel.DataAnnotations;
 
 internal interface IArgumentParser<T>
 {
@@ -160,6 +162,25 @@ internal static partial class ConsoleApp
         }
 
         return true;
+    }
+
+    static void ValidateParameter(object? value, ParameterInfo parameter, ValidationContext validationContext, ref StringBuilder? errorMessages)
+    {
+        validationContext.DisplayName = parameter.Name ?? "";
+        validationContext.Items.Clear();
+
+        foreach (var validator in parameter.GetCustomAttributes<ValidationAttribute>(false))
+        {
+            var result = validator.GetValidationResult(value, validationContext);
+            if (result != null)
+            {
+                if (errorMessages == null)
+                {
+                    errorMessages = new StringBuilder();
+                }
+                errorMessages.AppendLine(result.ErrorMessage);
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

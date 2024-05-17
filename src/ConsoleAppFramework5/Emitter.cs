@@ -10,6 +10,7 @@ internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
     {
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
+        var hasValidation = command.Parameters.Any(x => x.HasValidation);
 
         // prepare argument variables ->
         var prepareArgument = new StringBuilder();
@@ -118,6 +119,26 @@ internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
             }
         }
 
+        // hasValidation ->
+        var attributeValidation = new StringBuilder();
+        if (hasValidation)
+        {
+            attributeValidation.AppendLine("            var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(\"\", null, null);");
+            attributeValidation.AppendLine("            var parameters = command.Method.GetParameters();");
+            attributeValidation.AppendLine("            System.Text.StringBuilder? errorMessages = null;");
+            for (int i = 0; i < command.Parameters.Length; i++)
+            {
+                var parameter = command.Parameters[i];
+                if (!parameter.HasValidation) continue;
+
+                attributeValidation.AppendLine($"            ValidateParameter(arg{i}, parameters[{i}], validationContext, ref errorMessages);");
+            }
+            attributeValidation.AppendLine("            if (errorMessages != null)");
+            attributeValidation.AppendLine("            {");
+            attributeValidation.AppendLine("                throw new System.ComponentModel.DataAnnotations.ValidationException(errorMessages.ToString());");
+            attributeValidation.AppendLine("            }");
+        }
+
         // invoke for sync/async, void/int
         var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
         var invokeCommand = $"command({methodArguments})";
@@ -184,11 +205,19 @@ internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
                 }
             }
 {{validateParsed}}
+{{attributeValidation}}
 {{invoke}}
         catch (Exception ex)
         {
             Environment.ExitCode = 1;
-            LogError(ex.ToString());
+            if (ex is System.ComponentModel.DataAnnotations.ValidationException)
+            {
+                LogError(ex.Message);
+            }
+            else
+            {
+                LogError(ex.ToString());
+            }
         }
     }
 """;
