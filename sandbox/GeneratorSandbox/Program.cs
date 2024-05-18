@@ -20,7 +20,9 @@ using Microsoft.Extensions.DependencyInjection;
 args = ["--x", "18", "--y", "aiueokakikukeko"]; // test.
 
 
-ConsoleApp.Run(args, Run2); void Run2(int x, int y) { };
+// ConsoleApp.Run(args, Run2); void Run2(int x, int yzzzz) { };
+
+unsafe { ConsoleApp.Run(args, &Run2); static void Run2(int x, [System.ComponentModel.DataAnnotations.Range(0, 10)]int y) { }; }
 
 // var s = "foo";
 // s.AsSpan().Split(',',).

@@ -67,4 +67,23 @@ public class DiagnosticsTest(ITestOutputHelper output)
         verifier.Ok("ConsoleApp.RunAsync(args, Run); async Task Run(int x, int y) { };");
         verifier.Ok("ConsoleApp.RunAsync(args, Run); async Task<int> Run(int x, int y) => -1;");
     }
+
+    [Fact]
+    public void Argument()
+    {
+        verifier.Verify(4, "ConsoleApp.Run(args, (int x, [Argument]int y) => { })", "[Argument]int y");
+        verifier.Verify(4, "ConsoleApp.Run(args, ([Argument]int x, int y, [Argument]int z) => { })", "[Argument]int z");
+        verifier.Verify(4, "ConsoleApp.Run(args, Run); void Run(int x, [Argument]int y) { };", "[Argument]int y");
+
+        verifier.Ok("ConsoleApp.Run(args, ([Argument]int x, [Argument]int y) => { })");
+        verifier.Ok("ConsoleApp.Run(args, Run); void Run([Argument]int x, [Argument]int y) { };");
+    }
+
+    [Fact]
+    public void FunctionPointerValidation()
+    {
+        verifier.Verify(5, "unsafe { ConsoleApp.Run(args, &Run2); static void Run2([Range(1, 10)]int x, int y) { }; }", "[Range(1, 10)]int x");
+
+        verifier.Ok("unsafe { ConsoleApp.Run(args, &Run2); static void Run2(int x, int y) { }; }");
+    }
 }

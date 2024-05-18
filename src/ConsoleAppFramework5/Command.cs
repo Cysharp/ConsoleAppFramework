@@ -124,6 +124,7 @@ public record class Command
 public record class CommandParameter
 {
     public required ITypeSymbol Type { get; init; }
+    public required Location Location { get; init; }
     public required bool IsNullableReference { get; init; }
     public required string Name { get; init; }
     public required bool HasDefaultValue { get; init; }
@@ -132,7 +133,7 @@ public record class CommandParameter
     public required bool IsFromServices { get; init; }
     public required bool IsCancellationToken { get; init; }
     public bool IsParsable => !(IsFromServices || IsCancellationToken);
-    
+
     // 追加！コンパイルエラーありがたい！
     public required bool HasValidation { get; init; }
 

@@ -30,8 +30,9 @@ public static class CSharpGeneratorRunner
 
         var globalUsings = """
 global using System;
-global using ConsoleAppFramework;
 global using System.Threading.Tasks;
+global using System.ComponentModel.DataAnnotations;
+global using ConsoleAppFramework;
 """;
 
         var compilation = CSharpCompilation.Create("generatortest",
@@ -100,8 +101,10 @@ global using System.Threading.Tasks;
 
 public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 {
-    public void Ok(string code)
+    public void Ok(string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
+        output.WriteLine(codeExpr);
+
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         foreach (var item in diagnostics)
         {
@@ -110,20 +113,6 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         OutputGeneratedCode(compilation);
 
         diagnostics.Length.Should().Be(0);
-    }
-
-    public string Verify(int id, string code)
-    {
-        var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
-        foreach (var item in diagnostics)
-        {
-            output.WriteLine(item.ToString());
-        }
-        OutputGeneratedCode(compilation);
-
-        diagnostics.Length.Should().Be(1);
-        diagnostics[0].Id.Should().Be(idPrefix + id.ToString("000"));
-        return GetLocationText(diagnostics[0]);
     }
 
     public void Verify(int id, string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
@@ -143,8 +132,10 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         text.Should().Be(diagnosticsCodeSpan);
     }
 
-    public (string, string)[] Verify(string code)
+    public (string, string)[] Verify(string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
+        output.WriteLine(codeExpr);
+
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         OutputGeneratedCode(compilation);
         return diagnostics.Select(x => (x.Id, GetLocationText(x))).ToArray();

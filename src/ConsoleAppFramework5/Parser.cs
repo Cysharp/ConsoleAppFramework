@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
@@ -21,7 +22,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     var methodSymbols = model.GetMemberGroup(operand);
                     if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                     {
-                        return ParseFromMethodSymbol(methodSymbol, addressOf: true);
+                        return ValidateCommand(ParseFromMethodSymbol(methodSymbol, addressOf: true));
                     }
                 }
                 else
@@ -29,13 +30,13 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     var methodSymbols = model.GetMemberGroup(args[1].Expression);
                     if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                     {
-                        return ParseFromMethodSymbol(methodSymbol, addressOf: false);
+                        return ValidateCommand(ParseFromMethodSymbol(methodSymbol, addressOf: false));
                     }
                 }
             }
             else
             {
-                return ParseFromLambda(lambda);
+                return ValidateCommand(ParseFromLambda(lambda));
             }
         }
 
@@ -192,6 +193,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     Name = x.Identifier.Text,
                     IsNullableReference = isNullableReference,
                     Type = type.Type!,
+                    Location = x.GetLocation(),
                     HasDefaultValue = hasDefault,
                     DefaultValue = defaultValue,
                     CustomParserType = customParserType,
@@ -303,6 +305,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 {
                     Name = x.Name,
                     IsNullableReference = isNullableReference,
+                    Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
                     Type = x.Type,
                     HasDefaultValue = x.HasExplicitDefaultValue,
                     DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
@@ -329,6 +332,47 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         };
 
         return cmd;
+    }
+
+    Command? ValidateCommand(Command? command)
+    {
+        if (command == null) return null;
+        var hasDiagnostic = false;
+
+        // Sequential Argument
+        var existsNotArgument = false;
+        foreach (var parameter in command.Parameters)
+        {
+            if (!parameter.IsParsable) continue;
+
+            if (!parameter.IsArgument)
+            {
+                existsNotArgument = true;
+            }
+
+            if (parameter.IsArgument && existsNotArgument)
+            {
+                context.ReportDiagnostic(DiagnosticDescriptors.SequentialArgument, parameter.Location);
+                hasDiagnostic = true;
+            }
+        }
+
+        // FunctionPointer can not use validation
+        if (command.MethodKind == MethodKind.FunctionPointer)
+        {
+            foreach (var p in command.Parameters)
+            {
+                if (p.HasValidation)
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.FunctionPointerCanNotHaveValidation, p.Location);
+                    hasDiagnostic = true;
+                }
+            }
+        }
+
+        if (hasDiagnostic) return null;
+
+        return command;
     }
 
     void ParseParameterDescription(string originalDescription, out string[] aliases, out string description)

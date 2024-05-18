@@ -12,6 +12,11 @@ internal static class DiagnosticDescriptors
         context.ReportDiagnostic(diagnostic);
     }
 
+    public static DiagnosticDescriptor Create(int id, string message)
+    {
+        return Create(id, message, message);
+    }
+
     public static DiagnosticDescriptor Create(int id, string title, string messageFormat)
     {
         return new DiagnosticDescriptor(
@@ -25,17 +30,24 @@ internal static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor RequireArgsOrMethod = Create(
         1,
-        "ConsoleApp methods require string[] args and lambda/method.",
         "ConsoleApp.Run/RunAsync requires string[] args and lambda/method in arguments.");
 
     public static readonly DiagnosticDescriptor ReturnTypeLambda = Create(
         2,
         "Run lambda expressions return type must be void or int or async Task or async Task<int>.",
-        "Run lambda expressions return type must be void or int or async Task or async Task<int> but returned '{0}'."); 
-    
+        "Run lambda expressions return type must be void or int or async Task or async Task<int> but returned '{0}'.");
+
     public static readonly DiagnosticDescriptor ReturnTypeMethod = Create(
-        3,
-        "Run referenced method return type must be void or int or async Task or async Task<int>.",
-        "Run referenced method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
+       3,
+       "Run referenced method return type must be void or int or async Task or async Task<int>.",
+       "Run referenced method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
+
+    public static readonly DiagnosticDescriptor SequentialArgument = Create(
+       4,
+       "All Argument parameters must be sequential from first.");
+
+    public static readonly DiagnosticDescriptor FunctionPointerCanNotHaveValidation = Create(
+       5,
+       "Function pointer can not have validation.");
 
 }
