@@ -2,6 +2,7 @@ using ConsoleAppFramework;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
@@ -33,7 +34,7 @@ public static class CSharpGeneratorRunner
         baseCompilation = compilation;
     }
 
-    public static Compilation RunGenerator(string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public static (Compilation, ImmutableArray<Diagnostic>) RunGenerator(string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
         if (preprocessorSymbols == null)
         {
@@ -50,18 +51,18 @@ public static class CSharpGeneratorRunner
         var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions));
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics);
-        return newCompilation!;
+        return (newCompilation, diagnostics);
     }
 
     public static Diagnostic[] RunAndGetErrorDiagnostics(string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
-        var compilation = RunGenerator(source, preprocessorSymbols, options);
-        return compilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error).ToArray();
+        var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options);
+        return diagnostics.Concat(compilation.GetDiagnostics()).Where(x => x.Severity == DiagnosticSeverity.Error).ToArray();
     }
 
     public static string CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
-        var compilation = RunGenerator(source, preprocessorSymbols, options);
+        var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options);
 
         using var ms = new MemoryStream();
         var emitResult = compilation.Emit(ms);
@@ -73,6 +74,7 @@ public static class CSharpGeneratorRunner
         ms.Position = 0;
 
         // capture stdout log
+        // modify global stdout so can't run in parallel unit-test
         var originalOut = Console.Out;
         try
         {

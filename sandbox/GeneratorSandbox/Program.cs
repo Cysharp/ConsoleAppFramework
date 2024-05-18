@@ -54,14 +54,9 @@ unsafe
     //ConsoleApp.Run(args, ([Vector3Parser] Vector3 x) =>
     //{Quaternion//
     //});
-    ConsoleApp.Run(args, ([Range(1, 10)] int x, [StringLength(10)] string y) =>
+    ConsoleApp.Run(args, (int x, int y) =>
     {
-
-        Console.WriteLine("OK");
-
-
     });
-
 
 
 }

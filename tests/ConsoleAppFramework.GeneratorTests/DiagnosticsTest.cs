@@ -1,58 +1,49 @@
-﻿using Microsoft.CodeAnalysis.Testing;
-using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft;
-using Microsoft.CodeAnalysis.CSharp.Testing;
-using Microsoft.CodeAnalysis.Text;
+﻿using Microsoft.CodeAnalysis;
 
 namespace ConsoleAppFramework.GeneratorTests;
-
-using VerifyCS = CSharpIncrementalSourceGeneratorVerifier<ConsoleAppGenerator>;
 
 
 public class DiagnosticsTest
 {
-    static void Verify(int id, string code, bool allowMultipleError = false)
+    static string Verify(int id, string code)
     {
         var diagnostics = CSharpGeneratorRunner.RunAndGetErrorDiagnostics(code);
-        if (!allowMultipleError)
+        diagnostics.Length.Should().Be(1);
+        diagnostics[0].Id.Should().Be("CAF" + id.ToString("000"));
+        return GetLocationText(diagnostics[0]);
+    }
+
+    static (string, string)[] Verify(string code)
+    {
+        var diagnostics = CSharpGeneratorRunner.RunAndGetErrorDiagnostics(code);
+        return diagnostics.Select(x => (x.Id, GetLocationText(x))).ToArray();
+    }
+
+    static string GetLocationText(Diagnostic diagnostic)
+    {
+        var location = diagnostic.Location;
+        var textSpan = location.SourceSpan;
+        var sourceTree = location.SourceTree;
+        if (sourceTree == null)
         {
-            diagnostics.Length.Should().Be(1);
-            diagnostics[0].Id.Should().Be("CAF" + id.ToString("000"));
+            return "";
         }
-        else
-        {
-            diagnostics.Select(x => x.Id).Should().Contain("CAF" + id.ToString("000"));
-        }
+
+        var text = sourceTree.GetText().GetSubText(textSpan).ToString();
+        return text;
     }
 
     [Fact]
-    public async Task Foo()
+    public void ArgumentCount()
     {
         var code = """
 using System;
 using ConsoleAppFramework;
-using System.ComponentModel.DataAnnotations;
 
-ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
+ConsoleApp.Run(args);
 """;
-        var generated = "expected generated code";
-        await new VerifyCS.Test
-        {
-            TestState =
-            {
-                Sources = { code },
-                GeneratedSources =
-                {
-                    (typeof(ConsoleAppGenerator), "GeneratedFileName", SourceText.From(generated, Encoding.UTF8, SourceHashAlgorithm.Sha256)),
-                },
-            },
 
-        }.RunAsync();
+        Verify(1, code).Should().Be("ConsoleApp.Run(args)");
     }
 
 }
