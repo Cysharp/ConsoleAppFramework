@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class Test(ITestOutputHelper output)
+public class Test // (ITestOutputHelper output)
 {
     static string[] ToArgs(string args)
     {

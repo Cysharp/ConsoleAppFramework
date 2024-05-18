@@ -20,7 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 args = ["--x", "18", "--y", "aiueokakikukeko"]; // test.
 
 
-
+ConsoleApp.Run(args, Run2); void Run2(int x, int y) { };
 
 // var s = "foo";
 // s.AsSpan().Split(',',).
@@ -40,42 +40,10 @@ args = ["--x", "18", "--y", "aiueokakikukeko"]; // test.
 
 
 
-unsafe
-{
-    ConsoleApp.LogError = Console.Error.WriteLine;
-
-    // GetValidationResult
-
-
-
-
-
-
-    //ConsoleApp.Run(args, ([Vector3Parser] Vector3 x) =>
-    //{Quaternion//
-    //});
-    ConsoleApp.Run(args, (int x, int y) =>
-    {
-    });
-
-
-}
-
-// description
-// 
-
-var sc = new ServiceCollection();
-sc.AddSingleton<MyClass>();
-var provider = sc.BuildServiceProvider();
-ConsoleApp.ServiceProvider = provider;
-
-
-
-
-
 
 static async Task<int> RunRun(int? x = null, string? y = null)
 {
+    await Task.Yield();
     Console.WriteLine("Hello World!" + x + y);
     return 0;
 }

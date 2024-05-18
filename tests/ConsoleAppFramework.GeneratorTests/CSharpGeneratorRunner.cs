@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using Xunit.Abstractions;
 
 public static class CSharpGeneratorRunner
 {
@@ -27,8 +28,15 @@ public static class CSharpGeneratorRunner
             .Select(x => MetadataReference.CreateFromFile(x))
             .ToArray();
 
+        var globalUsings = """
+global using System;
+global using ConsoleAppFramework;
+global using System.Threading.Tasks;
+""";
+
         var compilation = CSharpCompilation.Create("generatortest",
             references: references,
+            syntaxTrees: [CSharpSyntaxTree.ParseText(globalUsings)],
             options: new CSharpCompilationOptions(OutputKind.ConsoleApplication)); // .exe
 
         baseCompilation = compilation;
@@ -52,12 +60,6 @@ public static class CSharpGeneratorRunner
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics);
         return (newCompilation, diagnostics);
-    }
-
-    public static Diagnostic[] RunAndGetErrorDiagnostics(string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
-    {
-        var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options);
-        return diagnostics.Concat(compilation.GetDiagnostics()).Where(x => x.Severity == DiagnosticSeverity.Error).ToArray();
     }
 
     public static string CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
@@ -92,6 +94,83 @@ public static class CSharpGeneratorRunner
         finally
         {
             Console.SetOut(originalOut);
+        }
+    }
+}
+
+public class VerifyHelper(ITestOutputHelper output, string idPrefix)
+{
+    public void Ok(string code)
+    {
+        var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
+        foreach (var item in diagnostics)
+        {
+            output.WriteLine(item.ToString());
+        }
+        OutputGeneratedCode(compilation);
+
+        diagnostics.Length.Should().Be(0);
+    }
+
+    public string Verify(int id, string code)
+    {
+        var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
+        foreach (var item in diagnostics)
+        {
+            output.WriteLine(item.ToString());
+        }
+        OutputGeneratedCode(compilation);
+
+        diagnostics.Length.Should().Be(1);
+        diagnostics[0].Id.Should().Be(idPrefix + id.ToString("000"));
+        return GetLocationText(diagnostics[0]);
+    }
+
+    public void Verify(int id, string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
+    {
+        output.WriteLine(codeExpr);
+
+        var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
+        foreach (var item in diagnostics)
+        {
+            output.WriteLine(item.ToString());
+        }
+        OutputGeneratedCode(compilation);
+
+        diagnostics.Length.Should().Be(1);
+        diagnostics[0].Id.Should().Be(idPrefix + id.ToString("000"));
+        var text = GetLocationText(diagnostics[0]);
+        text.Should().Be(diagnosticsCodeSpan);
+    }
+
+    public (string, string)[] Verify(string code)
+    {
+        var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
+        OutputGeneratedCode(compilation);
+        return diagnostics.Select(x => (x.Id, GetLocationText(x))).ToArray();
+    }
+
+    string GetLocationText(Diagnostic diagnostic)
+    {
+        var location = diagnostic.Location;
+        var textSpan = location.SourceSpan;
+        var sourceTree = location.SourceTree;
+        if (sourceTree == null)
+        {
+            return "";
+        }
+
+        var text = sourceTree.GetText().GetSubText(textSpan).ToString();
+        return text;
+    }
+
+    void OutputGeneratedCode(Compilation compilation)
+    {
+        foreach (var syntaxTree in compilation.SyntaxTrees)
+        {
+            // only shows ConsoleApp.Run generated code
+            if (!syntaxTree.FilePath.Contains("ConsoleApp.Run.cs")) continue;
+            output.WriteLine(syntaxTree.ToString());
         }
     }
 }

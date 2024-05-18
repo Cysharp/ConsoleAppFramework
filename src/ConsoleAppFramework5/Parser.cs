@@ -9,12 +9,6 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
     public Command? ParseAndValidate()
     {
         var args = node.ArgumentList.Arguments;
-        if (args.Count is 0 or 1)
-        {
-            context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod.Create(node.GetLocation()));
-            return null;
-        }
-
         if (args.Count == 2) // 0 = args, 1 = lambda
         {
             var lambda = args[1].Expression as ParenthesizedLambdaExpressionSyntax;
@@ -38,8 +32,6 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                         return ParseFromMethodSymbol(methodSymbol, addressOf: false);
                     }
                 }
-
-                return null;
             }
             else
             {
@@ -47,6 +39,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             }
         }
 
+        context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsOrMethod, node.GetLocation());
         return null;
     }
 
@@ -70,16 +63,22 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 }
                 else
                 {
-                    // others, invalid.
-                    // TODO: validation invalid.
+                    context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeLambda, lambda.ReturnType!.GetLocation(), lambda.ReturnType);
+                    return null;
                 }
             }
             else
             {
+                if (!(lambda.ReturnType?.ToString() is "Task" or "Task<int>"))
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeLambda, lambda.ReturnType!.GetLocation(), lambda.ReturnType);
+                    return null;
+                }
+
                 var firstType = (lambda.ReturnType as GenericNameSyntax)?.TypeArgumentList.Arguments.FirstOrDefault();
                 if (firstType == null)
                 {
-                    isVoid = true; // strictly, should check ret-type is Task...
+                    isVoid = true;
                 }
                 else if ((firstType as PredefinedTypeSyntax)?.Keyword.IsKind(SyntaxKind.IntKeyword) ?? false)
                 {
@@ -87,7 +86,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 }
                 else
                 {
-                    // TODO: validation invalid
+                    context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeLambda, lambda.ReturnType!.GetLocation(), lambda.ReturnType);
+                    return null;
                 }
             }
         }
@@ -257,13 +257,13 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             }
             else
             {
-                // TODO: invalid return
+                context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethod, node.ArgumentList.Arguments[1].GetLocation(), methodSymbol.ReturnType);
                 return null;
             }
         }
         else
         {
-            // TODO: invalid return type
+            context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethod, node.ArgumentList.Arguments[1].GetLocation(), methodSymbol.ReturnType);
             return null;
         }
 
