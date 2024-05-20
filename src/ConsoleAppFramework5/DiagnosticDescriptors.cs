@@ -28,33 +28,33 @@ internal static class DiagnosticDescriptors
             isEnabledByDefault: true);
     }
 
-    public static readonly DiagnosticDescriptor RequireArgsAndMethod = Create(
+    public static DiagnosticDescriptor RequireArgsAndMethod { get; } = Create(
         1,
         "ConsoleApp.Run/RunAsync requires string[] args and lambda/method in arguments.");
 
-    public static readonly DiagnosticDescriptor ReturnTypeLambda = Create(
+    public static DiagnosticDescriptor ReturnTypeLambda { get; } = Create(
         2,
         "Run lambda expressions return type must be void or int or async Task or async Task<int>.",
         "Run lambda expressions return type must be void or int or async Task or async Task<int> but returned '{0}'.");
 
-    public static readonly DiagnosticDescriptor ReturnTypeMethod = Create(
+    public static DiagnosticDescriptor ReturnTypeMethod { get; } = Create(
        3,
        "Run referenced method return type must be void or int or async Task or async Task<int>.",
        "Run referenced method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
 
-    public static readonly DiagnosticDescriptor SequentialArgument = Create(
+    public static DiagnosticDescriptor SequentialArgument { get; } = Create(
        4,
        "All Argument parameters must be sequential from first.");
 
-    public static readonly DiagnosticDescriptor FunctionPointerCanNotHaveValidation = Create(
+    public static DiagnosticDescriptor FunctionPointerCanNotHaveValidation { get; } = Create(
        5,
        "Function pointer can not have validation.");
 
-    public static readonly DiagnosticDescriptor RequireCommandAndMethod = Create(
+    public static DiagnosticDescriptor RequireCommandAndMethod { get; } = Create(
         6,
         "ConsoleAppBuilder.Add requires string command and lambda/method in arguments or use Add<T>.");
 
-    public static readonly DiagnosticDescriptor AddCommandMustBeStringLiteral = Create(
+    public static DiagnosticDescriptor AddCommandMustBeStringLiteral { get; } = Create(
         6,
         "ConsoleAppBuilder.Add string command must be string literal.");
 }

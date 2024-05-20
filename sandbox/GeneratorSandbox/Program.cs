@@ -36,7 +36,7 @@ builder.Add("bar", async (int x, int y = 999) =>
     Console.WriteLine($"bar: {(x, y)}");
 });
 
-builder.Run(args);
+//buq/ilder.Run(args);
 await builder.RunAsync(args);
 
 

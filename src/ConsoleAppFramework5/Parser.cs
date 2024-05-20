@@ -17,6 +17,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             {
                 return ValidateCommand(command);
             }
+            return null;
         }
 
         context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod, node.GetLocation());
@@ -42,6 +43,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             {
                 return ValidateCommand(command);
             }
+            return null;
         }
 
         context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod, node.GetLocation());
