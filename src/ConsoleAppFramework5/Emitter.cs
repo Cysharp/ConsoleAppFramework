@@ -4,9 +4,9 @@ using System.Text;
 
 namespace ConsoleAppFramework;
 
-internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
+internal class Emitter(WellKnownTypes wellKnownTypes)
 {
-    public string EmitRun(bool isRunAsync)
+    public string EmitRun(Command command, bool isRunAsync)
     {
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
@@ -230,6 +230,75 @@ internal class Emitter(Command command, WellKnownTypes wellKnownTypes)
     internal {{delegateType}}
 """;
         }
+
+        return code;
+    }
+
+    public string EmitBuilder(Command[] commands, bool isRunAsync) // TODO: bool emitSync, emitAsync
+    {
+        // TODO: make Add -> make Run -> make RunAsync
+        // TODO: invoke RootCommand
+        var fields = new StringBuilder();
+        var addCase = new StringBuilder();
+        var runCommands = new StringBuilder();
+        var delegateTypes = new List<string>();
+
+        for (int i = 0; i < commands.Length; i++)
+        {
+            var command = commands[i];
+
+            var fieldType = command.BuildDelegateSignature(out var delegateType);
+            if (delegateType != null)
+            {
+                delegateTypes.Add(delegateType);
+            }
+            
+            fields.AppendLine($"    {fieldType} command{i} = default!;");
+            addCase.AppendLine($"            case \"{command.CommandName}\":");
+            addCase.AppendLine($"                this.command{i} = command;");
+            addCase.AppendLine($"                break;");
+        }
+
+        var addCore = $$"""
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    partial void AddCore(string commandName, Delegate command)
+    {
+        switch (commandName)
+        {
+{{addCase}}
+            default:
+                break;
+        }
+    }
+""";
+
+
+        // TODO: Emit help and version
+        var code = $$"""
+partial struct ConsoleAppBuilder
+{
+{{fields}}
+
+{{addCore}}
+
+{{runCommands}}
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    partial void RunCore(string[] args)
+    {
+        switch (commandName)
+        {
+            case "foo":
+                RunCommand1(args.AsSpan(1), command1);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+{{string.Join(Environment.NewLine, delegateTypes.Distinct())}}
+""";
 
         return code;
     }

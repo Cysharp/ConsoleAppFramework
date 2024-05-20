@@ -7,44 +7,80 @@ namespace ConsoleAppFramework;
 
 internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes)
 {
-    public Command? ParseAndValidate()
+    public Command? ParseAndValidate() // for ConsoleApp.Run
     {
         var args = node.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = args, 1 = lambda
         {
-            var lambda = args[1].Expression as ParenthesizedLambdaExpressionSyntax;
-            if (lambda == null)
+            var command = ExpressionToCommand(args[1].Expression, ""); // rootCommand = commandName = ""
+            if (command != null)
             {
-                if (args[1].Expression.IsKind(SyntaxKind.AddressOfExpression))
-                {
-                    var operand = (args[1].Expression as PrefixUnaryExpressionSyntax)!.Operand;
+                return ValidateCommand(command);
+            }
+        }
 
-                    var methodSymbols = model.GetMemberGroup(operand);
-                    if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
-                    {
-                        return ValidateCommand(ParseFromMethodSymbol(methodSymbol, addressOf: true));
-                    }
-                }
-                else
+        context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod, node.GetLocation());
+        return null;
+    }
+
+    public Command? ParseAndValidateForCommand() // for ConsoleAppBuilder.Add
+    {
+        var args = node.ArgumentList.Arguments;
+        if (args.Count == 2) // 0 = string command, 1 = lambda
+        {
+            var commandName = args[0];
+
+            if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
+            {
+                context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, node.GetLocation());
+                return null;
+            }
+
+            var name = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            var command = ExpressionToCommand(args[1].Expression, name);
+            if (command != null)
+            {
+                return ValidateCommand(command);
+            }
+        }
+
+        context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod, node.GetLocation());
+        return null;
+    }
+
+    Command? ExpressionToCommand(ExpressionSyntax expression, string commandName)
+    {
+        var lambda = expression as ParenthesizedLambdaExpressionSyntax;
+        if (lambda == null)
+        {
+            if (expression.IsKind(SyntaxKind.AddressOfExpression))
+            {
+                var operand = (expression as PrefixUnaryExpressionSyntax)!.Operand;
+
+                var methodSymbols = model.GetMemberGroup(operand);
+                if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    var methodSymbols = model.GetMemberGroup(args[1].Expression);
-                    if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
-                    {
-                        return ValidateCommand(ParseFromMethodSymbol(methodSymbol, addressOf: false));
-                    }
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: true, commandName);
                 }
             }
             else
             {
-                return ValidateCommand(ParseFromLambda(lambda));
+                var methodSymbols = model.GetMemberGroup(expression);
+                if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
+                {
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandName);
+                }
             }
         }
+        else
+        {
+            return ParseFromLambda(lambda, commandName);
+        }
 
-        context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsOrMethod, node.GetLocation());
         return null;
     }
 
-    Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda)
+    Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda, string commandName)
     {
         var isAsync = lambda.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword);
 
@@ -210,9 +246,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
         var cmd = new Command
         {
-            CommandName = "",
+            CommandName = commandName,
             IsAsync = isAsync,
-            IsRootCommand = true,
             IsVoid = isVoid,
             Parameters = parameters,
             MethodKind = MethodKind.Lambda,
@@ -222,7 +257,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return cmd;
     }
 
-    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf)
+    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string commandName)
     {
         var docComment = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax().GetDocumentationCommentTriviaSyntax();
         var summary = "";
@@ -322,9 +357,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
         var cmd = new Command
         {
-            CommandName = "",
+            CommandName = commandName,
             IsAsync = isAsync,
-            IsRootCommand = true,
             IsVoid = isVoid,
             Parameters = parameters,
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
@@ -334,9 +368,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return cmd;
     }
 
-    Command? ValidateCommand(Command? command)
+    Command? ValidateCommand(Command command)
     {
-        if (command == null) return null;
         var hasDiagnostic = false;
 
         // Sequential Argument

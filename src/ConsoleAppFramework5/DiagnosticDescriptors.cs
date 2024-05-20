@@ -28,7 +28,7 @@ internal static class DiagnosticDescriptors
             isEnabledByDefault: true);
     }
 
-    public static readonly DiagnosticDescriptor RequireArgsOrMethod = Create(
+    public static readonly DiagnosticDescriptor RequireArgsAndMethod = Create(
         1,
         "ConsoleApp.Run/RunAsync requires string[] args and lambda/method in arguments.");
 
@@ -50,4 +50,11 @@ internal static class DiagnosticDescriptors
        5,
        "Function pointer can not have validation.");
 
+    public static readonly DiagnosticDescriptor RequireCommandAndMethod = Create(
+        6,
+        "ConsoleAppBuilder.Add requires string command and lambda/method in arguments or use Add<T>.");
+
+    public static readonly DiagnosticDescriptor AddCommandMustBeStringLiteral = Create(
+        6,
+        "ConsoleAppBuilder.Add string command must be string literal.");
 }

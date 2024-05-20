@@ -22,7 +22,31 @@ args = ["--x", "18", "--y", "aiueokakikukeko"]; // test.
 
 // ConsoleApp.Run(args, Run2); void Run2(int x, int yzzzz) { };
 
-unsafe { ConsoleApp.Run(args, &Run2); static void Run2(int x, [System.ComponentModel.DataAnnotations.Range(0, 10)]int y) { }; }
+
+var builder = ConsoleApp.CreateBuilder();
+
+var aa = "foo";
+
+builder.Add("foo", (int x, int y) =>
+{
+});
+
+builder.Add("foo", (int x, int y) =>
+{
+});
+
+
+
+
+builder.Run(args);
+
+
+//builder.Add("foo", (int x, int y) => x + y);
+//builder.Add("bar", RunRun);
+
+
+
+unsafe { ConsoleApp.Run(args, Run2); static void Run2(int x, [System.ComponentModel.DataAnnotations.Range(0, 10)] int y) { }; }
 
 // var s = "foo";
 // s.AsSpan().Split(',',).
@@ -39,10 +63,6 @@ unsafe { ConsoleApp.Run(args, &Run2); static void Run2(int x, [System.ComponentM
 // --x
 
 
-
-
-
-
 static async Task<int> RunRun(int? x = null, string? y = null)
 {
     await Task.Yield();
@@ -57,6 +77,119 @@ static void Tests<T>()
 
 
 }
+
+
+
+// constructor injection!
+
+public class MyClass
+{
+    Action<int, int> command1; // emit field
+
+    public void Foo(string commandName, Delegate command)
+    {
+        // switch and cast
+        switch (commandName)
+        {
+            case "foo":
+                command1 = (Action<int, int>)command;
+                break;
+            default:
+                break;
+        }
+    }
+
+    //public void Foo(FooBar action2)
+    //{
+    //}
+
+    void Test()
+    {
+        Foo("takoyaki", (int x, int y = 10) => { });
+    }
+}
+
+
+public delegate void FooBar(int x, int y = 10);
+
+public partial struct ConsoleAppBuilderTest
+{
+    public void Add(string commandName, Delegate command)
+    {
+        AddCore(commandName, command);
+    }
+
+    [Conditional("DEBUG")]
+    public void Add<T>() { }
+
+    [Conditional("DEBUG")]
+    public void Add<T>(string commandName) { }
+
+    public void Run(string[] args)
+    {
+        RunCore(args);
+    }
+
+    public Task RunAsync(string[] args)
+    {
+        Task? task = null;
+        RunAsyncCore(args, ref task!);
+        return task ?? Task.CompletedTask;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    partial void AddCore(string commandName, Delegate command);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    partial void RunCore(string[] args);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    partial void RunAsyncCore(string[] args, ref Task result);
+}
+
+//partial struct ConsoleAppBuilderTest
+//{
+//    Action<int, int> command1;
+
+//    // root command => /
+//    // sub command => foo/bar/baz
+//    public void Add(string commandName, Action<int, int> command) // generate Add methods
+//    {
+//        // multi
+//        switch (commandName)
+//        {
+//            case "foo":
+//                this.command1 = command;
+//                break;
+//        }
+//    }
+
+//    // or RunAsync
+//    public partial void Run(string[] args) // generate body
+//    {
+//        // --help?
+
+//        switch (args[0])
+//        {
+//            case "foo":
+//                RunCommand1(args.AsSpan(1), command1);
+//                break;
+//            case "bar":
+
+//                break;
+//        }
+//    }
+
+//    public partial Task RunAsync(string[] args) => throw new NotImplementedException();
+
+//    // generate both invoke and invokeasync? detect which calls?
+//    // void Invoke
+//    static void RunCommand1(Span<string> args, Action<int, int> command)
+//    {
+//        // call generated...
+//    }
+//}
+
 
 
 public static class Command
