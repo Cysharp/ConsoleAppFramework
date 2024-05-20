@@ -22,13 +22,9 @@ args = ["foo", "--x", "1"]; // test.
 
 // ConsoleApp.Run(args, Run2); void Run2(int x, int yzzzz) { };
 
-
 var builder = ConsoleApp.CreateBuilder();
 builder.Add("foo", (int x, int y) => { });
-builder.Run(args);
-
-
-
+// builder.Add("foo", (int x, int y) => { });
 
 // var s = "foo";
 // s.AsSpan().Split(',',).

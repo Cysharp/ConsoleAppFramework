@@ -21,9 +21,6 @@ public class Test // (ITestOutputHelper output)
     public void SyncRun()
     {
         var result = CSharpGeneratorRunner.CompileAndExecute("""
-using System;
-using ConsoleAppFramework;
-
 ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });
 """, ToArgs("--x 10 --y 20"));
 
@@ -34,10 +31,6 @@ ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });
     public void ValidateOne()
     {
         var result = CSharpGeneratorRunner.CompileAndExecute("""
-using System;
-using ConsoleAppFramework;
-using System.ComponentModel.DataAnnotations;
-
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, ToArgs("--x 100 --y 140"));
 
@@ -57,10 +50,6 @@ The field x must be between 1 and 10.
     public void ValidateTwo()
     {
         var result = CSharpGeneratorRunner.CompileAndExecute("""
-using System;
-using ConsoleAppFramework;
-using System.ComponentModel.DataAnnotations;
-
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, ToArgs("--x 100 --y 240"));
 

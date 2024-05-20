@@ -88,15 +88,28 @@ public class DiagnosticsTest(ITestOutputHelper output)
     }
 
     [Fact]
-    public void BuilderAddConst()
+    public void BuilderAddConstCommandName()
     {
+        verifier.Verify(6,"""
+var builder = ConsoleApp.CreateBuilder(); 
+var baz = "foo";
+builder.Add(baz, (int x, int y) => { } );
+""", "baz");
+
         verifier.Ok("""
 var builder = ConsoleApp.CreateBuilder(); 
 builder.Add("foo", (int x, int y) => { } );
 builder.Run(args);
 """);
+    }
 
-
-
+    [Fact]
+    public void DuplicateCommandName()
+    {
+        verifier.Verify(7, """
+var builder = ConsoleApp.CreateBuilder(); 
+builder.Add("foo", (int x, int y) => { } );
+builder.Add("foo", (int x, int y) => { } );
+""", "\"foo\"");
     }
 }

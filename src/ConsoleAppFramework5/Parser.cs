@@ -33,7 +33,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
             if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
             {
-                context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, node.GetLocation());
+                context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, commandName.GetLocation());
                 return null;
             }
 

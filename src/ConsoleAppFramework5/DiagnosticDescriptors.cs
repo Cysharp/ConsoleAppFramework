@@ -53,4 +53,9 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor AddCommandMustBeStringLiteral { get; } = Create(
         6,
         "ConsoleAppBuilder.Add string command must be string literal.");
+
+    public static DiagnosticDescriptor DuplicateCommandName { get; } = Create(
+        7,
+        "Command name is duplicated.",
+        "Command name '{0}' is duplicated.");
 }

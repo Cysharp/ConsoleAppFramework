@@ -429,22 +429,26 @@ internal static partial class ConsoleApp
 
         var group1 = generatorSyntaxContexts.ToLookup(x => x.Name);
 
-        // TODO: validation command name duplicate
+        var names = new HashSet<string>();
         var commands = group1["Add"]
             .Select(x =>
             {
                 // TODO: Add<T> handling
                 var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, disableBuildDefaultValueDelgate: true);
-
                 var command = parser.ParseAndValidateForCommand();
 
-                // command.Parameters
+                // validation command name duplicate
+                if (command != null && !names.Add(command.CommandName))
+                {
+                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.ArgumentList.Arguments[0].GetLocation(), command!.CommandName);
+                    return null;
+                }
 
                 return command;
             })
             .ToArray();
 
-        // don't emit if exists failure
+        // don't emit if exists failure(already reported error)
         if (commands.Any(x => x == null))
         {
             return;
