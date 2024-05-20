@@ -159,8 +159,8 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
     {
         foreach (var syntaxTree in compilation.SyntaxTrees)
         {
-            // only shows ConsoleApp.Run generated code
-            if (!syntaxTree.FilePath.Contains("ConsoleApp.Run.cs")) continue;
+            // only shows ConsoleApp.Run/Builder generated code
+            if (!syntaxTree.FilePath.Contains("g.cs")) continue;
             output.WriteLine(syntaxTree.ToString());
         }
     }

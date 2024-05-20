@@ -24,20 +24,8 @@ args = ["foo", "--x", "1"]; // test.
 
 
 var builder = ConsoleApp.CreateBuilder();
-
-builder.Add("foo", (int x, int y) =>
-{
-    Console.WriteLine($"foo: {(x, y)}");
-});
-
-builder.Add("bar", async (int x, int y = 999) =>
-{
-    await Task.Yield();
-    Console.WriteLine($"bar: {(x, y)}");
-});
-
-//buq/ilder.Run(args);
-await builder.RunAsync(args);
+builder.Add("foo", (int x, int y) => { });
+builder.Run(args);
 
 
 

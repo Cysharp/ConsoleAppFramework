@@ -86,4 +86,17 @@ public class DiagnosticsTest(ITestOutputHelper output)
 
         verifier.Ok("unsafe { ConsoleApp.Run(args, &Run2); static void Run2(int x, int y) { }; }");
     }
+
+    [Fact]
+    public void BuilderAddConst()
+    {
+        verifier.Ok("""
+var builder = ConsoleApp.CreateBuilder(); 
+builder.Add("foo", (int x, int y) => { } );
+builder.Run(args);
+""");
+
+
+
+    }
 }

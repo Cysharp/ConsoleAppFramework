@@ -38,21 +38,17 @@ internal static class DiagnosticDescriptors
         "Run lambda expressions return type must be void or int or async Task or async Task<int> but returned '{0}'.");
 
     public static DiagnosticDescriptor ReturnTypeMethod { get; } = Create(
-       3,
-       "Run referenced method return type must be void or int or async Task or async Task<int>.",
-       "Run referenced method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
+        3,
+        "Run referenced method return type must be void or int or async Task or async Task<int>.",
+        "Run referenced method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
 
     public static DiagnosticDescriptor SequentialArgument { get; } = Create(
-       4,
-       "All Argument parameters must be sequential from first.");
+        4,
+        "All Argument parameters must be sequential from first.");
 
     public static DiagnosticDescriptor FunctionPointerCanNotHaveValidation { get; } = Create(
-       5,
-       "Function pointer can not have validation.");
-
-    public static DiagnosticDescriptor RequireCommandAndMethod { get; } = Create(
-        6,
-        "ConsoleAppBuilder.Add requires string command and lambda/method in arguments or use Add<T>.");
+        5,
+        "Function pointer can not have validation.");
 
     public static DiagnosticDescriptor AddCommandMustBeStringLiteral { get; } = Create(
         6,
