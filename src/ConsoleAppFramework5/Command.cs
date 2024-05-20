@@ -19,13 +19,17 @@ public record class Command
     public required CommandParameter[] Parameters { get; init; }
     public required string Description { get; init; }
     public required MethodKind MethodKind { get; init; }
+    public required bool DisableBuildDefaultValueDelgate { get; init; }
 
     public string BuildDelegateSignature(out string? delegateType)
     {
-        if (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue))
+        if (!DisableBuildDefaultValueDelgate)
         {
-            delegateType = BuildDelegateType("RunCommand");
-            return "RunCommand";
+            if (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue))
+            {
+                delegateType = BuildDelegateType("RunCommand");
+                return "RunCommand";
+            }
         }
 
         delegateType = null;

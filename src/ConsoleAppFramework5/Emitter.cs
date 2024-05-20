@@ -6,8 +6,9 @@ namespace ConsoleAppFramework;
 
 internal class Emitter(WellKnownTypes wellKnownTypes)
 {
-    public string EmitRun(Command command, bool isRunAsync)
+    public string EmitRun(Command command, bool isRunAsync, string? methodName = null)
     {
+        var emitForBuilder = methodName != null;
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
@@ -177,13 +178,15 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
 
         var returnType = isRunAsync ? "async Task" : "void";
-        var methodName = isRunAsync ? "RunAsync" : "Run";
+        var accessibility = !emitForBuilder ? "public" : "private";
+        var argsType = !emitForBuilder ? "string[]" : (isRunAsync ? "string[]" : "ReadOnlySpan<string>"); // NOTE: C# 13 will allow Span<T> in async methods so can change to ReadOnlyMemory<string>(and store .Span in local var)
+        methodName = methodName ?? (isRunAsync ? "RunAsync" : "Run");
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
         var commandMethodType = command.BuildDelegateSignature(out var delegateType);
 
         var code = $$"""
-    public static {{unsafeCode}}{{returnType}} {{methodName}}(string[] args, {{commandMethodType}} command)
+    {{accessibility}} static {{unsafeCode}}{{returnType}} {{methodName}}({{argsType}} args, {{commandMethodType}} command)
     {
         if (TryShowHelpOrVersion(args)) return;
 
@@ -222,7 +225,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
     }
 """;
 
-        if (delegateType != null)
+        if (delegateType != null && !emitForBuilder)
         {
             code += $$"""
 
@@ -234,33 +237,46 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         return code;
     }
 
-    public string EmitBuilder(Command[] commands, bool isRunAsync) // TODO: bool emitSync, emitAsync
+    public string EmitBuilder(Command[] commands, bool emitSync, bool emitAsync)
     {
         // TODO: make Add -> make Run -> make RunAsync
         // TODO: invoke RootCommand
         var fields = new StringBuilder();
         var addCase = new StringBuilder();
         var runCommands = new StringBuilder();
-        var delegateTypes = new List<string>();
+        var runAsyncCommands = new StringBuilder();
+        var runCase = new StringBuilder();
+        var runAsyncCase = new StringBuilder();
 
         for (int i = 0; i < commands.Length; i++)
         {
             var command = commands[i];
+            var fieldType = command.BuildDelegateSignature(out _); // for builder, always generate Action/Func.
 
-            var fieldType = command.BuildDelegateSignature(out var delegateType);
-            if (delegateType != null)
-            {
-                delegateTypes.Add(delegateType);
-            }
-            
             fields.AppendLine($"    {fieldType} command{i} = default!;");
+
             addCase.AppendLine($"            case \"{command.CommandName}\":");
-            addCase.AppendLine($"                this.command{i} = command;");
+            addCase.AppendLine($"                this.command{i} = Unsafe.As<{fieldType}>(command);");
             addCase.AppendLine($"                break;");
+
+            if (emitSync)
+            {
+                runCase.AppendLine($"            case \"{command.CommandName}\":");
+                runCase.AppendLine($"                RunCommand{i}(args.AsSpan(1), command{i});");
+                runCase.AppendLine($"                break;");
+                runCommands.AppendLine(EmitRun(command, false, $"RunCommand{i}"));
+            }
+
+            if (emitAsync)
+            {
+                runAsyncCase.AppendLine($"            case \"{command.CommandName}\":");
+                runAsyncCase.AppendLine($"                result = RunAsyncCommand{i}(args[1..], command{i});");
+                runAsyncCase.AppendLine($"                break;");
+                runAsyncCommands.AppendLine(EmitRun(command, true, $"RunAsyncCommand{i}"));
+            }
         }
 
         var addCore = $$"""
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     partial void AddCore(string commandName, Delegate command)
     {
         switch (commandName)
@@ -272,6 +288,32 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
     }
 """;
 
+        var runCore = $$"""
+    partial void RunCore(string[] args)
+    {
+        switch (args[0])
+        {
+{{runCase}}
+            default:
+                break;
+        }
+    }
+""";
+
+        var runAsyncCore = $$"""
+    partial void RunAsyncCore(string[] args, ref Task result)
+    {
+        switch (args[0])
+        {
+{{runAsyncCase}}
+            default:
+                break;
+        }
+    }
+""";
+
+        if (!emitSync) runCore = "";
+        if (!emitAsync) runAsyncCore = "";
 
         // TODO: Emit help and version
         var code = $$"""
@@ -282,22 +324,11 @@ partial struct ConsoleAppBuilder
 {{addCore}}
 
 {{runCommands}}
+{{runAsyncCommands}}
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    partial void RunCore(string[] args)
-    {
-        switch (commandName)
-        {
-            case "foo":
-                RunCommand1(args.AsSpan(1), command1);
-                break;
-            default:
-                break;
-        }
-    }
+{{runCore}}
+{{runAsyncCore}}
 }
-
-{{string.Join(Environment.NewLine, delegateTypes.Distinct())}}
 """;
 
         return code;

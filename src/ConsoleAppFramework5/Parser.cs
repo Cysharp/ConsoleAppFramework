@@ -5,7 +5,7 @@ using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
-internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes)
+internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, bool disableBuildDefaultValueDelgate)
 {
     public Command? ParseAndValidate() // for ConsoleApp.Run
     {
@@ -251,7 +251,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             IsVoid = isVoid,
             Parameters = parameters,
             MethodKind = MethodKind.Lambda,
-            Description = ""
+            Description = "",
+            DisableBuildDefaultValueDelgate = disableBuildDefaultValueDelgate
         };
 
         return cmd;
@@ -362,7 +363,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             IsVoid = isVoid,
             Parameters = parameters,
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
-            Description = summary
+            Description = summary,
+            DisableBuildDefaultValueDelgate = disableBuildDefaultValueDelgate
         };
 
         return cmd;

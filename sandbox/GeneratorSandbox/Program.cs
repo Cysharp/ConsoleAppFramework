@@ -17,7 +17,7 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 
 
-args = ["--x", "18", "--y", "aiueokakikukeko"]; // test.
+args = ["foo", "--x", "1"]; // test.
 
 
 // ConsoleApp.Run(args, Run2); void Run2(int x, int yzzzz) { };
@@ -25,28 +25,22 @@ args = ["--x", "18", "--y", "aiueokakikukeko"]; // test.
 
 var builder = ConsoleApp.CreateBuilder();
 
-var aa = "foo";
-
 builder.Add("foo", (int x, int y) =>
 {
+    Console.WriteLine($"foo: {(x, y)}");
 });
 
-builder.Add("foo", (int x, int y) =>
+builder.Add("bar", async (int x, int y = 999) =>
 {
+    await Task.Yield();
+    Console.WriteLine($"bar: {(x, y)}");
 });
-
-
-
 
 builder.Run(args);
-
-
-//builder.Add("foo", (int x, int y) => x + y);
-//builder.Add("bar", RunRun);
+await builder.RunAsync(args);
 
 
 
-unsafe { ConsoleApp.Run(args, Run2); static void Run2(int x, [System.ComponentModel.DataAnnotations.Range(0, 10)] int y) { }; }
 
 // var s = "foo";
 // s.AsSpan().Split(',',).
@@ -71,6 +65,7 @@ static async Task<int> RunRun(int? x = null, string? y = null)
 }
 
 
+
 static void Tests<T>()
     where T : ISpanParsable<int>
 {
@@ -82,32 +77,6 @@ static void Tests<T>()
 
 // constructor injection!
 
-public class MyClass
-{
-    Action<int, int> command1; // emit field
-
-    public void Foo(string commandName, Delegate command)
-    {
-        // switch and cast
-        switch (commandName)
-        {
-            case "foo":
-                command1 = (Action<int, int>)command;
-                break;
-            default:
-                break;
-        }
-    }
-
-    //public void Foo(FooBar action2)
-    //{
-    //}
-
-    void Test()
-    {
-        Foo("takoyaki", (int x, int y = 10) => { });
-    }
-}
 
 
 public delegate void FooBar(int x, int y = 10);
@@ -202,12 +171,6 @@ public static class Command
     public static void Execute(int foo, CancellationToken cancellationToken)
     {
     }
-}
-
-
-public class MyClass
-{
-
 }
 
 
@@ -364,120 +327,6 @@ namespace ConsoleAppFramework
 
     partial class ConsoleApp
     {
-        //public static void ValidateParameter(object? value, ParameterInfo parameter, ValidationContext validationContext, ref StringBuilder? errorMessages)
-        //{
-        //    validationContext.DisplayName = parameter.Name ?? "";
-        //    validationContext.Items.Clear();
-
-        //    foreach (var validator in parameter.GetCustomAttributes<ValidationAttribute>(false))
-        //    {
-        //        var result = validator.GetValidationResult(value, validationContext);
-        //        if (result != null)
-        //        {
-        //            if (errorMessages == null)
-        //            {
-        //                errorMessages = new StringBuilder();
-        //            }
-        //            errorMessages.AppendLine(result.ErrorMessage);
-        //        }
-        //    }
-        //}
-
-
-        static Action<string>? logErrorAction2;
-        public static Action<string> LogError2
-        {
-            get => logErrorAction2 ??= (static msg => Log(msg));
-            set => logErrorAction2 = value;
-        }
-
-
-        // [MethodImpl
-        public static void Run2(string[] args, Action<int, int> command)
-        {
-
-            // command.Method
-
-
-            if (TryShowHelpOrVersion(args)) return;
-
-            var arg0 = default(int);
-            var arg0Parsed = false;
-            var arg1 = default(int);
-            var arg1Parsed = false;
-
-            try
-            {
-                for (int i = 0; i < args.Length; i++)
-                {
-                    // add this block.
-                    if (i == 0)
-                    {
-                        if (!int.TryParse(args[i], out arg0)) ThrowArgumentParseFailed("x", args[i]); // no++
-                        arg0Parsed = true;
-                        continue;
-                    }
-
-
-                    var name = args[i];
-
-                    switch (name)
-                    {
-                        case "--x":
-                            if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("x", args[i]);
-                            arg0Parsed = true;
-                            break;
-                        case "--y":
-                            if (!int.TryParse(args[++i], out arg1)) ThrowArgumentParseFailed("y", args[i]);
-                            arg1Parsed = true;
-                            break;
-
-                        default:
-                            if (string.Equals(name, "--x", StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (!int.TryParse(args[++i], out arg0)) ThrowArgumentParseFailed("x", args[i]);
-                                arg0Parsed = true;
-                                break;
-                            }
-                            if (string.Equals(name, "--y", StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (!int.TryParse(args[++i], out arg1)) ThrowArgumentParseFailed("y", args[i]);
-                                arg1Parsed = true;
-                                break;
-                            }
-
-                            ThrowArgumentNameNotFound(name);
-                            break;
-                    }
-                }
-                if (!arg0Parsed) ThrowRequiredArgumentNotParsed("x");
-                if (!arg1Parsed) ThrowRequiredArgumentNotParsed("y");
-
-                var validationContext = new ValidationContext(1000, null, null);
-                var parameters = command.GetMethodInfo().GetParameters();
-                StringBuilder? errorMessages = null;
-                ValidateParameter(arg0, parameters[0], validationContext, ref errorMessages);
-                ValidateParameter(arg1, parameters[1], validationContext, ref errorMessages);
-                if (errorMessages != null)
-                {
-                    throw new ValidationException(errorMessages.ToString());
-                }
-
-                command(arg0!, arg1!);
-            }
-            catch (Exception ex)
-            {
-                Environment.ExitCode = 1;
-                if (ex is ValidationException ve)
-                {
-                    LogError(ex.Message);
-                }
-                else
-                {
-                    LogError(ex.ToString());
-                }
-            }
-        }
     }
 }
 
