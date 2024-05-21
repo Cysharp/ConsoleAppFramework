@@ -1,14 +1,16 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestPlatform.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class ConsoleAppBuilderTest
+public class ConsoleAppBuilderTest(ITestOutputHelper output)
 {
-    static string[] ToArgs(string args) => args.Split(' ');
+    VerifyHelper verifier = new VerifyHelper(output, "CAF");
 
     [Fact]
     public void BuilderRun()
@@ -22,15 +24,15 @@ builder.Add("boz", async Task (int x) => { await Task.Yield(); Console.Write(x *
 builder.Run(args);
 """;
 
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("foo --x 10 --y 20")).Should().Be("30");
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("bar --x 20 --y 30")).Should().Be("50");
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("bar --x 20")).Should().Be("30");
+        verifier.Execute(code, "foo --x 10 --y 20", "30");
+        verifier.Execute(code, "bar --x 20 --y 30", "50");
+        verifier.Execute(code, "bar --x 20", "30");
         Environment.ExitCode.Should().Be(0);
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("baz --x 40 --y takoyaki")).Should().Be("40takoyaki");
+        verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
         Environment.ExitCode.Should().Be(10);
         Environment.ExitCode = 0;
 
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("boz --x 40")).Should().Be("80");
+        verifier.Execute(code, "boz --x 40", "80");
     }
 
     [Fact]
@@ -45,15 +47,15 @@ builder.Add("boz", async Task (int x) => { await Task.Yield(); Console.Write(x *
 await builder.RunAsync(args);
 """;
 
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("foo --x 10 --y 20")).Should().Be("30");
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("bar --x 20 --y 30")).Should().Be("50");
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("bar --x 20")).Should().Be("30");
+        verifier.Execute(code, "foo --x 10 --y 20", "30");
+        verifier.Execute(code, "bar --x 20 --y 30", "50");
+        verifier.Execute(code, "bar --x 20", "30");
         Environment.ExitCode.Should().Be(0);
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("baz --x 40 --y takoyaki")).Should().Be("40takoyaki");
+        verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
         Environment.ExitCode.Should().Be(10);
         Environment.ExitCode = 0;
 
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("boz --x 40")).Should().Be("80");
+        verifier.Execute(code, "boz --x 40", "80");
     }
 
     [Fact]
@@ -91,9 +93,114 @@ public class MyClass
 }
 """;
 
-        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("do")).Should().Be("yeah");
+        verifier.Execute(code, "do", "yeah");
+        verifier.Execute(code, "sum --x 1 --y 2", "3");
+        verifier.Execute(code, "echo --msg takoyaki", "takoyaki");
+    }
 
+    [Fact]
+    public void ClassDispose()
+    {
+        verifier.Execute("""
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+builder.Run(args);
+
+public class MyClass : IDisposable
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+
+    public void Dispose()
+    {
+        Console.Write("disposed!");
     }
 }
+""", "do", "yeah:disposed!");
+
+        verifier.Execute("""
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+await builder.RunAsync(args);
+
+public class MyClass : IDisposable
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+
+    public void Dispose()
+    {
+        Console.Write("disposed!");
+    }
+}
+""", "do", "yeah:disposed!");
+
+        verifier.Execute("""
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+await builder.RunAsync(args);
+
+public class MyClass : IAsyncDisposable
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Console.Write("disposed!");
+        return default;
+    }
+}
+""", "do", "yeah:disposed!");
+    }
+
+    [Fact]
+    public void ClassWithDI()
+    {
+        verifier.Execute("""
+var serviceCollection = new MiniDI();
+serviceCollection.Register(typeof(string), "hoge!");
+serviceCollection.Register(typeof(int), 9999);
+ConsoleApp.ServiceProvider = serviceCollection;
+
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+builder.Run(args);
+
+public class MyClass(string foo, int bar)
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+        Console.Write(foo);
+        Console.Write(bar);
+    }
+}
+
+public class MiniDI : IServiceProvider
+{
+    System.Collections.Generic.Dictionary<Type, object> dict = new();
+
+    public void Register(Type type, object instance)
+    {
+        dict[type] = instance;
+    }
+
+    public object GetService(Type serviceType)
+    {
+        return dict.TryGetValue(serviceType, out var instance) ? instance : null;
+    }
+}
+""", "do", "yeah:hoge!9999");
+    }
+
+}
+
 
 

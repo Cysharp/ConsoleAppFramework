@@ -63,7 +63,7 @@ global using ConsoleAppFramework;
         return (newCompilation, diagnostics);
     }
 
-    public static string CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public static (Compilation, ImmutableArray<Diagnostic>, string) CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
         var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options);
 
@@ -85,12 +85,12 @@ global using ConsoleAppFramework;
             Console.SetOut(stringWriter);
 
             // load and invoke Main(args)
-            var loadContext = new AssemblyLoadContext("source-generator", isCollectible: true);
+            var loadContext = new AssemblyLoadContext("source-generator", isCollectible: true); // isCollectible to support Unload
             var assembly = loadContext.LoadFromStream(ms);
             assembly.EntryPoint!.Invoke(null, new object[] { args });
             loadContext.Unload();
 
-            return stringWriter.ToString();
+            return (compilation, diagnostics, stringWriter.ToString());
         }
         finally
         {
@@ -101,6 +101,8 @@ global using ConsoleAppFramework;
 
 public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 {
+    // Diagnostics Verify
+
     public void Ok(string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         output.WriteLine(codeExpr);
@@ -139,6 +141,22 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         OutputGeneratedCode(compilation);
         return diagnostics.Select(x => (x.Id, GetLocationText(x))).ToArray();
+    }
+
+    // Execute and check stdout result
+
+    public void Execute(string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
+    {
+        output.WriteLine(codeExpr);
+
+        var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args.Split(' '));
+        foreach (var item in diagnostics)
+        {
+            output.WriteLine(item.ToString());
+        }
+        OutputGeneratedCode(compilation);
+
+        stdout.Should().Be(expected);
     }
 
     string GetLocationText(Diagnostic diagnostic)

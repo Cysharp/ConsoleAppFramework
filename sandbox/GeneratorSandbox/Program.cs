@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Numerics;
 using System.Reflection;
 using System.Reflection.Metadata;
@@ -29,7 +31,7 @@ var builder = ConsoleApp.CreateBuilder();
 builder.Add<MyClass>();
 
 
-builder.Run(args);
+await builder.RunAsync(args);
 
 // var s = "foo";
 // s.AsSpan().Split(',',).
@@ -64,7 +66,7 @@ static void Tests<T>()
 
 public class MyClass
 {
-    public void Do()
+    public void Do(CancellationToken cancellationToken)
     {
         Console.Write("yeah");
     }
@@ -370,7 +372,142 @@ namespace ConsoleAppFramework
 
     partial class ConsoleApp
     {
+        public struct Builder()
+        {
+            private static void RunCommand0(ReadOnlySpan<string> args)
+            {
+                if (TryShowHelpOrVersion(args, 0)) return;
+
+
+                try
+                {
+                    for (int i = 0; i < args.Length; i++)
+                    {
+
+                        var name = args[i];
+
+                        switch (name)
+                        {
+
+                            default:
+
+                                ThrowArgumentNameNotFound(name);
+                                break;
+                        }
+                    }
+
+
+                    var instance = new global::MyClass();
+                    instance.Do();
+                }
+
+                catch (Exception ex)
+                {
+                    Environment.ExitCode = 1;
+                    if (ex is System.ComponentModel.DataAnnotations.ValidationException)
+                    {
+                        LogError(ex.Message);
+                    }
+                    else
+                    {
+                        LogError(ex.ToString());
+                    }
+                }
+            }
+
+            public void RunCore2(string[] args)
+            {
+                switch (args[0])
+                {
+                    case "do":
+                        RunWithFilterAsync(new Command0Invoker(args[1..]).BuildFilter()).GetAwaiter().GetResult();
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            // move to ConsoleApp template?
+            static async Task RunWithFilterAsync(ConsoleAppFilter invoker)
+            {
+                using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
+
+                // in core, remove try-catch...?
+                try
+                {
+                    await Task.Run(() => invoker.InvokeAsync(posixSignalHandler.Token).AsTask()).WaitAsync(posixSignalHandler.TimeoutToken);
+                }
+                catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)
+                {
+                    Environment.ExitCode = 130;
+                }
+                catch (Exception ex)
+                {
+                    Environment.ExitCode = 1;
+                    if (ex is System.ComponentModel.DataAnnotations.ValidationException)
+                    {
+                        LogError(ex.Message);
+                    }
+                    else
+                    {
+                        LogError(ex.ToString());
+                    }
+                }
+            }
+
+            sealed class Command0Invoker(string[] args) : ConsoleAppFilter(null!)
+            {
+                public ConsoleAppFilter BuildFilter()
+                {
+                    var f3 = new TimestampFilter(this); // and DI.
+                    var f2 = new TimestampFilter(f3);
+                    var f1 = new TimestampFilter(f2);
+
+                    return f1;
+                }
+
+                public override ValueTask InvokeAsync(CancellationToken cancellationToken)
+                {
+                    RunCommand0(args); // pass: cancellationToken.
+                    return default;
+                }
+            }
+        }
     }
 }
 
 
+
+public class FilterContext : IServiceProvider
+{
+    public long Timestamp { get; set; }
+    public Guid UserId { get; set; }
+
+    object IServiceProvider.GetService(Type serviceType)
+    {
+        if (serviceType == typeof(FilterContext)) return this;
+        throw new InvalidOperationException("Type is invalid:" + serviceType);
+    }
+}
+
+public abstract class ConsoleAppFilter(ConsoleAppFilter next)
+{
+    protected ConsoleAppFilter Next = next;
+
+    public abstract ValueTask InvokeAsync(CancellationToken cancellationToken);
+}
+
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+public sealed class ConsoleAppFilterAttribute<T> : Attribute
+    where T : ConsoleAppFilter
+{
+}
+
+public class TimestampFilter(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override ValueTask InvokeAsync(CancellationToken cancellationToken)
+    {
+        return Next.InvokeAsync(cancellationToken);
+    }
+}

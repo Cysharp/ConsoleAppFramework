@@ -2,6 +2,7 @@
 // https://github.com/Tyrrrz/CliFx/tree/master/CliFx.Benchmarks/
 
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Running;
 
 namespace Cocona.Benchmark.External;
@@ -10,6 +11,6 @@ class Program
 {
     static void Main(string[] args)
     {
-        BenchmarkRunner.Run<Benchmark>(DefaultConfig.Instance.WithOptions(ConfigOptions.DisableOptimizationsValidator));
+        BenchmarkRunner.Run<Benchmark>();
     }
 }

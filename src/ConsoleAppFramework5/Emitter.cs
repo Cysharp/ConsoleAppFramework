@@ -12,6 +12,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
+        var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
 
         // prepare argument variables ->
         var prepareArgument = new StringBuilder();
@@ -216,7 +217,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var code = $$"""
     {{accessibility}} static {{unsafeCode}}{{returnType}} {{methodName}}({{argsType}} args{{commandMethodType}})
     {
-        if (TryShowHelpOrVersion(args)) return;
+        if (TryShowHelpOrVersion(args, {{parsableParameterCount}})) return;
 
 {{prepareArgument}}
         try

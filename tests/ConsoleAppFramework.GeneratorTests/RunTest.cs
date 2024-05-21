@@ -10,37 +10,28 @@ using Xunit.Abstractions;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class Test // (ITestOutputHelper output)
+public class Test(ITestOutputHelper output)
 {
-    static string[] ToArgs(string args)
-    {
-        return args.Split(' ');
-    }
+    VerifyHelper verifier = new VerifyHelper(output, "CAF");
 
     [Fact]
     public void SyncRun()
     {
-        var result = CSharpGeneratorRunner.CompileAndExecute("""
-ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });
-""", ToArgs("--x 10 --y 20"));
-
-        result.Should().Be("30");
+        verifier.Execute("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 --y 20", "30");
     }
 
     [Fact]
     public void ValidateOne()
     {
-        var result = CSharpGeneratorRunner.CompileAndExecute("""
-ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
-""", ToArgs("--x 100 --y 140"));
-
         var expected = """
 The field x must be between 1 and 10.
 
 
 """;
 
-        result.Should().Be(expected);
+        verifier.Execute("""
+ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
+""", "--x 100 --y 140", expected);
 
         Environment.ExitCode.Should().Be(1);
         Environment.ExitCode = 0;
@@ -49,10 +40,6 @@ The field x must be between 1 and 10.
     [Fact]
     public void ValidateTwo()
     {
-        var result = CSharpGeneratorRunner.CompileAndExecute("""
-ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
-""", ToArgs("--x 100 --y 240"));
-
         var expected = """
 The field x must be between 1 and 10.
 The field y must be between 100 and 200.
@@ -60,7 +47,9 @@ The field y must be between 100 and 200.
 
 """;
 
-        result.Should().Be(expected);
+        verifier.Execute("""
+ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
+""", "--x 100 --y 240", expected);
 
         Environment.ExitCode.Should().Be(1);
         Environment.ExitCode = 0;

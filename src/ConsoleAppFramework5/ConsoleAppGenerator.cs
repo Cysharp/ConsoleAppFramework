@@ -222,11 +222,13 @@ internal static partial class ConsoleApp
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool TryShowHelpOrVersion(ReadOnlySpan<string> args)
+    static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int parameterCount)
     {
         if (args.Length == 0)
         {
-            ShowHelp(); // TODO: if no args root command, return false.
+            if (parameterCount == 0) return false;
+            
+            ShowHelp();
             return true;
         }
 
