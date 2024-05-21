@@ -5,7 +5,7 @@ using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
-internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, bool disableBuildDefaultValueDelgate)
+internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType)
 {
     public Command? ParseAndValidate() // for ConsoleApp.Run
     {
@@ -26,6 +26,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
     public Command? ParseAndValidateForCommand() // for ConsoleAppBuilder.Add
     {
+        // Add(string commandName)
         var args = node.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = string command, 1 = lambda
         {
@@ -48,6 +49,70 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
         context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod, node.GetLocation());
         return null;
+    }
+
+    public Command?[] ParseForBuilderClassRegistration()
+    {
+        // Add<T>
+        var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
+        var genericType = genericName!.TypeArgumentList.Arguments[0];
+
+        // TODO: Add<T>(string commandPath)
+
+        // T
+        var type = model.GetTypeInfo(genericType).Type!;
+
+        if (type.IsStatic || type.IsAbstract)
+        {
+            // TODO: validation
+        }
+
+        var publicMethods = type.GetMembers()
+            .Where(x => x.DeclaredAccessibility == Accessibility.Public)
+            .OfType<IMethodSymbol>()
+            .Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic)
+            .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Ordinary)
+            .Where(x => !(x.Name is "Dispose" or "DisposeAsync"))
+            .ToArray();
+
+        var publicConstructors = type.GetMembers()
+           .OfType<IMethodSymbol>()
+           .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Constructor && x.DeclaredAccessibility == Accessibility.Public)
+           .ToArray();
+
+        if (publicMethods.Length == 0)
+        {
+            // TODO: validation
+        }
+
+        if (publicConstructors.Length != 1)
+        {
+            // TODO: validation
+        }
+
+        var hasIDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IDisposable));
+        var hasIAsyncDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IAsyncDisposable));
+
+        var methodInfoBase = new CommandMethodInfo
+        {
+            TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
+            IsIDisposable = hasIDisposable,
+            IsIAsyncDisposable = hasIAsyncDisposable,
+            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => x.Type).ToArray(),
+            MethodName = "", // without methodname
+        };
+
+        return publicMethods
+            .Select(x =>
+            {
+                // TODO: commandName convert to snake-case
+                var command = ParseFromMethodSymbol(x, false, x.Name.ToLowerInvariant());
+                if (command == null) return null;
+
+                command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
+                return command;
+            })
+            .ToArray();
     }
 
     Command? ExpressionToCommand(ExpressionSyntax expression, string commandName)
@@ -254,7 +319,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             Parameters = parameters,
             MethodKind = MethodKind.Lambda,
             Description = "",
-            DisableBuildDefaultValueDelgate = disableBuildDefaultValueDelgate
+            DelegateBuildType = delegateBuildType
         };
 
         return cmd;
@@ -297,6 +362,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             }
             else
             {
+                // TODO: Arguments[1] is dangerous...
                 context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethod, node.ArgumentList.Arguments[1].GetLocation(), methodSymbol.ReturnType);
                 return null;
             }
@@ -366,7 +432,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             Parameters = parameters,
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
             Description = summary,
-            DisableBuildDefaultValueDelgate = disableBuildDefaultValueDelgate
+            DelegateBuildType = delegateBuildType
         };
 
         return cmd;

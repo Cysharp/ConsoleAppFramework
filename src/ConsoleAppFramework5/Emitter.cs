@@ -141,8 +141,33 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
 
         // invoke for sync/async, void/int
+        var invoke = new StringBuilder();
         var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
-        var invokeCommand = $"command({methodArguments})";
+        string invokeCommand;
+        if (command.CommandMethodInfo == null)
+        {
+            invokeCommand = $"command({methodArguments})";
+        }
+        else
+        {
+            var usingInstance = (isRunAsync, command.CommandMethodInfo.IsIDisposable, command.CommandMethodInfo.IsIAsyncDisposable) switch
+            {
+                // awaitable
+                (true, true, true) => "await using ",
+                (true, true, false) => "using ",
+                (true, false, true) => "await using ",
+                (true, false, false) => "",
+                // sync
+                (false, true, true) => "using ",
+                (false, true, false) => "using ",
+                (false, false, true) => "", // IAsyncDisposable but sync, can't call disposeasync......
+                (false, false, false) => ""
+            };
+
+            invoke.AppendLine($"            {usingInstance}var instance = {command.CommandMethodInfo.BuildNew()};");
+            invokeCommand = $"instance.{command.CommandMethodInfo.MethodName}({methodArguments})";
+        }
+
         if (hasCancellationToken)
         {
             invokeCommand = $"Task.Run(() => {invokeCommand}).WaitAsync(posixSignalHandler.TimeoutToken)";
@@ -159,7 +184,6 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             }
         }
 
-        var invoke = new StringBuilder();
         if (command.IsVoid)
         {
             invoke.AppendLine($"            {invokeCommand};");
@@ -184,9 +208,13 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
         var commandMethodType = command.BuildDelegateSignature(out var delegateType);
+        if (commandMethodType != "")
+        {
+            commandMethodType = $", {commandMethodType} command";
+        }
 
         var code = $$"""
-    {{accessibility}} static {{unsafeCode}}{{returnType}} {{methodName}}({{argsType}} args, {{commandMethodType}} command)
+    {{accessibility}} static {{unsafeCode}}{{returnType}} {{methodName}}({{argsType}} args{{commandMethodType}})
     {
         if (TryShowHelpOrVersion(args)) return;
 
@@ -251,18 +279,24 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         for (int i = 0; i < commands.Length; i++)
         {
             var command = commands[i];
-            var fieldType = command.BuildDelegateSignature(out _); // for builder, always generate Action/Func.
 
-            fields.AppendLine($"    {fieldType} command{i} = default!;");
+            string commandArgs = "";
+            if (command.DelegateBuildType != DelegateBuildType.None)
+            {
+                var fieldType = command.BuildDelegateSignature(out _); // for builder, always generate Action/Func.
+                fields.AppendLine($"    {fieldType} command{i} = default!;");
 
-            addCase.AppendLine($"            case \"{command.CommandName}\":");
-            addCase.AppendLine($"                this.command{i} = Unsafe.As<{fieldType}>(command);");
-            addCase.AppendLine($"                break;");
+                addCase.AppendLine($"            case \"{command.CommandName}\":");
+                addCase.AppendLine($"                this.command{i} = Unsafe.As<{fieldType}>(command);");
+                addCase.AppendLine($"                break;");
+
+                commandArgs = $", command{i}";
+            }
 
             if (emitSync)
             {
                 runCase.AppendLine($"            case \"{command.CommandName}\":");
-                runCase.AppendLine($"                RunCommand{i}(args.AsSpan(1), command{i});");
+                runCase.AppendLine($"                RunCommand{i}(args.AsSpan(1){commandArgs});");
                 runCase.AppendLine($"                break;");
                 runCommands.AppendLine(EmitRun(command, false, $"RunCommand{i}"));
             }
@@ -270,7 +304,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             if (emitAsync)
             {
                 runAsyncCase.AppendLine($"            case \"{command.CommandName}\":");
-                runAsyncCase.AppendLine($"                result = RunAsyncCommand{i}(args[1..], command{i});");
+                runAsyncCase.AppendLine($"                result = RunAsyncCommand{i}(args[1..]{commandArgs});");
                 runAsyncCase.AppendLine($"                break;");
                 runAsyncCommands.AppendLine(EmitRun(command, true, $"RunAsyncCommand{i}"));
             }

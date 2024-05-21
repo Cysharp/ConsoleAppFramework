@@ -55,4 +55,45 @@ await builder.RunAsync(args);
 
         CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("boz --x 40")).Should().Be("80");
     }
+
+    [Fact]
+    public void AddClass()
+    {
+        var code = """
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+await builder.RunAsync(args);
+
+public class MyClass
+{
+    public void Do()
+    {
+        Console.Write("yeah");
+    }
+
+    public void Sum(int x, int y)
+    {
+        Console.Write(x + y);
+    }
+
+    public void Echo(string msg)
+    {
+        Console.Write(msg);
+    }
+
+    void Echo()
+    {
+    }
+
+    public static void Sum()
+    {
+    }
 }
+""";
+
+        CSharpGeneratorRunner.CompileAndExecute(code, ToArgs("do")).Should().Be("yeah");
+
+    }
+}
+
+

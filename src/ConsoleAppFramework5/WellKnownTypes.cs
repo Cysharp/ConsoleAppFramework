@@ -25,9 +25,14 @@ public class WellKnownTypes(Compilation compilation)
     INamedTypeSymbol? task_T;
     public INamedTypeSymbol Task_T => task_T ??= GetTypeByMetadataName("System.Threading.Tasks.Task`1");
 
+    INamedTypeSymbol? disposable;
+    public INamedTypeSymbol IDisposable => disposable ??= GetTypeByMetadataName("System.IDisposable");
+
+    INamedTypeSymbol? asyncDisposable;
+    public INamedTypeSymbol IAsyncDisposable => asyncDisposable ??= GetTypeByMetadataName("System.IAsyncDisposable");
+
     public bool HasTryParse(ITypeSymbol type)
     {
-
         if (SymbolEqualityComparer.Default.Equals(type, DateTimeOffset)
          || SymbolEqualityComparer.Default.Equals(type, Guid)
          || SymbolEqualityComparer.Default.Equals(type, Version)

@@ -17,14 +17,19 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 
 
-args = ["foo", "--x", "1"]; // test.
+args = ["do"]; // test.
+
+
 
 
 // ConsoleApp.Run(args, Run2); void Run2(int x, int yzzzz) { };
 
+
 var builder = ConsoleApp.CreateBuilder();
-builder.Add("foo", (int x, int y) => { });
-// builder.Add("foo", (int x, int y) => { });
+builder.Add<MyClass>();
+
+
+builder.Run(args);
 
 // var s = "foo";
 // s.AsSpan().Split(',',).
@@ -57,7 +62,61 @@ static void Tests<T>()
 
 }
 
+public class MyClass
+{
+    public void Do()
+    {
+        Console.Write("yeah");
+    }
 
+    public void Sum(int x, int y)
+    {
+        Console.Write(x + y);
+    }
+
+    public void Echo(string msg)
+    {
+        Console.Write(msg);
+    }
+
+    void Echo()
+    {
+    }
+
+    public static void Sum()
+    {
+    }
+}
+
+public class MyCommands : IDisposable
+{
+    public int MyProperty { get; set; }
+
+    public void Foo(int x)
+    {
+        Console.WriteLine("MyCommands.Foo:" + x);
+    }
+
+    public int Boo() => 1;
+
+    public static void Tako()
+    {
+    }
+
+    private void Bar()
+    {
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Dispose()
+    {
+        Console.WriteLine("Disposed");
+    }
+}
 
 // constructor injection!
 

@@ -1,4 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
+using System;
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Metadata;
 using System.Text;
@@ -10,6 +12,13 @@ public enum MethodKind
     Lambda, Method, FunctionPointer
 }
 
+public enum DelegateBuildType
+{
+    MakeDelegateWhenHasDefaultValue,
+    OnlyActionFunc,
+    None
+}
+
 public record class Command
 {
     public required bool IsAsync { get; init; } // Task or Task<int>
@@ -19,11 +28,12 @@ public record class Command
     public required CommandParameter[] Parameters { get; init; }
     public required string Description { get; init; }
     public required MethodKind MethodKind { get; init; }
-    public required bool DisableBuildDefaultValueDelgate { get; init; }
+    public required DelegateBuildType DelegateBuildType { get; init; }
+    public CommandMethodInfo? CommandMethodInfo { get; set; } // can set...!
 
     public string BuildDelegateSignature(out string? delegateType)
     {
-        if (!DisableBuildDefaultValueDelgate)
+        if (DelegateBuildType == DelegateBuildType.MakeDelegateWhenHasDefaultValue)
         {
             if (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue))
             {
@@ -33,6 +43,12 @@ public record class Command
         }
 
         delegateType = null;
+
+        if (DelegateBuildType == DelegateBuildType.None)
+        {
+            return "";
+        }
+
         if (MethodKind == MethodKind.FunctionPointer) return BuildFunctionPointerDelegateSignature();
 
         if (IsAsync)
@@ -137,10 +153,7 @@ public record class CommandParameter
     public required bool IsFromServices { get; init; }
     public required bool IsCancellationToken { get; init; }
     public bool IsParsable => !(IsFromServices || IsCancellationToken);
-
-    // 追加！コンパイルエラーありがたい！
     public required bool HasValidation { get; init; }
-
     public required int ArgumentIndex { get; init; } // -1 is not Argument, other than marked as [Argument]
     public bool IsArgument => ArgumentIndex != -1;
     public required string[] Aliases { get; init; }
@@ -284,5 +297,25 @@ public record class CommandParameter
         }
 
         return sb.ToString();
+    }
+}
+
+public record class CommandMethodInfo
+{
+    public required string TypeFullName { get; init; }
+    public required string MethodName { get; init; }
+    public required ITypeSymbol[] ConstructorParameterTypes { get; init; }
+    public required bool IsIDisposable { get; init; }
+    public required bool IsIAsyncDisposable { get; init; }
+
+    public string BuildNew()
+    {
+        var p = ConstructorParameterTypes.Select(parameter =>
+        {
+            var type = parameter.ToFullyQualifiedFormatDisplayString();
+            return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+        });
+
+        return $"new {TypeFullName}({string.Join(", ", p)})";
     }
 }

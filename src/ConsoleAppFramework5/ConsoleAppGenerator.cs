@@ -338,7 +338,7 @@ internal static partial class ConsoleApp
         public void Add<T>() { }
 
         [System.Diagnostics.Conditional("DEBUG")]
-        public void Add<T>(string commandName) { }
+        public void Add<T>(string commandPath) { }
 
         public void Run(string[] args)
         {
@@ -376,7 +376,7 @@ internal static partial class ConsoleApp
 
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
-        var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes, disableBuildDefaultValueDelgate: false);
+        var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue);
         var command = parser.ParseAndValidate();
         if (command == null)
         {
@@ -427,14 +427,21 @@ internal static partial class ConsoleApp
 
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
-        var group1 = generatorSyntaxContexts.ToLookup(x => x.Name);
+        var group1 = generatorSyntaxContexts.ToLookup(x =>
+        {
+            if (x.Name == "Add" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
+            {
+                return "Add<T>";
+            }
+
+            return x.Name;
+        });
 
         var names = new HashSet<string>();
-        var commands = group1["Add"]
+        var commands1 = group1["Add"]
             .Select(x =>
             {
-                // TODO: Add<T> handling
-                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, disableBuildDefaultValueDelgate: true);
+                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc);
                 var command = parser.ParseAndValidateForCommand();
 
                 // validation command name duplicate
@@ -445,14 +452,36 @@ internal static partial class ConsoleApp
                 }
 
                 return command;
-            })
-            .ToArray();
+            });
+
+        var commands2 = group1["Add<T>"]
+            .SelectMany(x =>
+            {
+                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None);
+                var commands = parser.ParseForBuilderClassRegistration();
+
+                // validation command name duplicate?
+                foreach (var command in commands)
+                {
+                    if (command != null && !names.Add(command.CommandName))
+                    {
+                        sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.CommandName);
+                        return [null];
+                    }
+                }
+
+                return commands;
+            });
+
+        var commands = commands1.Concat(commands2).ToArray();
 
         // don't emit if exists failure(already reported error)
         if (commands.Any(x => x == null))
         {
             return;
         }
+
+        if (commands.Length == 0) return;
 
         var hasRun = group1["Run"].Any();
         var hasRunAsync = group1["RunAsync"].Any();
