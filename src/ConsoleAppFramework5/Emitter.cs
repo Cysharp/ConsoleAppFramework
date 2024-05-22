@@ -287,27 +287,47 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 var fieldType = command.BuildDelegateSignature(out _); // for builder, always generate Action/Func.
                 fields.AppendLine($"    {fieldType} command{i} = default!;");
 
-                addCase.AppendLine($"            case \"{command.CommandName}\":");
+                addCase.AppendLine($"            case \"{command.CommandFullName}\":");
                 addCase.AppendLine($"                this.command{i} = Unsafe.As<{fieldType}>(command);");
                 addCase.AppendLine($"                break;");
 
                 commandArgs = $", command{i}";
             }
 
+            // TODO: case grouping
+            var runIndent = "            ";
+            for (int j = 0; j < command.CommandPath.Length; j++)
+            {
+                var path = command.CommandPath[j];
+                var subCommand = $$"""
+{{runIndent}}switch (args[{{j + 1}}])
+{{runIndent}}{
+{{runIndent}}    case "{{path}}":
+{{runIndent}}        break;
+{{runIndent}}}
+{{runIndent}}break;
+case "":
+""";
+                runIndent += "    ";
+            }
+
+
             if (emitSync)
             {
-                runCase.AppendLine($"            case \"{command.CommandName}\":");
+                runCommands.AppendLine(EmitRun(command, false, $"RunCommand{i}"));
+
+                runCase.AppendLine($"            case \"{command.CommandFullName}\":");
                 runCase.AppendLine($"                RunCommand{i}(args.AsSpan(1){commandArgs});");
                 runCase.AppendLine($"                break;");
-                runCommands.AppendLine(EmitRun(command, false, $"RunCommand{i}"));
             }
 
             if (emitAsync)
             {
-                runAsyncCase.AppendLine($"            case \"{command.CommandName}\":");
+                runAsyncCommands.AppendLine(EmitRun(command, true, $"RunAsyncCommand{i}"));
+
+                runAsyncCase.AppendLine($"            case \"{command.CommandFullName}\":");
                 runAsyncCase.AppendLine($"                result = RunAsyncCommand{i}(args[1..]{commandArgs});");
                 runAsyncCase.AppendLine($"                break;");
-                runAsyncCommands.AppendLine(EmitRun(command, true, $"RunAsyncCommand{i}"));
             }
         }
 

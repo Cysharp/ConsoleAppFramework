@@ -472,9 +472,9 @@ internal static partial class ConsoleApp
                 var command = parser.ParseAndValidateForCommand();
 
                 // validation command name duplicate
-                if (command != null && !names.Add(command.CommandName))
+                if (command != null && !names.Add(command.CommandFullName))
                 {
-                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.ArgumentList.Arguments[0].GetLocation(), command!.CommandName);
+                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.ArgumentList.Arguments[0].GetLocation(), command!.CommandFullName);
                     return null;
                 }
 
@@ -491,9 +491,9 @@ internal static partial class ConsoleApp
                 // validation command name duplicate?
                 foreach (var command in commands)
                 {
-                    if (command != null && !names.Add(command.CommandName))
+                    if (command != null && !names.Add(command.CommandFullName))
                     {
-                        sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.CommandName);
+                        sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.CommandFullName);
                         return [null];
                     }
                 }

@@ -30,7 +30,7 @@ args = ["do"]; // test.
 var builder = ConsoleApp.CreateBuilder();
 
 builder.Add<MyClass>();
-// builder.Add("foo", string (int x, int y) => { return "foo"; });
+builder.Add("foo/tako", (int x, int y) => { return "foo"; });
 
 
 await builder.RunAsync(args);
@@ -424,6 +424,17 @@ namespace ConsoleAppFramework
                     case "do":
                         RunWithFilterAsync(new Command0Invoker(args[1..]).BuildFilter()).GetAwaiter().GetResult();
                         break;
+                    case "tako":
+                        switch (args[1]) // incr...
+                        {
+                            case "foo":
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    //case "tako":
+                        //break;
                     default:
                         break;
                 }

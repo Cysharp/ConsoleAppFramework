@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
@@ -12,7 +13,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var args = node.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = args, 1 = lambda
         {
-            var command = ExpressionToCommand(args[1].Expression, ""); // rootCommand = commandName = ""
+            var command = ExpressionToCommand(args[1].Expression, [], ""); // rootCommand(path and commandName = "")
             if (command != null)
             {
                 return ValidateCommand(command);
@@ -38,8 +39,15 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return null;
             }
 
+            string[] path = [];
             var name = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
-            var command = ExpressionToCommand(args[1].Expression, name);
+            var pathAndName = name.Split(['/'], StringSplitOptions.RemoveEmptyEntries);
+            if (pathAndName.Length > 1)
+            {
+                path = pathAndName.AsSpan(0, pathAndName.Length - 1).ToArray();
+                name = pathAndName[^1];
+            }
+            var command = ExpressionToCommand(args[1].Expression, path, name);
             if (command != null)
             {
                 return ValidateCommand(command);
@@ -126,7 +134,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             .ToArray();
     }
 
-    Command? ExpressionToCommand(ExpressionSyntax expression, string commandName)
+    Command? ExpressionToCommand(ExpressionSyntax expression, string[] commandPath, string commandName)
     {
         var lambda = expression as ParenthesizedLambdaExpressionSyntax;
         if (lambda == null)
@@ -152,13 +160,13 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         }
         else
         {
-            return ParseFromLambda(lambda, commandName);
+            return ParseFromLambda(lambda, commandPath, commandName);
         }
 
         return null;
     }
 
-    Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda, string commandName)
+    Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda, string[] commandPath, string commandName)
     {
         var isAsync = lambda.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword);
 
@@ -325,6 +333,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var cmd = new Command
         {
             CommandName = commandName,
+            CommandPath = commandPath,
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,
@@ -453,6 +462,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var cmd = new Command
         {
             CommandName = commandName,
+            CommandPath = [],
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,
