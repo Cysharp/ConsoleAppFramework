@@ -34,8 +34,8 @@ public class DiagnosticsTest(ITestOutputHelper output)
     [Fact]
     public void InvalidReturnTypeFromMethodReference()
     {
-        verifier.Verify(3, "ConsoleApp.Run(args, Invoke); float Invoke(int x, int y) => 0.3f;", "Invoke");
-        verifier.Verify(3, "ConsoleApp.Run(args, InvokeAsync); async Task<float> InvokeAsync(int x, int y) => 0.3f;", "InvokeAsync");
+        verifier.Verify(3, "ConsoleApp.Run(args, Invoke); float Invoke(int x, int y) => 0.3f;", "float");
+        verifier.Verify(3, "ConsoleApp.Run(args, InvokeAsync); async Task<float> InvokeAsync(int x, int y) => 0.3f;", "Task<float>");
         verifier.Ok("ConsoleApp.Run(args, Run); void Run(int x, int y) { };");
         verifier.Ok("ConsoleApp.Run(args, Run); static void Run(int x, int y) { };");
         verifier.Ok("ConsoleApp.Run(args, Run); int Run(int x, int y) => -1;");
@@ -59,8 +59,8 @@ public class DiagnosticsTest(ITestOutputHelper output)
         verifier.Ok("ConsoleApp.RunAsync(args, async Task (int x, int y) => { })");
         verifier.Ok("ConsoleApp.RunAsync(args, async Task<int> (int x, int y) => { })");
 
-        verifier.Verify(3, "ConsoleApp.RunAsync(args, Invoke); float Invoke(int x, int y) => 0.3f;", "Invoke");
-        verifier.Verify(3, "ConsoleApp.RunAsync(args, InvokeAsync); async Task<float> InvokeAsync(int x, int y) => 0.3f;", "InvokeAsync");
+        verifier.Verify(3, "ConsoleApp.RunAsync(args, Invoke); float Invoke(int x, int y) => 0.3f;", "float");
+        verifier.Verify(3, "ConsoleApp.RunAsync(args, InvokeAsync); async Task<float> InvokeAsync(int x, int y) => 0.3f;", "Task<float>");
         verifier.Ok("ConsoleApp.RunAsync(args, Run); void Run(int x, int y) { };");
         verifier.Ok("ConsoleApp.RunAsync(args, Run); static void Run(int x, int y) { };");
         verifier.Ok("ConsoleApp.RunAsync(args, Run); int Run(int x, int y) => -1;");
@@ -90,7 +90,7 @@ public class DiagnosticsTest(ITestOutputHelper output)
     [Fact]
     public void BuilderAddConstCommandName()
     {
-        verifier.Verify(6,"""
+        verifier.Verify(6, """
 var builder = ConsoleApp.CreateBuilder(); 
 var baz = "foo";
 builder.Add(baz, (int x, int y) => { } );
@@ -111,5 +111,137 @@ var builder = ConsoleApp.CreateBuilder();
 builder.Add("foo", (int x, int y) => { } );
 builder.Add("foo", (int x, int y) => { } );
 """, "\"foo\"");
+    }
+
+    [Fact]
+    public void DuplicateCommandNameClass()
+    {
+        verifier.Verify(7, """
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+
+public class MyClass
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+
+    public void Do(int i)
+    {
+        Console.Write("yeah:");
+    }
+}
+""", "builder.Add<MyClass>()");
+
+        verifier.Verify(7, """
+var builder = ConsoleApp.CreateBuilder();
+builder.Add("do", (int x, int y) => { } );
+builder.Add<MyClass>();
+builder.Run(args);
+
+public class MyClass
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+}
+""", "builder.Add<MyClass>()");
+    }
+
+    [Fact]
+    public void AddInLoop()
+    {
+        var myClass = """
+public class MyClass
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+}
+""";
+        verifier.Verify(8, $$"""
+var builder = ConsoleApp.CreateBuilder();
+while (true)
+{
+    builder.Add<MyClass>();
+}
+
+{{myClass}}
+""", "builder.Add<MyClass>()");
+
+        verifier.Verify(8, $$"""
+var builder = ConsoleApp.CreateBuilder();
+for (int i = 0; i < 10; i++)
+{
+    builder.Add<MyClass>();
+}
+
+{{myClass}}
+""", "builder.Add<MyClass>()");
+
+        verifier.Verify(8, $$"""
+var builder = ConsoleApp.CreateBuilder();
+do
+{
+    builder.Add<MyClass>();
+} while(true);
+
+{{myClass}}
+""", "builder.Add<MyClass>()");
+
+        verifier.Verify(8, $$"""
+var builder = ConsoleApp.CreateBuilder();
+foreach (var item in new[]{1,2,3})
+{
+    builder.Add<MyClass>();
+}
+
+{{myClass}}
+""", "builder.Add<MyClass>()");
+    }
+
+    [Fact]
+    public void ErrorInBuilderAPI()
+    {
+        verifier.Verify(3, $$"""
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+
+public class MyClass
+{
+    public string Do()
+    {
+        Console.Write("yeah:");
+        return "foo";
+    }
+}
+""", "string");
+
+        verifier.Verify(3, $$"""
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+
+public class MyClass
+{
+    public async Task<string> Do()
+    {
+        Console.Write("yeah:");
+        return "foo";
+    }
+}
+""", "Task<string>");
+
+        verifier.Verify(2, $$"""
+var builder = ConsoleApp.CreateBuilder();
+builder.Add("foo", string (int x, int y) => { return "foo"; });
+""", "string");
+
+        verifier.Verify(2, $$"""
+var builder = ConsoleApp.CreateBuilder();
+builder.Add("foo", async Task<string> (int x, int y) => { return "foo"; });
+""", "Task<string>");
     }
 }

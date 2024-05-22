@@ -34,13 +34,13 @@ internal static class DiagnosticDescriptors
 
     public static DiagnosticDescriptor ReturnTypeLambda { get; } = Create(
         2,
-        "Run lambda expressions return type must be void or int or async Task or async Task<int>.",
-        "Run lambda expressions return type must be void or int or async Task or async Task<int> but returned '{0}'.");
+        "Command lambda expressions return type must be void or int or async Task or async Task<int>.",
+        "Command lambda expressions return type must be void or int or async Task or async Task<int> but returned '{0}'.");
 
     public static DiagnosticDescriptor ReturnTypeMethod { get; } = Create(
         3,
-        "Run referenced method return type must be void or int or async Task or async Task<int>.",
-        "Run referenced method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
+        "Command method return type must be void or int or async Task or async Task<int>.",
+        "Command method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
 
     public static DiagnosticDescriptor SequentialArgument { get; } = Create(
         4,
@@ -58,4 +58,8 @@ internal static class DiagnosticDescriptors
         7,
         "Command name is duplicated.",
         "Command name '{0}' is duplicated.");
+
+    public static DiagnosticDescriptor AddInLoopIsNotAllowed { get; } = Create(
+        8,
+        "ConsoleAppBuilder.Add/AddFilter is not allowed in loop statement(while, do, for, foreach).");
 }

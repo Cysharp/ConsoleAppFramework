@@ -105,8 +105,19 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return publicMethods
             .Select(x =>
             {
-                // TODO: commandName convert to snake-case
-                var command = ParseFromMethodSymbol(x, false, x.Name.ToLowerInvariant());
+                string commandName;
+                var commandAttribute = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "CommandAttribute");
+                if (commandAttribute != null)
+                {
+                    commandName = (x.GetAttributes()[0].ConstructorArguments[0].Value as string)!;
+                }
+                else
+                {
+                    // TODO: commandName convert to snake-case
+                    commandName = x.Name.ToLowerInvariant();
+                }
+
+                var command = ParseFromMethodSymbol(x, false, commandName);
                 if (command == null) return null;
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
@@ -249,30 +260,30 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     });
 
                 var isFromServices = x.AttributeLists.SelectMany(x => x.Attributes)
-                  .Any(x =>
-                  {
-                      var name = x.Name;
-                      if (x.Name is QualifiedNameSyntax qns)
-                      {
-                          name = qns.Right;
-                      }
+                    .Any(x =>
+                    {
+                        var name = x.Name;
+                        if (x.Name is QualifiedNameSyntax qns)
+                        {
+                            name = qns.Right;
+                        }
 
-                      var identifier = name.ToString();
-                      return identifier is "FromServices" or "FromServicesAttribute";
-                  });
+                        var identifier = name.ToString();
+                        return identifier is "FromServices" or "FromServicesAttribute";
+                    });
 
                 var hasArgument = x.AttributeLists.SelectMany(x => x.Attributes)
-                  .Any(x =>
-                  {
-                      var name = x.Name;
-                      if (x.Name is QualifiedNameSyntax qns)
-                      {
-                          name = qns.Right;
-                      }
+                    .Any(x =>
+                    {
+                        var name = x.Name;
+                        if (x.Name is QualifiedNameSyntax qns)
+                        {
+                            name = qns.Right;
+                        }
 
-                      var identifier = name.ToString();
-                      return identifier is "Argument" or "ArgumentAttribute";
-                  });
+                        var identifier = name.ToString();
+                        return identifier is "Argument" or "ArgumentAttribute";
+                    });
 
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(type.Type!, wellKnownTypes.CancellationToken);
 
@@ -362,14 +373,29 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             }
             else
             {
-                // TODO: Arguments[1] is dangerous...
-                context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethod, node.ArgumentList.Arguments[1].GetLocation(), methodSymbol.ReturnType);
+                var syntax = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax();
+                var location = syntax switch
+                {
+                    MethodDeclarationSyntax x => x.ReturnType.GetLocation(),
+                    LocalFunctionStatementSyntax x => x.ReturnType.GetLocation(),
+                    _ => node.GetLocation()
+                };
+
+                context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethod, location, methodSymbol.ReturnType);
                 return null;
             }
         }
         else
         {
-            context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethod, node.ArgumentList.Arguments[1].GetLocation(), methodSymbol.ReturnType);
+            var syntax = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax();
+            var location = syntax switch
+            {
+                MethodDeclarationSyntax x => x.ReturnType.GetLocation(),
+                LocalFunctionStatementSyntax x => x.ReturnType.GetLocation(),
+                _ => node.GetLocation()
+            };
+
+            context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethod, location, methodSymbol.ReturnType);
             return null;
         }
 

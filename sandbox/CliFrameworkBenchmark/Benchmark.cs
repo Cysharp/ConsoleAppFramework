@@ -17,14 +17,13 @@ namespace Cocona.Benchmark.External;
 
 // use ColdStart strategy to measure startup time evaluation
 [SimpleJob(RunStrategy.ColdStart, launchCount: 1, warmupCount: 0, iterationCount: 1, invocationCount: 1)]
-[RankColumn]
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 public class Benchmark
 {
     private static readonly string[] Arguments = { "--str", "hello world", "-i", "13", "-b" };
 
-    [Benchmark(Description = "Cocona.Lite", Baseline = true)]
+    [Benchmark(Description = "Cocona.Lite")]
     public void ExecuteWithCoconaLite()
     {
         Cocona.CoconaLiteApp.Run<CoconaCommand>(Arguments);
@@ -77,7 +76,7 @@ public class Benchmark
     //    ConsoleApp.Run(Arguments, ConsoleAppFrameworkCommand.Execute);
     //}
 
-    [Benchmark(Description = "ConsoleAppFramework v5")]
+    [Benchmark(Description = "ConsoleAppFramework v5", Baseline = true)]
     public unsafe void ExecuteConsoleAppFramework()
     {
         ConsoleApp.Run(Arguments, &ConsoleAppFrameworkCommand.Execute);

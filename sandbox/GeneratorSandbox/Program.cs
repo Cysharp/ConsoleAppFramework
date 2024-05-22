@@ -28,7 +28,9 @@ args = ["do"]; // test.
 
 
 var builder = ConsoleApp.CreateBuilder();
+
 builder.Add<MyClass>();
+// builder.Add("foo", string (int x, int y) => { return "foo"; });
 
 
 await builder.RunAsync(args);
@@ -376,7 +378,7 @@ namespace ConsoleAppFramework
         {
             private static void RunCommand0(ReadOnlySpan<string> args)
             {
-                if (TryShowHelpOrVersion(args, 0)) return;
+                // if (TryShowHelpOrVersion(args, 0)) return;
 
 
                 try
@@ -398,7 +400,7 @@ namespace ConsoleAppFramework
 
 
                     var instance = new global::MyClass();
-                    instance.Do();
+                    // instance.Do();
                 }
 
                 catch (Exception ex)
@@ -509,5 +511,40 @@ public class TimestampFilter(ConsoleAppFilter next)
     public override ValueTask InvokeAsync(CancellationToken cancellationToken)
     {
         return Next.InvokeAsync(cancellationToken);
+    }
+}
+
+
+
+
+
+public class MyContext : IServiceProvider
+{
+    public long Timestamp { get; set; }
+    public Guid UserId { get; set; }
+
+    object IServiceProvider.GetService(Type serviceType)
+    {
+        if (serviceType == typeof(MyContext)) return this;
+        throw new InvalidOperationException("Type is invalid:" + serviceType);
+    }
+}
+
+public class MyClass23
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+}
+
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+internal sealed class CommandAttribute : Attribute
+{
+    public string Command { get; }
+
+    public CommandAttribute(string command)
+    {
+        this.Command = command;
     }
 }

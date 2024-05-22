@@ -14,26 +14,16 @@ public static class CSharpGeneratorRunner
     [ModuleInitializer]
     public static void InitializeCompilation()
     {
-        // running .NET Core system assemblies dir path
-        var baseAssemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
-        var systemAssemblies = Directory.GetFiles(baseAssemblyPath)
-            .Where(x =>
-            {
-                var fileName = Path.GetFileName(x);
-                if (fileName.EndsWith("Native.dll")) return false;
-                return fileName.StartsWith("System") || (fileName is "mscorlib.dll" or "netstandard.dll");
-            });
-
-        var references = systemAssemblies
-            .Select(x => MetadataReference.CreateFromFile(x))
-            .ToArray();
-
         var globalUsings = """
 global using System;
 global using System.Threading.Tasks;
 global using System.ComponentModel.DataAnnotations;
 global using ConsoleAppFramework;
 """;
+
+        var references = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(x => !x.IsDynamic && !string.IsNullOrWhiteSpace(x.Location))
+            .Select(x => MetadataReference.CreateFromFile(x.Location));
 
         var compilation = CSharpCompilation.Create("generatortest",
             references: references,

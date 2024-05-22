@@ -200,6 +200,26 @@ public class MiniDI : IServiceProvider
 """, "do", "yeah:hoge!9999");
     }
 
+    [Fact]
+    public void Command()
+    {
+        var code = """
+var builder = ConsoleApp.CreateBuilder();
+builder.Add<MyClass>();
+builder.Run(args);
+
+public class MyClass()
+{
+    [Command("nomunomu")]
+    public void Do()
+    {
+        Console.Write("yeah");
+    }
+}
+""";
+
+        verifier.Execute(code, "nomunomu", "yeah");
+    }
 }
 
 

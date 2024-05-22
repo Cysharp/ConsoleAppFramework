@@ -102,6 +102,17 @@ internal sealed class ArgumentAttribute : Attribute
 {
 }
 
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+internal sealed class CommandAttribute : Attribute
+{
+    public string Command { get; }
+
+    public CommandAttribute(string command)
+    {
+        this.Command = command;
+    }
+}
+
 internal static partial class ConsoleApp
 {
     public static IServiceProvider? ServiceProvider { get; set; }
@@ -429,6 +440,20 @@ internal static partial class ConsoleApp
 
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
+        // validation, invoke in loop is not allowed.
+        foreach (var item in generatorSyntaxContexts)
+        {
+            if (item.Name is "Run" or "RunAsync") continue;
+            foreach (var n in item.Node.Ancestors())
+            {
+                if (n.Kind() is SyntaxKind.WhileStatement or SyntaxKind.DoStatement or SyntaxKind.ForStatement or SyntaxKind.ForEachStatement)
+                {
+                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.AddInLoopIsNotAllowed, item.Node.GetLocation());
+                    return;
+                }
+            }
+        }
+
         var group1 = generatorSyntaxContexts.ToLookup(x =>
         {
             if (x.Name == "Add" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
@@ -454,7 +479,8 @@ internal static partial class ConsoleApp
                 }
 
                 return command;
-            });
+            })
+            .ToArray(); // evaluate first.
 
         var commands2 = group1["Add<T>"]
             .SelectMany(x =>
