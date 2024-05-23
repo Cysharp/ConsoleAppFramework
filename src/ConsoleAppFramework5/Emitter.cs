@@ -15,10 +15,10 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
 
         // prepare argument variables ->
-        var prepareArgument = new StringBuilder();
+        var prepareArgument = new IndentStringBuilder(2);
         if (hasCancellationToken)
         {
-            prepareArgument.AppendLine("        using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
+            prepareArgument.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
         }
         for (var i = 0; i < command.Parameters.Length; i++)
         {
@@ -26,39 +26,39 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             if (parameter.IsParsable)
             {
                 var defaultValue = parameter.HasDefaultValue ? parameter.DefaultValueToString() : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
-                prepareArgument.AppendLine($"        var arg{i} = {defaultValue};");
+                prepareArgument.AppendLine($"var arg{i} = {defaultValue};");
                 if (!parameter.HasDefaultValue)
                 {
-                    prepareArgument.AppendLine($"        var arg{i}Parsed = false;");
+                    prepareArgument.AppendLine($"var arg{i}Parsed = false;");
                 }
             }
             else if (parameter.IsCancellationToken)
             {
-                prepareArgument.AppendLine($"        var arg{i} = posixSignalHandler.Token;");
+                prepareArgument.AppendLine($"var arg{i} = posixSignalHandler.Token;");
             }
             else if (parameter.IsFromServices)
             {
                 var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
-                prepareArgument.AppendLine($"        var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
+                prepareArgument.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
             }
         }
 
         // parse indexed argument([Argument] parameter)
-        var indexedArgument = new StringBuilder();
+        var indexedArgument = new IndentStringBuilder(4);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
             if (!parameter.IsArgument) continue;
 
-            indexedArgument.AppendLine($"                if (i == {parameter.ArgumentIndex})");
-            indexedArgument.AppendLine("                {");
-            indexedArgument.AppendLine($"                    {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
+            indexedArgument.AppendLine($"if (i == {parameter.ArgumentIndex})");
+            indexedArgument.AppendLine("{");
+            indexedArgument.IndentAppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
             if (!parameter.HasDefaultValue)
             {
-                indexedArgument.AppendLine($"                    arg{i}Parsed = true;");
+                indexedArgument.AppendLine($"arg{i}Parsed = true;");
             }
-            indexedArgument.AppendLine("                    continue;");
-            indexedArgument.AppendLine("                }");
+            indexedArgument.AppendLine("continue;");
+            indexedArgument.UnindentAppendLine("}");
         }
 
         // parse argument(fast, switch directly) ->
