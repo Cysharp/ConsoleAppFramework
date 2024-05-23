@@ -276,6 +276,59 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var runAsyncCommands = new StringBuilder();
         var runCase = new StringBuilder();
         var runAsyncCase = new StringBuilder();
+        var ids = commands.Select((x, i) => (x, i)).ToDictionary(x => x.x, x => x.i);
+
+        void EmitBody(IEnumerable<IGrouping<string?, Command>> groupedCommands, int depth)
+        {
+            // TODO: emitAsync
+            if (emitSync)
+            {
+                runCase.AppendLine($"        switch (args[{depth}])");
+                runCase.AppendLine($"        {{");
+
+                var implDefault = false;
+                foreach (var commands in groupedCommands)
+                {
+                    if (commands.Key == null) implDefault = true;
+
+                    // runCase.AppendLine($"            case:{commands.Key}");
+                    var key = commands.Key == null ? "default:" : $"case {commands.Key}:";
+                    runCase.AppendLine($"            {key}");
+
+                    if (implDefault)
+                    {
+                        var command = commands.First(); // duplicate name is not allowed so always single command
+                        var id = ids[command];
+                        string commandArgs = "";
+                        if (command.DelegateBuildType != DelegateBuildType.None)
+                        {
+                            commandArgs = $", command{id}";
+                        }
+                        runCase.AppendLine($"                RunCommand{id}(args.AsSpan({depth + 1}){commandArgs});");
+                    }
+                    else
+                    {
+                        var nextDepth = depth + 1;
+                        var nextGroup = commands.GroupBy(x => (x.CommandPath.Length < nextDepth) ? x.CommandName : x.CommandPath[nextDepth]);
+                        EmitBody(nextGroup, nextDepth); // rec
+                    }
+                    runCase.AppendLine($"                break;");
+                    runCase.AppendLine($"        }}");
+                }
+
+                if (!implDefault)
+                {
+                    runCase.AppendLine($"            default:");
+                    runCase.AppendLine($"                break;");
+                }
+                runCase.AppendLine($"        }}");
+            }
+        }
+
+        // TODO:WIP
+        // EmitBody(commands.GroupBy(x => x.CommandPath.Length == 0 ? x.CommandName : x.CommandPath[0]), 0);
+
+
 
         for (int i = 0; i < commands.Length; i++)
         {
@@ -293,24 +346,6 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
                 commandArgs = $", command{i}";
             }
-
-            // TODO: case grouping
-            var runIndent = "            ";
-            for (int j = 0; j < command.CommandPath.Length; j++)
-            {
-                var path = command.CommandPath[j];
-                var subCommand = $$"""
-{{runIndent}}switch (args[{{j + 1}}])
-{{runIndent}}{
-{{runIndent}}    case "{{path}}":
-{{runIndent}}        break;
-{{runIndent}}}
-{{runIndent}}break;
-case "":
-""";
-                runIndent += "    ";
-            }
-
 
             if (emitSync)
             {

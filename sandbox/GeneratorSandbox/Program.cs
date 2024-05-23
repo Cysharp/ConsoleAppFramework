@@ -434,7 +434,7 @@ namespace ConsoleAppFramework
                         }
                         break;
                     //case "tako":
-                        //break;
+                    //break;
                     default:
                         break;
                 }
@@ -526,6 +526,23 @@ public class TimestampFilter(ConsoleAppFilter next)
 }
 
 
+public class LogExecutionTimeFilter(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override async ValueTask InvokeAsync(CancellationToken cancellationToken)
+    {
+        var startingTime = Stopwatch.GetTimestamp();
+        try
+        {
+            await Next.InvokeAsync(cancellationToken);
+        }
+        finally
+        {
+            var elapsed = Stopwatch.GetElapsedTime(startingTime);
+            ConsoleApp.Log($"Execution Time: {elapsed.ToString()}");
+        }
+    }
+}
 
 
 
