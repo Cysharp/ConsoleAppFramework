@@ -33,7 +33,7 @@ public record class Command
     public required DelegateBuildType DelegateBuildType { get; init; }
     public CommandMethodInfo? CommandMethodInfo { get; set; } // can set...!
 
-    public string BuildDelegateSignature(out string? delegateType)
+    public string? BuildDelegateSignature(out string? delegateType)
     {
         if (DelegateBuildType == DelegateBuildType.MakeDelegateWhenHasDefaultValue)
         {
@@ -48,7 +48,7 @@ public record class Command
 
         if (DelegateBuildType == DelegateBuildType.None)
         {
-            return "";
+            return null;
         }
 
         if (MethodKind == MethodKind.FunctionPointer) return BuildFunctionPointerDelegateSignature();

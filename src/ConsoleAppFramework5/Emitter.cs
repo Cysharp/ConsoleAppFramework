@@ -15,7 +15,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
 
         // prepare argument variables ->
-        var prepareArgument = new IndentStringBuilder(2);
+        var prepareArgument = new SourceBuilder(2);
         if (hasCancellationToken)
         {
             prepareArgument.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
@@ -44,25 +44,26 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
 
         // parse indexed argument([Argument] parameter)
-        var indexedArgument = new IndentStringBuilder(4);
+        var indexedArgument = new SourceBuilder(4);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
             if (!parameter.IsArgument) continue;
 
             indexedArgument.AppendLine($"if (i == {parameter.ArgumentIndex})");
-            indexedArgument.AppendLine("{");
-            indexedArgument.IndentAppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
-            if (!parameter.HasDefaultValue)
+            using (indexedArgument.BeginBlock())
             {
-                indexedArgument.AppendLine($"arg{i}Parsed = true;");
+                indexedArgument.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
+                if (!parameter.HasDefaultValue)
+                {
+                    indexedArgument.AppendLine($"arg{i}Parsed = true;");
+                }
+                indexedArgument.AppendLine("continue;");
             }
-            indexedArgument.AppendLine("continue;");
-            indexedArgument.UnindentAppendLine("}");
         }
 
         // parse argument(fast, switch directly) ->
-        var fastParseCase = new IndentStringBuilder(5);
+        var fastParseCase = new SourceBuilder(5);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
@@ -74,18 +75,19 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             {
                 fastParseCase.AppendLine($"case \"{alias}\":");
             }
-            fastParseCase.AppendLine("{");
-            fastParseCase.IndentAppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
-            if (!parameter.HasDefaultValue)
+            using (fastParseCase.BeginBlock())
             {
-                fastParseCase.AppendLine($"arg{i}Parsed = true;");
+                fastParseCase.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                if (!parameter.HasDefaultValue)
+                {
+                    fastParseCase.AppendLine($"arg{i}Parsed = true;");
+                }
+                fastParseCase.AppendLine("break;");
             }
-            fastParseCase.AppendLine("break;");
-            fastParseCase.UnindentAppendLine("}");
         }
 
         // parse argument(slow, if ignorecase) ->
-        var slowIgnoreCaseParse = new IndentStringBuilder(6);
+        var slowIgnoreCaseParse = new SourceBuilder(6);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
@@ -98,18 +100,19 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 var alias = parameter.Aliases[j];
                 slowIgnoreCaseParse.AppendLine($" || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
             }
-            slowIgnoreCaseParse.AppendLine("{");
-            slowIgnoreCaseParse.IndentAppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
-            if (!parameter.HasDefaultValue)
+            using (slowIgnoreCaseParse.BeginBlock())
             {
-                slowIgnoreCaseParse.AppendLine($"arg{i}Parsed = true;");
+                slowIgnoreCaseParse.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                if (!parameter.HasDefaultValue)
+                {
+                    slowIgnoreCaseParse.AppendLine($"arg{i}Parsed = true;");
+                }
+                slowIgnoreCaseParse.AppendLine($"break;");
             }
-            slowIgnoreCaseParse.AppendLine($"break;");
-            slowIgnoreCaseParse.UnindentAppendLine("}");
         }
 
         // validate parsed ->
-        var validateParsed = new IndentStringBuilder(3);
+        var validateParsed = new SourceBuilder(3);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
@@ -122,7 +125,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
 
         // hasValidation ->
-        var attributeValidation = new IndentStringBuilder(3);
+        var attributeValidation = new SourceBuilder(3);
         if (hasValidation)
         {
             attributeValidation.AppendLine("var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(\"\", null, null);");
@@ -136,13 +139,14 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 attributeValidation.AppendLine($"ValidateParameter(arg{i}, parameters[{i}], validationContext, ref errorMessages);");
             }
             attributeValidation.AppendLine("if (errorMessages != null)");
-            attributeValidation.AppendLine("{");
-            attributeValidation.IndentAppendLineUnindent("throw new System.ComponentModel.DataAnnotations.ValidationException(errorMessages.ToString());");
-            attributeValidation.AppendLine("}");
+            using (attributeValidation.BeginBlock())
+            {
+                attributeValidation.AppendLine("throw new System.ComponentModel.DataAnnotations.ValidationException(errorMessages.ToString());");
+            }
         }
 
         // invoke for sync/async, void/int
-        var invoke = new IndentStringBuilder(3);
+        var invoke = new SourceBuilder(3);
         var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
         string invokeCommand;
         if (command.CommandMethodInfo == null)
@@ -193,12 +197,16 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         {
             invoke.AppendLine($"Environment.ExitCode = {invokeCommand};");
         }
-        invoke.UnindentAppendLine("}"); // try close
+        invoke.Unindent();
+        invoke.AppendLine("}"); // try close
         if (hasCancellationToken)
         {
             invoke.AppendLine("catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)");
-            invoke.AppendLine("{");
-            invoke.IndentAppendLineUnindent("Environment.ExitCode = 130;");
+            using (invoke.BeginBlock())
+            {
+                invoke.AppendLine("Environment.ExitCode = 130;");
+            }
+            invoke.Unindent();
             invoke.AppendLine("}");
         }
 
@@ -209,7 +217,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
         var commandMethodType = command.BuildDelegateSignature(out var delegateType);
-        if (commandMethodType != "")
+        if (commandMethodType != null)
         {
             commandMethodType = $", {commandMethodType} command";
         }
@@ -268,159 +276,145 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
     public string EmitBuilder(Command[] commands, bool emitSync, bool emitAsync)
     {
-        // TODO: make Add -> make Run -> make RunAsync
-        // TODO: invoke RootCommand
-        var fields = new StringBuilder();
-        var addCase = new StringBuilder();
-        var runCommands = new StringBuilder();
-        var runAsyncCommands = new StringBuilder();
-        var runCase = new StringBuilder();
-        var runAsyncCase = new StringBuilder();
-        var ids = commands.Select((x, i) => (x, i)).ToDictionary(x => x.x, x => x.i);
-
-        void EmitBody(IEnumerable<IGrouping<string?, Command>> groupedCommands, int depth)
-        {
-            // TODO: emitAsync
-            if (emitSync)
+        // with id number
+        var commandIds = commands
+            .Select((x, i) =>
             {
-                runCase.AppendLine($"        switch (args[{depth}])");
-                runCase.AppendLine($"        {{");
+                return new CommandWithId(
+                    FieldType: x.BuildDelegateSignature(out _), // for builder, always generate Action/Func so ok to ignore out var.
+                    Command: x,
+                    Id: i
+                );
+            })
+            .ToArray();
 
-                var implDefault = false;
-                foreach (var commands in groupedCommands)
+        // grouped by path
+        var commandGroup = commandIds.ToLookup(x => x.Command.CommandPath.Length == 0 ? x.Command.CommandName : x.Command.CommandPath[0]);
+
+        var sb = new SourceBuilder(1);
+        using (sb.BeginBlock("partial struct ConsoleAppBuilder"))
+        {
+            // fields: 'Action command0 = default!;'
+            foreach (var item in commandIds.Where(x => x.FieldType != null))
+            {
+                sb.AppendLine($"{item.FieldType} command{item.Id} = default!;");
+            }
+
+            // AddCore
+            sb.AppendLine();
+            using (sb.BeginBlock("partial void AddCore(string commandName, Delegate command)"))
+            {
+                using (sb.BeginBlock("switch (commandName)"))
                 {
-                    if (commands.Key == null) implDefault = true;
-
-                    // runCase.AppendLine($"            case:{commands.Key}");
-                    var key = commands.Key == null ? "default:" : $"case {commands.Key}:";
-                    runCase.AppendLine($"            {key}");
-
-                    if (implDefault)
+                    foreach (var item in commandIds.Where(x => x.FieldType != null))
                     {
-                        var command = commands.First(); // duplicate name is not allowed so always single command
-                        var id = ids[command];
-                        string commandArgs = "";
-                        if (command.DelegateBuildType != DelegateBuildType.None)
+                        using (sb.BeginIndent($"case \"{item.Command.CommandFullName}\":"))
                         {
-                            commandArgs = $", command{id}";
+                            sb.AppendLine($"this.command{item.Id} = Unsafe.As<{item.FieldType}>(command);");
+                            sb.AppendLine("break;");
                         }
-                        runCase.AppendLine($"                RunCommand{id}(args.AsSpan({depth + 1}){commandArgs});");
                     }
-                    else
+                    using (sb.BeginIndent("default:"))
                     {
-                        var nextDepth = depth + 1;
-                        var nextGroup = commands.GroupBy(x => (x.CommandPath.Length < nextDepth) ? x.CommandName : x.CommandPath[nextDepth]);
-                        EmitBody(nextGroup, nextDepth); // rec
+                        sb.AppendLine("break;");
                     }
-                    runCase.AppendLine($"                break;");
-                    runCase.AppendLine($"        }}");
                 }
-
-                if (!implDefault)
-                {
-                    runCase.AppendLine($"            default:");
-                    runCase.AppendLine($"                break;");
-                }
-                runCase.AppendLine($"        }}");
-            }
-        }
-
-        // TODO:WIP
-        // EmitBody(commands.GroupBy(x => x.CommandPath.Length == 0 ? x.CommandName : x.CommandPath[0]), 0);
-
-
-
-        for (int i = 0; i < commands.Length; i++)
-        {
-            var command = commands[i];
-
-            string commandArgs = "";
-            if (command.DelegateBuildType != DelegateBuildType.None)
-            {
-                var fieldType = command.BuildDelegateSignature(out _); // for builder, always generate Action/Func.
-                fields.AppendLine($"    {fieldType} command{i} = default!;");
-
-                addCase.AppendLine($"            case \"{command.CommandFullName}\":");
-                addCase.AppendLine($"                this.command{i} = Unsafe.As<{fieldType}>(command);");
-                addCase.AppendLine($"                break;");
-
-                commandArgs = $", command{i}";
             }
 
+            // RunCore
             if (emitSync)
             {
-                runCommands.AppendLine(EmitRun(command, false, $"RunCommand{i}"));
-
-                runCase.AppendLine($"            case \"{command.CommandFullName}\":");
-                runCase.AppendLine($"                RunCommand{i}(args.AsSpan(1){commandArgs});");
-                runCase.AppendLine($"                break;");
+                sb.AppendLine();
+                using (sb.BeginBlock("partial void RunCore(string[] args)"))
+                {
+                    EmitRunBody(commandGroup, 0, false);
+                }
             }
 
+            // RunAsyncCore
             if (emitAsync)
             {
-                runAsyncCommands.AppendLine(EmitRun(command, true, $"RunAsyncCommand{i}"));
-
-                runAsyncCase.AppendLine($"            case \"{command.CommandFullName}\":");
-                runAsyncCase.AppendLine($"                result = RunAsyncCommand{i}(args[1..]{commandArgs});");
-                runAsyncCase.AppendLine($"                break;");
+                sb.AppendLine();
+                using (sb.BeginBlock("partial void RunAsyncCore(string[] args, ref Task result)"))
+                {
+                    EmitRunBody(commandGroup, 0, true);
+                }
             }
         }
 
-        var addCore = $$"""
-    partial void AddCore(string commandName, Delegate command)
-    {
-        switch (commandName)
+        // emit outside of ConsoleAppBuilder
+
+        // static sync command function
+        if (emitSync)
         {
-{{addCase}}
-            default:
-                break;
+            sb.AppendLine();
+            foreach (var item in commandIds)
+            {
+                sb.AppendLine(EmitRun(item.Command, false, $"RunCommand{item.Id}").TrimStart());
+            }
+        }
+
+        // static async command function
+        if (emitAsync)
+        {
+            sb.AppendLine();
+            foreach (var item in commandIds)
+            {
+                sb.AppendLine(EmitRun(item.Command, true, $"RunAsyncCommand{item.Id}").TrimStart());
+            }
+        }
+
+        return sb.ToString();
+
+        void EmitRunBody(IEnumerable<IGrouping<string?, CommandWithId>> groupedCommands, int depth, bool isRunAsync)
+        {
+            using (sb.BeginBlock($"switch (args[{depth}])"))
+            {
+                // case:...
+                foreach (var commands in groupedCommands)
+                {
+                    using (sb.BeginIndent($"case \"{commands.Key}\":"))
+                    {
+                        // TODO: check leaf command
+                        if (commands.Count() != 1)
+                        {
+                            // recursive: next depth
+                            var nextDepth = depth + 1;
+                            var nextGroup = commands.GroupBy(x => x.Command.CommandPath.Length < nextDepth ? x.Command.CommandName : x.Command.CommandPath[nextDepth]);
+                            EmitRunBody(nextGroup, nextDepth, isRunAsync);
+                            sb.AppendLine("break;");
+                        }
+                        else
+                        {
+                            var cmd = commands.First();
+
+                            string commandArgs = "";
+                            if (cmd.Command.DelegateBuildType != DelegateBuildType.None)
+                            {
+                                commandArgs = $", command{cmd.Id}";
+                            }
+
+                            if (!isRunAsync)
+                            {
+                                sb.AppendLine($"RunCommand{cmd.Id}(args.AsSpan({depth + 1}){commandArgs});");
+                            }
+                            else
+                            {
+                                sb.AppendLine($"result = RunAsyncCommand{cmd.Id}(args[1..]{commandArgs});");
+                            }
+                            sb.AppendLine("break;");
+                        }
+                    }
+                }
+
+                // TODO: invoke root command
+                using (sb.BeginIndent("default:"))
+                {
+                    sb.AppendLine("break;");
+                }
+            }
         }
     }
-""";
-
-        var runCore = $$"""
-    partial void RunCore(string[] args)
-    {
-        switch (args[0])
-        {
-{{runCase}}
-            default:
-                break;
-        }
-    }
-""";
-
-        var runAsyncCore = $$"""
-    partial void RunAsyncCore(string[] args, ref Task result)
-    {
-        switch (args[0])
-        {
-{{runAsyncCase}}
-            default:
-                break;
-        }
-    }
-""";
-
-        if (!emitSync) runCore = "";
-        if (!emitAsync) runAsyncCore = "";
-
-        // TODO: Emit help and version
-        var code = $$"""
-partial struct ConsoleAppBuilder
-{
-{{fields}}
-
-{{addCore}}
-
-{{runCommands}}
-{{runAsyncCommands}}
-
-{{runCore}}
-{{runAsyncCore}}
 }
-""";
 
-        return code;
-    }
-}
+internal record CommandWithId(string? FieldType, Command Command, int Id);
