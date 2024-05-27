@@ -26,14 +26,17 @@ args = ["do"]; // test.
 
 // ConsoleApp.Run(args, Run2); void Run2(int x, int yzzzz) { };
 
+ConsoleApp.Run(args, ([Range(1, 10)] int x, int y) =>
+{
+});
 
-var builder = ConsoleApp.CreateBuilder();
+//evar builder = ConsoleApp.CreateBuilder();
 
-builder.Add<MyClass>();
-builder.Add("foo/tako", (int x, int y) => { return "foo"; });
+//builder.Add<MyClass>();
+//builder.Add("foo/tako", (int x, int y) => { return "foo"; });
 
 
-await builder.RunAsync(args);
+//await builder.RunAsync(args);
 
 // var s = "foo";
 // s.AsSpan().Split(',',).

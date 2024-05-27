@@ -62,54 +62,54 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
 
         // parse argument(fast, switch directly) ->
-        var fastParseCase = new StringBuilder();
+        var fastParseCase = new IndentStringBuilder(5);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
             if (!parameter.IsParsable) continue;
             if (parameter.IsArgument) continue;
 
-            fastParseCase.AppendLine($"                    case \"--{parameter.Name}\":");
+            fastParseCase.AppendLine($"case \"--{parameter.Name}\":");
             foreach (var alias in parameter.Aliases)
             {
-                fastParseCase.AppendLine($"                    case \"{alias}\":");
+                fastParseCase.AppendLine($"case \"{alias}\":");
             }
-            fastParseCase.AppendLine("                    {");
-            fastParseCase.AppendLine($"                        {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+            fastParseCase.AppendLine("{");
+            fastParseCase.IndentAppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
             if (!parameter.HasDefaultValue)
             {
-                fastParseCase.AppendLine($"                        arg{i}Parsed = true;");
+                fastParseCase.AppendLine($"arg{i}Parsed = true;");
             }
-            fastParseCase.AppendLine("                        break;");
-            fastParseCase.AppendLine("                    }");
+            fastParseCase.AppendLine("break;");
+            fastParseCase.UnindentAppendLine("}");
         }
 
         // parse argument(slow, if ignorecase) ->
-        var slowIgnoreCaseParse = new StringBuilder();
+        var slowIgnoreCaseParse = new IndentStringBuilder(6);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
             if (!parameter.IsParsable) continue;
             if (parameter.IsArgument) continue;
 
-            slowIgnoreCaseParse.AppendLine($"                        if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
+            slowIgnoreCaseParse.AppendLine($"if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
             for (int j = 0; j < parameter.Aliases.Length; j++)
             {
                 var alias = parameter.Aliases[j];
-                slowIgnoreCaseParse.AppendLine($"                         || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
+                slowIgnoreCaseParse.AppendLine($" || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
             }
-            slowIgnoreCaseParse.AppendLine("                        {");
-            slowIgnoreCaseParse.AppendLine($"                            {parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+            slowIgnoreCaseParse.AppendLine("{");
+            slowIgnoreCaseParse.IndentAppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
             if (!parameter.HasDefaultValue)
             {
-                slowIgnoreCaseParse.AppendLine($"                            arg{i}Parsed = true;");
+                slowIgnoreCaseParse.AppendLine($"arg{i}Parsed = true;");
             }
-            slowIgnoreCaseParse.AppendLine($"                            break;");
-            slowIgnoreCaseParse.AppendLine("                        }");
+            slowIgnoreCaseParse.AppendLine($"break;");
+            slowIgnoreCaseParse.UnindentAppendLine("}");
         }
 
         // validate parsed ->
-        var validateParsed = new StringBuilder();
+        var validateParsed = new IndentStringBuilder(3);
         for (int i = 0; i < command.Parameters.Length; i++)
         {
             var parameter = command.Parameters[i];
@@ -117,32 +117,32 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
             if (!parameter.HasDefaultValue)
             {
-                validateParsed.AppendLine($"            if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
+                validateParsed.AppendLine($"if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
             }
         }
 
         // hasValidation ->
-        var attributeValidation = new StringBuilder();
+        var attributeValidation = new IndentStringBuilder(3);
         if (hasValidation)
         {
-            attributeValidation.AppendLine("            var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(\"\", null, null);");
-            attributeValidation.AppendLine("            var parameters = command.Method.GetParameters();");
-            attributeValidation.AppendLine("            System.Text.StringBuilder? errorMessages = null;");
+            attributeValidation.AppendLine("var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(\"\", null, null);");
+            attributeValidation.AppendLine("var parameters = command.Method.GetParameters();");
+            attributeValidation.AppendLine("System.Text.StringBuilder? errorMessages = null;");
             for (int i = 0; i < command.Parameters.Length; i++)
             {
                 var parameter = command.Parameters[i];
                 if (!parameter.HasValidation) continue;
 
-                attributeValidation.AppendLine($"            ValidateParameter(arg{i}, parameters[{i}], validationContext, ref errorMessages);");
+                attributeValidation.AppendLine($"ValidateParameter(arg{i}, parameters[{i}], validationContext, ref errorMessages);");
             }
-            attributeValidation.AppendLine("            if (errorMessages != null)");
-            attributeValidation.AppendLine("            {");
-            attributeValidation.AppendLine("                throw new System.ComponentModel.DataAnnotations.ValidationException(errorMessages.ToString());");
-            attributeValidation.AppendLine("            }");
+            attributeValidation.AppendLine("if (errorMessages != null)");
+            attributeValidation.AppendLine("{");
+            attributeValidation.IndentAppendLineUnindent("throw new System.ComponentModel.DataAnnotations.ValidationException(errorMessages.ToString());");
+            attributeValidation.AppendLine("}");
         }
 
         // invoke for sync/async, void/int
-        var invoke = new StringBuilder();
+        var invoke = new IndentStringBuilder(3);
         var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
         string invokeCommand;
         if (command.CommandMethodInfo == null)
@@ -165,7 +165,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 (false, false, false) => ""
             };
 
-            invoke.AppendLine($"            {usingInstance}var instance = {command.CommandMethodInfo.BuildNew()};");
+            invoke.AppendLine($"{usingInstance}var instance = {command.CommandMethodInfo.BuildNew()};");
             invokeCommand = $"instance.{command.CommandMethodInfo.MethodName}({methodArguments})";
         }
 
@@ -187,19 +187,19 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
         if (command.IsVoid)
         {
-            invoke.AppendLine($"            {invokeCommand};");
+            invoke.AppendLine($"{invokeCommand};");
         }
         else
         {
-            invoke.AppendLine($"            Environment.ExitCode = {invokeCommand};");
+            invoke.AppendLine($"Environment.ExitCode = {invokeCommand};");
         }
-        invoke.AppendLine("        }"); // try close
+        invoke.UnindentAppendLine("}"); // try close
         if (hasCancellationToken)
         {
-            invoke.AppendLine("        catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)");
-            invoke.AppendLine("        {");
-            invoke.AppendLine("            Environment.ExitCode = 130;");
-            invoke.AppendLine("        }");
+            invoke.AppendLine("catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)");
+            invoke.AppendLine("{");
+            invoke.IndentAppendLineUnindent("Environment.ExitCode = 130;");
+            invoke.AppendLine("}");
         }
 
         var returnType = isRunAsync ? "async Task" : "void";
