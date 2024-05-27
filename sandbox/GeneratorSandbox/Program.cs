@@ -378,6 +378,51 @@ namespace ConsoleAppFramework
 
     partial class ConsoleApp
     {
+        private static async Task RunAsyncCommand1(string[] args)
+        {
+            if (TryShowHelpOrVersion(args, 0)) return;
+
+            using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
+            var arg0 = posixSignalHandler.Token;
+
+            try
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    var name = args[i];
+
+                    switch (name)
+                    {
+                        default:
+                            ThrowArgumentNameNotFound(name);
+                            break;
+                    }
+                }
+                var instance = new global::MyClass();
+                await Task.Run(() => instance.Do(arg0!)).WaitAsync(posixSignalHandler.TimeoutToken);
+            }
+            catch (Exception ex)
+            {
+                if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))
+                {
+                    Environment.ExitCode = 130;
+                    return;
+                }
+
+                Environment.ExitCode = 1;
+                if (ex is System.ComponentModel.DataAnnotations.ValidationException)
+                {
+                    LogError(ex.Message);
+                }
+                else
+                {
+                    LogError(ex.ToString());
+                }
+            }
+        }
+
+
+
         public struct Builder()
         {
             private static void RunCommand0(ReadOnlySpan<string> args)

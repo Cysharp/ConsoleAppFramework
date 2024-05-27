@@ -1,214 +1,16 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Reflection.Metadata;
-using System.Text;
 
 namespace ConsoleAppFramework;
 
 internal class Emitter(WellKnownTypes wellKnownTypes)
 {
-    public string EmitRun(Command command, bool isRunAsync, string? methodName = null)
+    public void EmitRun(SourceBuilder sb, Command command, bool isRunAsync, string? methodName = null)
     {
         var emitForBuilder = methodName != null;
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
-
-        // prepare argument variables ->
-        var prepareArgument = new SourceBuilder(2);
-        if (hasCancellationToken)
-        {
-            prepareArgument.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
-        }
-        for (var i = 0; i < command.Parameters.Length; i++)
-        {
-            var parameter = command.Parameters[i];
-            if (parameter.IsParsable)
-            {
-                var defaultValue = parameter.HasDefaultValue ? parameter.DefaultValueToString() : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
-                prepareArgument.AppendLine($"var arg{i} = {defaultValue};");
-                if (!parameter.HasDefaultValue)
-                {
-                    prepareArgument.AppendLine($"var arg{i}Parsed = false;");
-                }
-            }
-            else if (parameter.IsCancellationToken)
-            {
-                prepareArgument.AppendLine($"var arg{i} = posixSignalHandler.Token;");
-            }
-            else if (parameter.IsFromServices)
-            {
-                var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
-                prepareArgument.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
-            }
-        }
-
-        // parse indexed argument([Argument] parameter)
-        var indexedArgument = new SourceBuilder(4);
-        for (int i = 0; i < command.Parameters.Length; i++)
-        {
-            var parameter = command.Parameters[i];
-            if (!parameter.IsArgument) continue;
-
-            indexedArgument.AppendLine($"if (i == {parameter.ArgumentIndex})");
-            using (indexedArgument.BeginBlock())
-            {
-                indexedArgument.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
-                if (!parameter.HasDefaultValue)
-                {
-                    indexedArgument.AppendLine($"arg{i}Parsed = true;");
-                }
-                indexedArgument.AppendLine("continue;");
-            }
-        }
-
-        // parse argument(fast, switch directly) ->
-        var fastParseCase = new SourceBuilder(5);
-        for (int i = 0; i < command.Parameters.Length; i++)
-        {
-            var parameter = command.Parameters[i];
-            if (!parameter.IsParsable) continue;
-            if (parameter.IsArgument) continue;
-
-            fastParseCase.AppendLine($"case \"--{parameter.Name}\":");
-            foreach (var alias in parameter.Aliases)
-            {
-                fastParseCase.AppendLine($"case \"{alias}\":");
-            }
-            using (fastParseCase.BeginBlock())
-            {
-                fastParseCase.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
-                if (!parameter.HasDefaultValue)
-                {
-                    fastParseCase.AppendLine($"arg{i}Parsed = true;");
-                }
-                fastParseCase.AppendLine("break;");
-            }
-        }
-
-        // parse argument(slow, if ignorecase) ->
-        var slowIgnoreCaseParse = new SourceBuilder(6);
-        for (int i = 0; i < command.Parameters.Length; i++)
-        {
-            var parameter = command.Parameters[i];
-            if (!parameter.IsParsable) continue;
-            if (parameter.IsArgument) continue;
-
-            slowIgnoreCaseParse.AppendLine($"if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
-            for (int j = 0; j < parameter.Aliases.Length; j++)
-            {
-                var alias = parameter.Aliases[j];
-                slowIgnoreCaseParse.AppendLine($" || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
-            }
-            using (slowIgnoreCaseParse.BeginBlock())
-            {
-                slowIgnoreCaseParse.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
-                if (!parameter.HasDefaultValue)
-                {
-                    slowIgnoreCaseParse.AppendLine($"arg{i}Parsed = true;");
-                }
-                slowIgnoreCaseParse.AppendLine($"break;");
-            }
-        }
-
-        // validate parsed ->
-        var validateParsed = new SourceBuilder(3);
-        for (int i = 0; i < command.Parameters.Length; i++)
-        {
-            var parameter = command.Parameters[i];
-            if (!parameter.IsParsable) continue;
-
-            if (!parameter.HasDefaultValue)
-            {
-                validateParsed.AppendLine($"if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
-            }
-        }
-
-        // hasValidation ->
-        var attributeValidation = new SourceBuilder(3);
-        if (hasValidation)
-        {
-            attributeValidation.AppendLine("var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(\"\", null, null);");
-            attributeValidation.AppendLine("var parameters = command.Method.GetParameters();");
-            attributeValidation.AppendLine("System.Text.StringBuilder? errorMessages = null;");
-            for (int i = 0; i < command.Parameters.Length; i++)
-            {
-                var parameter = command.Parameters[i];
-                if (!parameter.HasValidation) continue;
-
-                attributeValidation.AppendLine($"ValidateParameter(arg{i}, parameters[{i}], validationContext, ref errorMessages);");
-            }
-            attributeValidation.AppendLine("if (errorMessages != null)");
-            using (attributeValidation.BeginBlock())
-            {
-                attributeValidation.AppendLine("throw new System.ComponentModel.DataAnnotations.ValidationException(errorMessages.ToString());");
-            }
-        }
-
-        // invoke for sync/async, void/int
-        var invoke = new SourceBuilder(3);
-        var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
-        string invokeCommand;
-        if (command.CommandMethodInfo == null)
-        {
-            invokeCommand = $"command({methodArguments})";
-        }
-        else
-        {
-            var usingInstance = (isRunAsync, command.CommandMethodInfo.IsIDisposable, command.CommandMethodInfo.IsIAsyncDisposable) switch
-            {
-                // awaitable
-                (true, true, true) => "await using ",
-                (true, true, false) => "using ",
-                (true, false, true) => "await using ",
-                (true, false, false) => "",
-                // sync
-                (false, true, true) => "using ",
-                (false, true, false) => "using ",
-                (false, false, true) => "", // IAsyncDisposable but sync, can't call disposeasync......
-                (false, false, false) => ""
-            };
-
-            invoke.AppendLine($"{usingInstance}var instance = {command.CommandMethodInfo.BuildNew()};");
-            invokeCommand = $"instance.{command.CommandMethodInfo.MethodName}({methodArguments})";
-        }
-
-        if (hasCancellationToken)
-        {
-            invokeCommand = $"Task.Run(() => {invokeCommand}).WaitAsync(posixSignalHandler.TimeoutToken)";
-        }
-        if (command.IsAsync || hasCancellationToken)
-        {
-            if (isRunAsync)
-            {
-                invokeCommand = $"await {invokeCommand}";
-            }
-            else
-            {
-                invokeCommand = $"{invokeCommand}.GetAwaiter().GetResult()";
-            }
-        }
-
-        if (command.IsVoid)
-        {
-            invoke.AppendLine($"{invokeCommand};");
-        }
-        else
-        {
-            invoke.AppendLine($"Environment.ExitCode = {invokeCommand};");
-        }
-        invoke.Unindent();
-        invoke.AppendLine("}"); // try close
-        if (hasCancellationToken)
-        {
-            invoke.AppendLine("catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)");
-            using (invoke.BeginBlock())
-            {
-                invoke.AppendLine("Environment.ExitCode = 130;");
-            }
-            invoke.Unindent();
-            invoke.AppendLine("}");
-        }
 
         var returnType = isRunAsync ? "async Task" : "void";
         var accessibility = !emitForBuilder ? "public" : "private";
@@ -222,59 +24,248 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             commandMethodType = $", {commandMethodType} command";
         }
 
-        var code = $$"""
-    {{accessibility}} static {{unsafeCode}}{{returnType}} {{methodName}}({{argsType}} args{{commandMethodType}})
-    {
-        if (TryShowHelpOrVersion(args, {{parsableParameterCount}})) return;
-
-{{prepareArgument}}
-        try
-        {
-            for (int i = 0; i < args.Length; i++)
-            {
-{{indexedArgument}}
-                var name = args[i];
-
-                switch (name)
-                {
-{{fastParseCase}}
-                    default:
-{{slowIgnoreCaseParse}}
-                        ThrowArgumentNameNotFound(name);
-                        break;
-                }
-            }
-{{validateParsed}}
-{{attributeValidation}}
-{{invoke}}
-        catch (Exception ex)
-        {
-            Environment.ExitCode = 1;
-            if (ex is System.ComponentModel.DataAnnotations.ValidationException)
-            {
-                LogError(ex.Message);
-            }
-            else
-            {
-                LogError(ex.ToString());
-            }
-        }
-    }
-""";
-
+        // emit custom delegate type
         if (delegateType != null && !emitForBuilder)
         {
-            code += $$"""
-
-
-    internal {{delegateType}}
-""";
+            sb.AppendLine($"internal {{delgateType}}");
+            sb.AppendLine();
         }
 
-        return code;
+        // method signature
+        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({argsType} args{commandMethodType})"))
+        {
+            sb.AppendLine($"if (TryShowHelpOrVersion(args, {parsableParameterCount})) return;");
+            sb.AppendLine();
+
+            // prepare argument variables
+            if (hasCancellationToken)
+            {
+                sb.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
+            }
+            for (var i = 0; i < command.Parameters.Length; i++)
+            {
+                var parameter = command.Parameters[i];
+                if (parameter.IsParsable)
+                {
+                    var defaultValue = parameter.HasDefaultValue ? parameter.DefaultValueToString() : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
+                    sb.AppendLine($"var arg{i} = {defaultValue};");
+                    if (!parameter.HasDefaultValue)
+                    {
+                        sb.AppendLine($"var arg{i}Parsed = false;");
+                    }
+                }
+                else if (parameter.IsCancellationToken)
+                {
+                    sb.AppendLine($"var arg{i} = posixSignalHandler.Token;");
+                }
+                else if (parameter.IsFromServices)
+                {
+                    var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
+                    sb.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
+                }
+            }
+            sb.AppendLineIfExists(command.Parameters);
+
+            // try TODO: if using filter, does not emit try
+            using (sb.BeginBlock("try"))
+            {
+                using (sb.BeginBlock("for (int i = 0; i < args.Length; i++)"))
+                {
+                    // parse indexed argument([Argument] parameter)
+                    if (hasArgument)
+                    {
+                        for (int i = 0; i < command.Parameters.Length; i++)
+                        {
+                            var parameter = command.Parameters[i];
+                            if (!parameter.IsArgument) continue;
+
+                            sb.AppendLine($"if (i == {parameter.ArgumentIndex})");
+                            using (sb.BeginBlock())
+                            {
+                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
+                                if (!parameter.HasDefaultValue)
+                                {
+                                    sb.AppendLine($"arg{i}Parsed = true;");
+                                }
+                                sb.AppendLine("continue;");
+                            }
+                        }
+                        sb.AppendLine();
+                    }
+
+                    sb.AppendLine("var name = args[i];");
+                    sb.AppendLine();
+
+                    using (sb.BeginBlock("switch (name)"))
+                    {
+                        // parse argument(fast, switch directly)
+                        for (int i = 0; i < command.Parameters.Length; i++)
+                        {
+                            var parameter = command.Parameters[i];
+                            if (!parameter.IsParsable) continue;
+                            if (parameter.IsArgument) continue;
+
+                            sb.AppendLine($"case \"--{parameter.Name}\":");
+                            foreach (var alias in parameter.Aliases)
+                            {
+                                sb.AppendLine($"case \"{alias}\":");
+                            }
+                            using (sb.BeginBlock())
+                            {
+                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                                if (!parameter.HasDefaultValue)
+                                {
+                                    sb.AppendLine($"arg{i}Parsed = true;");
+                                }
+                                sb.AppendLine("break;");
+                            }
+                        }
+
+                        using (sb.BeginIndent("default:"))
+                        {
+                            // parse argument(slow, ignorecase)
+                            for (int i = 0; i < command.Parameters.Length; i++)
+                            {
+                                var parameter = command.Parameters[i];
+                                if (!parameter.IsParsable) continue;
+                                if (parameter.IsArgument) continue;
+
+                                sb.AppendLine($"if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
+                                for (int j = 0; j < parameter.Aliases.Length; j++)
+                                {
+                                    var alias = parameter.Aliases[j];
+                                    sb.AppendLine($" || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
+                                }
+                                using (sb.BeginBlock())
+                                {
+                                    sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                                    if (!parameter.HasDefaultValue)
+                                    {
+                                        sb.AppendLine($"arg{i}Parsed = true;");
+                                    }
+                                    sb.AppendLine($"break;");
+                                }
+                            }
+
+                            sb.AppendLine("ThrowArgumentNameNotFound(name);");
+                            sb.AppendLine("break;");
+                        }
+                    }
+                }
+
+                // validate parsed
+                for (int i = 0; i < command.Parameters.Length; i++)
+                {
+                    var parameter = command.Parameters[i];
+                    if (!parameter.IsParsable) continue;
+
+                    if (!parameter.HasDefaultValue)
+                    {
+                        sb.AppendLine($"if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
+                    }
+                }
+
+                // attribute validation
+                if (hasValidation)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(\"\", null, null);");
+                    sb.AppendLine("var parameters = command.Method.GetParameters();");
+                    sb.AppendLine("System.Text.StringBuilder? errorMessages = null;");
+                    for (int i = 0; i < command.Parameters.Length; i++)
+                    {
+                        var parameter = command.Parameters[i];
+                        if (!parameter.HasValidation) continue;
+
+                        sb.AppendLine($"ValidateParameter(arg{i}, parameters[{i}], validationContext, ref errorMessages);");
+                    }
+                    sb.AppendLine("if (errorMessages != null)");
+                    using (sb.BeginBlock())
+                    {
+                        sb.AppendLine("throw new System.ComponentModel.DataAnnotations.ValidationException(errorMessages.ToString());");
+                    }
+                }
+
+                // invoke for sync/async, void/int
+                sb.AppendLine();
+                var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
+                string invokeCommand;
+                if (command.CommandMethodInfo == null)
+                {
+                    invokeCommand = $"command({methodArguments})";
+                }
+                else
+                {
+                    var usingInstance = (isRunAsync, command.CommandMethodInfo.IsIDisposable, command.CommandMethodInfo.IsIAsyncDisposable) switch
+                    {
+                        // awaitable
+                        (true, true, true) => "await using ",
+                        (true, true, false) => "using ",
+                        (true, false, true) => "await using ",
+                        (true, false, false) => "",
+                        // sync
+                        (false, true, true) => "using ",
+                        (false, true, false) => "using ",
+                        (false, false, true) => "", // IAsyncDisposable but sync, can't call disposeasync......
+                        (false, false, false) => ""
+                    };
+
+                    sb.AppendLine($"{usingInstance}var instance = {command.CommandMethodInfo.BuildNew()};");
+                    invokeCommand = $"instance.{command.CommandMethodInfo.MethodName}({methodArguments})";
+                }
+
+                if (hasCancellationToken)
+                {
+                    invokeCommand = $"Task.Run(() => {invokeCommand}).WaitAsync(posixSignalHandler.TimeoutToken)";
+                }
+                if (command.IsAsync || hasCancellationToken)
+                {
+                    if (isRunAsync)
+                    {
+                        invokeCommand = $"await {invokeCommand}";
+                    }
+                    else
+                    {
+                        invokeCommand = $"{invokeCommand}.GetAwaiter().GetResult()";
+                    }
+                }
+
+                if (command.IsVoid)
+                {
+                    sb.AppendLine($"{invokeCommand};");
+                }
+                else
+                {
+                    sb.AppendLine($"Environment.ExitCode = {invokeCommand};");
+                }
+            }
+            using (sb.BeginBlock("catch (Exception ex)"))
+            {
+                if (hasCancellationToken)
+                {
+                    using (sb.BeginBlock("if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))"))
+                    {
+                        sb.AppendLine("Environment.ExitCode = 130;");
+                        sb.AppendLine("return;");
+                    }
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine("Environment.ExitCode = 1;");
+
+                using (sb.BeginBlock("if (ex is ValidationException)"))
+                {
+                    sb.AppendLine("LogError(ex.Message);");
+                }
+                using (sb.BeginBlock("else"))
+                {
+                    sb.AppendLine("LogError(ex.ToString());");
+                }
+            }
+        }
     }
 
-    public string EmitBuilder(Command[] commands, bool emitSync, bool emitAsync)
+    public void EmitBuilder(SourceBuilder sb, Command[] commands, bool emitSync, bool emitAsync)
     {
         // with id number
         var commandIds = commands
@@ -291,7 +282,6 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         // grouped by path
         var commandGroup = commandIds.ToLookup(x => x.Command.CommandPath.Length == 0 ? x.Command.CommandName : x.Command.CommandPath[0]);
 
-        var sb = new SourceBuilder(1);
         using (sb.BeginBlock("partial struct ConsoleAppBuilder"))
         {
             // fields: 'Action command0 = default!;'
@@ -340,31 +330,27 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     EmitRunBody(commandGroup, 0, true);
                 }
             }
-        }
 
-        // emit outside of ConsoleAppBuilder
-
-        // static sync command function
-        if (emitSync)
-        {
-            sb.AppendLine();
-            foreach (var item in commandIds)
+            // static sync command function
+            if (emitSync)
             {
-                sb.AppendLine(EmitRun(item.Command, false, $"RunCommand{item.Id}").TrimStart());
+                sb.AppendLine();
+                foreach (var item in commandIds)
+                {
+                    EmitRun(sb, item.Command, false, $"RunCommand{item.Id}");
+                }
+            }
+
+            // static async command function
+            if (emitAsync)
+            {
+                sb.AppendLine();
+                foreach (var item in commandIds)
+                {
+                    EmitRun(sb, item.Command, true, $"RunAsyncCommand{item.Id}");
+                }
             }
         }
-
-        // static async command function
-        if (emitAsync)
-        {
-            sb.AppendLine();
-            foreach (var item in commandIds)
-            {
-                sb.AppendLine(EmitRun(item.Command, true, $"RunAsyncCommand{item.Id}").TrimStart());
-            }
-        }
-
-        return sb.ToString();
 
         void EmitRunBody(IEnumerable<IGrouping<string?, CommandWithId>> groupedCommands, int depth, bool isRunAsync)
         {
@@ -415,6 +401,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             }
         }
     }
+
+    internal record CommandWithId(string? FieldType, Command Command, int Id);
 }
 
-internal record CommandWithId(string? FieldType, Command Command, int Id);
