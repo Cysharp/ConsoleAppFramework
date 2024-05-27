@@ -361,18 +361,18 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 {
                     using (sb.BeginIndent($"case \"{commands.Key}\":"))
                     {
-                        // TODO: check leaf command
-                        if (commands.Count() != 1)
+                        var nextDepth = depth + 1;
+                        var leafCommand = commands.SingleOrDefault(x => x.Command.CommandPath.Length < nextDepth);
+                        var nextGroup = commands.Where(x => x != leafCommand).ToLookup(x => x.Command.CommandPath.Length == nextDepth ? x.Command.CommandName : x.Command.CommandPath[nextDepth]);
+                        if (nextGroup.Count() != 0)
                         {
-                            // recursive: next depth
-                            var nextDepth = depth + 1;
-                            var nextGroup = commands.GroupBy(x => x.Command.CommandPath.Length < nextDepth ? x.Command.CommandName : x.Command.CommandPath[nextDepth]);
                             EmitRunBody(nextGroup, nextDepth, isRunAsync);
                             sb.AppendLine("break;");
                         }
-                        else
+
+                        if (leafCommand != null)
                         {
-                            var cmd = commands.First();
+                            var cmd = leafCommand;
 
                             string commandArgs = "";
                             if (cmd.Command.DelegateBuildType != DelegateBuildType.None)
@@ -386,7 +386,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                             }
                             else
                             {
-                                sb.AppendLine($"result = RunAsyncCommand{cmd.Id}(args[1..]{commandArgs});");
+                                sb.AppendLine($"result = RunAsyncCommand{cmd.Id}(args[{depth + 1}..]{commandArgs});");
                             }
                             sb.AppendLine("break;");
                         }
