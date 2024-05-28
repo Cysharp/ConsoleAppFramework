@@ -139,7 +139,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
     {
         output.WriteLine(codeExpr);
 
-        var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args.Split(' '));
+        var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
         foreach (var item in diagnostics)
         {
             output.WriteLine(item.ToString());

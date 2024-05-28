@@ -19,25 +19,78 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 
 
-args = ["do"]; // test.
-
-
-
-
-// ConsoleApp.Run(args, Run2); void Run2(int x, int yzzzz) { };
-
-//ConsoleApp.Run(args, ([Range(1, 10)] int x, int y) =>
-//{
-//});
+// args = ["do"]; // test.
 
 var builder = ConsoleApp.CreateBuilder();
 
-builder.Add<MyClass>();
-builder.Add("foo/tako", (int x, int y) => { return "foo"; });
-// builder.Add("foo/tako/ekkusu", (int x, int y, int z) => { return "foo"; });
+//builder.Add("", () => { });
+//builder.Add("a", () => { });
+//builder.Add("a/b1", () => { });
+//builder.Add("a/b2", () => { });
+//builder.Add("a/b2/c", () => { });
+//builder.Add("do", () => { });
+
+//builder.Add<MyClass>("age");
+
+//builder.Run(args);
 
 
-await builder.RunAsync(args);
+
+
+
+builder.Add("", () => { Console.Write("root"); });
+
+builder.Run(args);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//builder.Add("foo/tako", (int x, int y) => { return "foo"; });
+//builder.Add("foo/tako/ekkusu", (int x, int y, int z) => { return "foo"; });
+
+
+// builder.Run(args);
 
 // var s = "foo";
 // s.AsSpan().Split(',',).
@@ -94,6 +147,8 @@ public class MyClass
     public static void Sum()
     {
     }
+
+
 }
 
 public class MyCommands : IDisposable
@@ -344,15 +399,66 @@ internal sealed class ArrayParserAttribute<T> : Attribute, IArgumentParser<T[]>
 
 namespace ConsoleAppFramework
 {
-    //partial class ConsoleApp
-    //{
+    partial class ConsoleApp
+    {
+        partial struct ConsoleAppBuilder
+        {
+            //void RunAsyncCore2(string[] args, ref Task result)
+            //{
+            //    if (args.Length == 0)
+            //    {
+            //        // invoke root command(or show help)
+            //        return;
+            //    }
 
+            //    switch (args[0])
+            //    {
+            //        case "foo":
+            //            if (args.Length == 1)
+            //            {
+            //                // invoke leaf command(or show help)
+            //            }
 
-    //    public ConsoleAppBuilder CreateBuilder()
-    //    {
-    //        return new ConsoleAppBuilder();
-    //    }
-    //}
+            //            switch (args[1])
+            //            {
+            //                case "tako":
+            //                    if (args.Length == 2)
+            //                    {
+            //                        result = RunAsyncCommand0(args[1..], command0);
+            //                        return;
+            //                    }
+
+            //                    switch (args[2])
+            //                    {
+            //                        case "ekkusu":
+            //                            result = RunAsyncCommand1(args[3..], command1);
+            //                            break;
+            //                        default:
+            //                            break;
+            //                    }
+            //                    break;
+            //                default:
+            //                    // invoke leaf command(or show help)
+            //                    break;
+            //            }
+            //            break;
+            //        case "do":
+            //            result = RunAsyncCommand2(args[1..]);
+            //            break;
+            //        case "sum":
+            //            result = RunAsyncCommand3(args[1..]);
+            //            break;
+            //        case "echo":
+            //            result = RunAsyncCommand4(args[1..]);
+            //            break;
+            //        default:
+            //            // invoke root command(or show help)
+            //            break;
+            //    }
+            //}
+
+        }
+    }
 
 
     //public class ConsoleAppBuilder

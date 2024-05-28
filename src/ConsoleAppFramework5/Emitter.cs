@@ -352,51 +352,85 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             }
         }
 
-        void EmitRunBody(IEnumerable<IGrouping<string?, CommandWithId>> groupedCommands, int depth, bool isRunAsync)
+        void EmitRunBody(ILookup<string, CommandWithId> groupedCommands, int depth, bool isRunAsync)
         {
+            var leafCommand = groupedCommands[""].FirstOrDefault();
+            IDisposable? ifBlcok = null;
+            if (!(groupedCommands.Count == 1 && leafCommand != null))
+            {
+                ifBlcok = sb.BeginBlock($"if (args.Length == {depth})");
+            }
+            EmitLeafCommand(leafCommand);
+            if (ifBlcok != null)
+            {
+                sb.AppendLine("return;");
+                ifBlcok.Dispose();
+            }
+            else
+            {
+                return;
+            }
+
             using (sb.BeginBlock($"switch (args[{depth}])"))
             {
-                // case:...
-                foreach (var commands in groupedCommands)
+                foreach (var commands in groupedCommands.Where(x => x.Key != ""))
                 {
                     using (sb.BeginIndent($"case \"{commands.Key}\":"))
                     {
                         var nextDepth = depth + 1;
-                        var leafCommand = commands.SingleOrDefault(x => x.Command.CommandPath.Length < nextDepth);
-                        var nextGroup = commands.Where(x => x != leafCommand).ToLookup(x => x.Command.CommandPath.Length == nextDepth ? x.Command.CommandName : x.Command.CommandPath[nextDepth]);
-                        if (nextGroup.Count() != 0)
-                        {
-                            EmitRunBody(nextGroup, nextDepth, isRunAsync);
-                            sb.AppendLine("break;");
-                        }
-
-                        if (leafCommand != null)
-                        {
-                            var cmd = leafCommand;
-
-                            string commandArgs = "";
-                            if (cmd.Command.DelegateBuildType != DelegateBuildType.None)
+                        var nextGroup = commands
+                            .ToLookup(x =>
                             {
-                                commandArgs = $", command{cmd.Id}";
-                            }
+                                var len = x.Command.CommandPath.Length;
+                                if (len > nextDepth)
+                                {
+                                    return x.Command.CommandPath[nextDepth];
+                                }
+                                if (len == nextDepth)
+                                {
+                                    return x.Command.CommandName;
+                                }
+                                else
+                                {
+                                    return ""; // as leaf command
+                                }
+                            });
 
-                            if (!isRunAsync)
-                            {
-                                sb.AppendLine($"RunCommand{cmd.Id}(args.AsSpan({depth + 1}){commandArgs});");
-                            }
-                            else
-                            {
-                                sb.AppendLine($"result = RunAsyncCommand{cmd.Id}(args[{depth + 1}..]{commandArgs});");
-                            }
-                            sb.AppendLine("break;");
-                        }
+                        EmitRunBody(nextGroup, nextDepth, isRunAsync); // recursive
+                        sb.AppendLine("break;");
                     }
                 }
 
-                // TODO: invoke root command
                 using (sb.BeginIndent("default:"))
                 {
+                    var leafCommand2 = groupedCommands[""].FirstOrDefault();
+                    EmitLeafCommand(leafCommand2);
                     sb.AppendLine("break;");
+                }
+            }
+
+            void EmitLeafCommand(CommandWithId? command)
+            {
+                if (command == null)
+                {
+                    sb.AppendLine("TryShowHelpOrVersion(args, -1);");
+                }
+                else
+                {
+                    string commandArgs = "";
+                    if (command.Command.DelegateBuildType != DelegateBuildType.None)
+                    {
+                        commandArgs = $", command{command.Id}";
+                    }
+
+                    if (!isRunAsync)
+                    {
+                        sb.AppendLine($"RunCommand{command.Id}(args.AsSpan({depth}){commandArgs});");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"result = RunAsyncCommand{command.Id}(args[{depth}..]{commandArgs});");
+                    }
                 }
             }
         }

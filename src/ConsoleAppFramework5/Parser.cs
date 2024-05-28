@@ -1,8 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Linq;
-using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
@@ -65,7 +63,21 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
         var genericType = genericName!.TypeArgumentList.Arguments[0];
 
-        // TODO: Add<T>(string commandPath)
+        // Add<T>(string commandPath)
+        string[] commandPath = [];
+        var args = node.ArgumentList.Arguments;
+        if (node.ArgumentList.Arguments.Count == 1)
+        {
+            var commandName = args[0];
+            if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
+            {
+                context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, commandName.GetLocation());
+                return [];
+            }
+
+            var name = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            commandPath = name.Split(['/'], StringSplitOptions.RemoveEmptyEntries);
+        }
 
         // T
         var type = model.GetTypeInfo(genericType).Type!;
@@ -125,7 +137,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     commandName = x.Name.ToLowerInvariant();
                 }
 
-                var command = ParseFromMethodSymbol(x, false, commandName);
+                var command = ParseFromMethodSymbol(x, false, commandPath, commandName);
                 if (command == null) return null;
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
@@ -146,7 +158,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var methodSymbols = model.GetMemberGroup(operand);
                 if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    return ParseFromMethodSymbol(methodSymbol, addressOf: true, commandName);
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: true, commandPath, commandName);
                 }
             }
             else
@@ -154,7 +166,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var methodSymbols = model.GetMemberGroup(expression);
                 if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandName);
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandPath, commandName);
                 }
             }
         }
@@ -345,7 +357,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return cmd;
     }
 
-    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string commandName)
+    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string[] commandPath, string commandName)
     {
         var docComment = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax().GetDocumentationCommentTriviaSyntax();
         var summary = "";
@@ -462,7 +474,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var cmd = new Command
         {
             CommandName = commandName,
-            CommandPath = [],
+            CommandPath = commandPath,
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,
