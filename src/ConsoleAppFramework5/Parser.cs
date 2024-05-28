@@ -113,6 +113,27 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var hasIDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IDisposable));
         var hasIAsyncDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IAsyncDisposable));
 
+        var typeFilters = type.GetAttributes()
+            .Select(x =>
+            {
+                if (x.AttributeClass?.Name == "ConsoleAppFilterAttribute")
+                {
+                    var filterType = x.AttributeClass.TypeArguments[0];
+                    var filter = FilterInfo.Create(filterType);
+
+                    if (filter == null)
+                    {
+                        // TODO: validation, ctor is invalid.
+                        return null!;
+                    }
+
+                    return filter;
+                }
+                return null!;
+            })
+            .Where(x => x != null)
+            .ToArray();
+
         var methodInfoBase = new CommandMethodInfo
         {
             TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
@@ -137,7 +158,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     commandName = x.Name.ToLowerInvariant();
                 }
 
-                var command = ParseFromMethodSymbol(x, false, commandPath, commandName);
+                var command = ParseFromMethodSymbol(x, false, commandPath, commandName, typeFilters);
                 if (command == null) return null;
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
@@ -158,7 +179,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var methodSymbols = model.GetMemberGroup(operand);
                 if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    return ParseFromMethodSymbol(methodSymbol, addressOf: true, commandPath, commandName);
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: true, commandPath, commandName, []);
                 }
             }
             else
@@ -166,7 +187,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var methodSymbols = model.GetMemberGroup(expression);
                 if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandPath, commandName);
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandPath, commandName, []);
                 }
             }
         }
@@ -358,7 +379,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return cmd;
     }
 
-    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string[] commandPath, string commandName)
+    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string[] commandPath, string commandName, FilterInfo[] typeFilters)
     {
         var docComment = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax().GetDocumentationCommentTriviaSyntax();
         var summary = "";
@@ -421,6 +442,27 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             return null;
         }
 
+        var methodFilters = methodSymbol.GetAttributes()
+            .Select(x =>
+            {
+                if (x.AttributeClass?.Name == "ConsoleAppFilterAttribute")
+                {
+                    var filterType = x.AttributeClass.TypeArguments[0];
+                    var filter = FilterInfo.Create(filterType);
+
+                    if (filter == null)
+                    {
+                        // TODO: validation, ctor is invalid.
+                        return null!;
+                    }
+
+                    return filter;
+                }
+                return null!;
+            })
+            .Where(x => x != null)
+            .ToArray();
+
         var parsableIndex = 0;
         var parameters = methodSymbol.Parameters
             .Select(x =>
@@ -482,7 +524,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
             Description = summary,
             DelegateBuildType = delegateBuildType,
-            Filters = globalFilters, // TODO: combine class filter and method filter
+            Filters = globalFilters.Concat(typeFilters).Concat(methodFilters).ToArray(),
         };
 
         return cmd;

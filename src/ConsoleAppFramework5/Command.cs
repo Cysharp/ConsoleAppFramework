@@ -329,6 +329,32 @@ public record class FilterInfo
     public required string TypeFullName { get; init; }
     public required ITypeSymbol[] ConstructorParameterTypes { get; init; }
 
+    FilterInfo()
+    {
+
+    }
+
+    public static FilterInfo? Create(ITypeSymbol type)
+    {
+        var publicConstructors = type.GetMembers()
+             .OfType<IMethodSymbol>()
+             .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Constructor && x.DeclaredAccessibility == Accessibility.Public)
+             .ToArray();
+
+        if (publicConstructors.Length != 1)
+        {
+            return null;
+        }
+
+        var filter = new FilterInfo
+        {
+            TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
+            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => x.Type).ToArray()
+        };
+
+        return filter;
+    }
+
     public string BuildNew(string nextFilterName)
     {
         var p = ConstructorParameterTypes.Select(parameter =>

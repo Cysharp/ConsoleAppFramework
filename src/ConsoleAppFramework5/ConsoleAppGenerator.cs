@@ -532,23 +532,14 @@ using System.ComponentModel.DataAnnotations;
                 var type = model.GetTypeInfo(genericType).Type;
                 if (type == null) return null!;
 
-                var publicConstructors = type.GetMembers()
-                   .OfType<IMethodSymbol>()
-                   .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Constructor && x.DeclaredAccessibility == Accessibility.Public)
-                   .ToArray();
+                var filter = FilterInfo.Create(type);
 
-                if (publicConstructors.Length != 1)
+                if (filter == null)
                 {
-                    // TODO: validation
+                    // TODO: validation, ctor is invalid.
                 }
 
-                var filter = new FilterInfo
-                {
-                    TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
-                    ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => x.Type).ToArray()
-                };
-
-                return filter;
+                return filter!;
             })
             .Where(x => x != null)
             .ToArray();

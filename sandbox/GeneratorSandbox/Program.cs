@@ -21,8 +21,9 @@ using static ConsoleAppFramework.ConsoleApp;
 
 
 // args = ["do"]; // test.
+args = ["sum", "--x", "10", "--y", "20"];
 
-var builder = ConsoleApp.CreateBuilder();
+//var builder = ConsoleApp.CreateBuilder();
 
 //builder.Add("", () => { });
 //builder.Add("a", () => { });
@@ -36,17 +37,21 @@ var builder = ConsoleApp.CreateBuilder();
 //builder.Run(args);
 
 
-builder.AddFilter<TimestampFilter>();
-builder.AddFilter<LogExecutionTimeFilter>();
+//builder.AddFilter<NanimosinaiFilter>();
+//builder.AddFilter<LogExecutionTimeFilter>();
 
 
-builder.Add("", (CancellationToken ct) => { Console.WriteLine("body"); });
+// builder.Add("", (int x, CancellationToken ct, int y) => { Console.WriteLine("body"); });
 
-builder.Run(args);
+//builder.Add<MyClass>();
+
+//builder.Run(args);
 
 
 
+var mc = new MyClass();
 
+// ConsoleApp.Run(args, mc.Sum);
 
 
 
@@ -125,6 +130,7 @@ static void Tests<T>()
 
 }
 
+[ConsoleAppFilter<TimestampFilter>]
 public class MyClass
 {
     public void Do(CancellationToken cancellationToken)
@@ -132,9 +138,10 @@ public class MyClass
         Console.Write("yeah");
     }
 
+    [ConsoleAppFilter<LogExecutionTimeFilter>]
     public void Sum(int x, int y)
     {
-        Console.Write(x + y);
+        Console.WriteLine(x + y);
     }
 
     public void Echo(string msg)
@@ -546,6 +553,15 @@ namespace ConsoleAppFramework
             }
         }
 
+        public class NanimosinaiFilter(ConsoleAppFilter next)
+            : ConsoleAppFilter(next)
+        {
+            public override Task InvokeAsync(CancellationToken cancellationToken)
+            {
+                Console.WriteLine("filter0");
+                return Next.InvokeAsync(cancellationToken);
+            }
+        }
 
 
         public class MyContext : IServiceProvider

@@ -506,7 +506,8 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     }
                     sb.AppendLine($"return filter{i};");
                 }
-
+                
+                sb.AppendLine();
                 using (sb.BeginBlock($"public override Task InvokeAsync(CancellationToken cancellationToken)"))
                 {
                     var cmdArgs = needsCommand ? ", command" : "";
@@ -518,4 +519,3 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
     internal record CommandWithId(string? FieldType, Command Command, int Id);
 }
-
