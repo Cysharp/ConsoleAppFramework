@@ -114,6 +114,19 @@ internal sealed class CommandAttribute : Attribute
     }
 }
 
+internal abstract class ConsoleAppFilter(ConsoleAppFilter next)
+{
+    protected ConsoleAppFilter Next = next;
+
+    public abstract Task InvokeAsync(CancellationToken cancellationToken);
+}
+
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+internal sealed class ConsoleAppFilterAttribute<T> : Attribute
+    where T : ConsoleAppFilter
+{
+}
+
 internal static partial class ConsoleApp
 {
     public static IServiceProvider? ServiceProvider { get; set; }
@@ -286,6 +299,37 @@ internal static partial class ConsoleApp
     static void ShowHelp()
     {
         Log("TODO: Build Help");
+    }
+
+    static async Task RunWithFilterAsync(ConsoleAppFilter invoker)
+    {
+        using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
+        try
+        {
+            await Task.Run(() => invoker.InvokeAsync(posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
+        }
+	    catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)
+	    {
+		    Environment.ExitCode = 130;
+	    }
+        catch (Exception ex)
+        {
+            if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))
+            {
+                Environment.ExitCode = 130;
+                return;
+            }
+
+            Environment.ExitCode = 1;
+            if (ex is ValidationException)
+            {
+                LogError(ex.Message);
+            }
+            else
+            {
+                LogError(ex.ToString());
+            }
+        }
     }
 
     sealed class PosixSignalHandler : IDisposable

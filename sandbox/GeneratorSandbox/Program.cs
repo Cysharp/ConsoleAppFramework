@@ -38,7 +38,7 @@ var builder = ConsoleApp.CreateBuilder();
 
 
 
-builder.Add("", () => { Console.Write("root"); });
+builder.Add("", (CancellationToken ct) => { Console.Write("root"); });
 
 builder.Run(args);
 

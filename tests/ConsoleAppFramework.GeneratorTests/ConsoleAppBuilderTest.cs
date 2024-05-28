@@ -201,7 +201,7 @@ public class MiniDI : IServiceProvider
     }
 
     [Fact]
-    public void Command()
+    public void CommandAttr()
     {
         var code = """
 var builder = ConsoleApp.CreateBuilder();
