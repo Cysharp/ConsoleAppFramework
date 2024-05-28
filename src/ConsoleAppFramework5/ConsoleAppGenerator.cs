@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.ComponentModel.Design;
 using System.Reflection;
+using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -51,7 +52,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
                     var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Add" or "Run" or "RunAsync")
+                    if (methodName is "Add" or "AddFilter" or "Run" or "RunAsync")
                     {
                         return true;
                     }
@@ -398,6 +399,9 @@ internal static partial class ConsoleApp
         [System.Diagnostics.Conditional("DEBUG")]
         public void Add<T>(string commandPath) { }
 
+        [System.Diagnostics.Conditional("DEBUG")]
+        public void AddFilter<T>() where T : ConsoleAppFilter { }
+
         public void Run(string[] args)
         {
             RunCore(args);
@@ -467,7 +471,7 @@ using System.ComponentModel.DataAnnotations;
 
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
-        var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue);
+        var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
         var command = parser.ParseAndValidate();
         if (command == null)
         {
@@ -510,7 +514,7 @@ using System.ComponentModel.DataAnnotations;
             }
         }
 
-        var group1 = generatorSyntaxContexts.ToLookup(x =>
+        var methodGroup = generatorSyntaxContexts.ToLookup(x =>
         {
             if (x.Name == "Add" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
             {
@@ -520,12 +524,41 @@ using System.ComponentModel.DataAnnotations;
             return x.Name;
         });
 
-        var names = new HashSet<string>();
-        var commands1 = group1["Add"]
+        var globalFilters = methodGroup["AddFilter"]
             .Select(x =>
             {
-                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc);
-                var command = parser.ParseAndValidateForCommand();
+                var genericName = (x.Node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
+                var genericType = genericName!.TypeArgumentList.Arguments[0];
+                var type = model.GetTypeInfo(genericType).Type;
+                if (type == null) return null!;
+
+                var publicConstructors = type.GetMembers()
+                   .OfType<IMethodSymbol>()
+                   .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Constructor && x.DeclaredAccessibility == Accessibility.Public)
+                   .ToArray();
+
+                if (publicConstructors.Length != 1)
+                {
+                    // TODO: validation
+                }
+
+                var filter = new FilterInfo
+                {
+                    TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
+                    ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => x.Type).ToArray()
+                };
+
+                return filter;
+            })
+            .Where(x => x != null)
+            .ToArray();
+
+        var names = new HashSet<string>();
+        var commands1 = methodGroup["Add"]
+            .Select(x =>
+            {
+                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc, globalFilters);
+                var command = parser.ParseAndValidateForBuilderDelegateRegistration();
 
                 // validation command name duplicate
                 if (command != null && !names.Add(command.CommandFullName))
@@ -538,11 +571,11 @@ using System.ComponentModel.DataAnnotations;
             })
             .ToArray(); // evaluate first.
 
-        var commands2 = group1["Add<T>"]
+        var commands2 = methodGroup["Add<T>"]
             .SelectMany(x =>
             {
-                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None);
-                var commands = parser.ParseForBuilderClassRegistration();
+                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                var commands = parser.ParseAndValidateForBuilderClassRegistration();
 
                 // validation command name duplicate?
                 foreach (var command in commands)
@@ -567,8 +600,8 @@ using System.ComponentModel.DataAnnotations;
 
         if (commands.Length == 0) return;
 
-        var hasRun = group1["Run"].Any();
-        var hasRunAsync = group1["RunAsync"].Any();
+        var hasRun = methodGroup["Run"].Any();
+        var hasRunAsync = methodGroup["RunAsync"].Any();
 
         if (!hasRun && !hasRunAsync) return;
 

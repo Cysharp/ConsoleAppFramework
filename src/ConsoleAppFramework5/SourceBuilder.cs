@@ -47,6 +47,8 @@ internal class SourceBuilder(int level)
         return new Block(this);
     }
 
+    public IDisposable Nop => NullDisposable.Instance;
+
     public void AppendLine()
     {
         builder.AppendLine();
@@ -85,6 +87,15 @@ internal class SourceBuilder(int level)
         {
             parent.Unindent();
             parent.AppendLine("}");
+        }
+    }
+
+    class NullDisposable : IDisposable
+    {
+        public static readonly IDisposable Instance = new NullDisposable();
+
+        public void Dispose()
+        {
         }
     }
 }

@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
+using static ConsoleAppFramework.ConsoleApp;
 
 
 // args = ["do"]; // test.
@@ -35,10 +36,11 @@ var builder = ConsoleApp.CreateBuilder();
 //builder.Run(args);
 
 
+builder.AddFilter<TimestampFilter>();
+builder.AddFilter<LogExecutionTimeFilter>();
 
 
-
-builder.Add("", (CancellationToken ct) => { Console.Write("root"); });
+builder.Add("", (CancellationToken ct) => { Console.WriteLine("body"); });
 
 builder.Run(args);
 
@@ -401,333 +403,180 @@ namespace ConsoleAppFramework
 {
     partial class ConsoleApp
     {
+
+
         partial struct ConsoleAppBuilder
         {
-            //void RunAsyncCore2(string[] args, ref Task result)
+
+
+            // public void AddFilter<T>() where T : ConsoleAppFilter { }
+
+
+            //public class ConsoleAppBuilder
             //{
-            //    if (args.Length == 0)
+            //    public void Add()
             //    {
-            //        // invoke root command(or show help)
-            //        return;
             //    }
 
-            //    switch (args[0])
+
+
+            //    public void Run(string[] args)
             //    {
-            //        case "foo":
-            //            if (args.Length == 1)
-            //            {
-            //                // invoke leaf command(or show help)
-            //            }
+            //        if (args.Length == 0 || args[0].StartsWith('-'))
+            //        {
+            //            // invoke root command
+            //        }
+            //    }
 
-            //            switch (args[1])
-            //            {
-            //                case "tako":
-            //                    if (args.Length == 2)
-            //                    {
-            //                        result = RunAsyncCommand0(args[1..], command0);
-            //                        return;
-            //                    }
-
-            //                    switch (args[2])
-            //                    {
-            //                        case "ekkusu":
-            //                            result = RunAsyncCommand1(args[3..], command1);
-            //                            break;
-            //                        default:
-            //                            break;
-            //                    }
-            //                    break;
-            //                default:
-            //                    // invoke leaf command(or show help)
-            //                    break;
-            //            }
-            //            break;
-            //        case "do":
-            //            result = RunAsyncCommand2(args[1..]);
-            //            break;
-            //        case "sum":
-            //            result = RunAsyncCommand3(args[1..]);
-            //            break;
-            //        case "echo":
-            //            result = RunAsyncCommand4(args[1..]);
-            //            break;
-            //        default:
-            //            // invoke root command(or show help)
-            //            break;
+            //    public void RunAsync(string[] args)
+            //    {
             //    }
             //}
 
-        }
-    }
-
-
-    //public class ConsoleAppBuilder
-    //{
-    //    public void Add()
-    //    {
-    //    }
-
-
-
-    //    public void Run(string[] args)
-    //    {
-    //        if (args.Length == 0 || args[0].StartsWith('-'))
-    //        {
-    //            // invoke root command
-    //        }
-    //    }
-
-    //    public void RunAsync(string[] args)
-    //    {
-    //    }
-    //}
-
-    partial class ConsoleApp
-    {
-        private static async Task RunAsyncCommand1(string[] args)
-        {
-            if (TryShowHelpOrVersion(args, 0)) return;
-
-            using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
-            var arg0 = posixSignalHandler.Token;
-
-            try
+            partial class ConsoleApp
             {
-                for (int i = 0; i < args.Length; i++)
+                private static async Task RunAsyncCommand1(string[] args)
                 {
-                    var name = args[i];
+                    if (TryShowHelpOrVersion(args, 0)) return;
 
-                    switch (name)
+                    using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
+                    var arg0 = posixSignalHandler.Token;
+
+                    try
                     {
-                        default:
-                            ThrowArgumentNameNotFound(name);
-                            break;
-                    }
-                }
-                var instance = new global::MyClass();
-                await Task.Run(() => instance.Do(arg0!)).WaitAsync(posixSignalHandler.TimeoutToken);
-            }
-            catch (Exception ex)
-            {
-                if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))
-                {
-                    Environment.ExitCode = 130;
-                    return;
-                }
-
-                Environment.ExitCode = 1;
-                if (ex is System.ComponentModel.DataAnnotations.ValidationException)
-                {
-                    LogError(ex.Message);
-                }
-                else
-                {
-                    LogError(ex.ToString());
-                }
-            }
-        }
-
-
-
-        public struct Builder()
-        {
-            private static void RunCommand0(ReadOnlySpan<string> args)
-            {
-                // if (TryShowHelpOrVersion(args, 0)) return;
-
-
-                try
-                {
-                    for (int i = 0; i < args.Length; i++)
-                    {
-
-                        var name = args[i];
-
-                        switch (name)
+                        for (int i = 0; i < args.Length; i++)
                         {
+                            var name = args[i];
 
-                            default:
+                            switch (name)
+                            {
+                                default:
+                                    ThrowArgumentNameNotFound(name);
+                                    break;
+                            }
+                        }
+                        var instance = new global::MyClass();
+                        await Task.Run(() => instance.Do(arg0!)).WaitAsync(posixSignalHandler.TimeoutToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))
+                        {
+                            Environment.ExitCode = 130;
+                            return;
+                        }
 
-                                ThrowArgumentNameNotFound(name);
-                                break;
+                        Environment.ExitCode = 1;
+                        if (ex is System.ComponentModel.DataAnnotations.ValidationException)
+                        {
+                            LogError(ex.Message);
+                        }
+                        else
+                        {
+                            LogError(ex.ToString());
                         }
                     }
-
-
-                    var instance = new global::MyClass();
-                    // instance.Do();
                 }
 
-                catch (Exception ex)
+
+
+                public struct Builder()
                 {
-                    Environment.ExitCode = 1;
-                    if (ex is System.ComponentModel.DataAnnotations.ValidationException)
-                    {
-                        LogError(ex.Message);
-                    }
-                    else
-                    {
-                        LogError(ex.ToString());
-                    }
+
                 }
             }
+        }
 
-            public void RunCore2(string[] args)
+
+
+        public class FilterContext : IServiceProvider
+        {
+            public long Timestamp { get; set; }
+            public Guid UserId { get; set; }
+
+            object IServiceProvider.GetService(Type serviceType)
             {
-                switch (args[0])
-                {
-                    case "do":
-                        RunWithFilterAsync(new Command0Invoker(args[1..]).BuildFilter()).GetAwaiter().GetResult();
-                        break;
-                    case "tako":
-                        switch (args[1]) // incr...
-                        {
-                            case "foo":
-                                break;
-                            default:
-                                break;
-                        }
-                        break;
-                    //case "tako":
-                    //break;
-                    default:
-                        break;
-                }
+                if (serviceType == typeof(FilterContext)) return this;
+                throw new InvalidOperationException("Type is invalid:" + serviceType);
             }
+        }
 
-            // move to ConsoleApp template?
-            static async Task RunWithFilterAsync(ConsoleAppFilter invoker)
+        //public abstract class ConsoleAppFilter(ConsoleAppFilter next)
+        //{
+        //    protected ConsoleAppFilter Next = next;
+
+        //    public abstract ValueTask InvokeAsync(CancellationToken cancellationToken);
+        //}
+
+        //[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+        //public sealed class ConsoleAppFilterAttribute<T> : Attribute
+        //    where T : ConsoleAppFilter
+        //{
+        //}
+
+        public class TimestampFilter(ConsoleAppFilter next)
+            : ConsoleAppFilter(next)
+        {
+            public override Task InvokeAsync(CancellationToken cancellationToken)
             {
-                using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
+                Console.WriteLine("filter1");
+                return Next.InvokeAsync(cancellationToken);
+            }
+        }
 
-                // in core, remove try-catch...?
+
+        public class LogExecutionTimeFilter(ConsoleAppFilter next)
+            : ConsoleAppFilter(next)
+        {
+            public override async Task InvokeAsync(CancellationToken cancellationToken)
+            {
+                Console.WriteLine("filter2");
+
+
+                var startingTime = Stopwatch.GetTimestamp();
                 try
                 {
-                    await Task.Run(() => invoker.InvokeAsync(posixSignalHandler.Token).AsTask()).WaitAsync(posixSignalHandler.TimeoutToken);
+                    await Next.InvokeAsync(cancellationToken);
                 }
-                catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)
+                finally
                 {
-                    Environment.ExitCode = 130;
-                }
-                catch (Exception ex)
-                {
-                    Environment.ExitCode = 1;
-                    if (ex is System.ComponentModel.DataAnnotations.ValidationException)
-                    {
-                        LogError(ex.Message);
-                    }
-                    else
-                    {
-                        LogError(ex.ToString());
-                    }
+                    var elapsed = Stopwatch.GetElapsedTime(startingTime);
+                    ConsoleApp.Log($"Execution Time: {elapsed.ToString()}");
                 }
             }
+        }
 
-            sealed class Command0Invoker(string[] args) : ConsoleAppFilter(null!)
+
+
+        public class MyContext : IServiceProvider
+        {
+            public long Timestamp { get; set; }
+            public Guid UserId { get; set; }
+
+            object IServiceProvider.GetService(Type serviceType)
             {
-                public ConsoleAppFilter BuildFilter()
-                {
-                    var f3 = new TimestampFilter(this); // and DI.
-                    var f2 = new TimestampFilter(f3);
-                    var f1 = new TimestampFilter(f2);
-
-                    return f1;
-                }
-
-                public override ValueTask InvokeAsync(CancellationToken cancellationToken)
-                {
-                    RunCommand0(args); // pass: cancellationToken.
-                    return default;
-                }
+                if (serviceType == typeof(MyContext)) return this;
+                throw new InvalidOperationException("Type is invalid:" + serviceType);
             }
         }
-    }
-}
 
-
-
-public class FilterContext : IServiceProvider
-{
-    public long Timestamp { get; set; }
-    public Guid UserId { get; set; }
-
-    object IServiceProvider.GetService(Type serviceType)
-    {
-        if (serviceType == typeof(FilterContext)) return this;
-        throw new InvalidOperationException("Type is invalid:" + serviceType);
-    }
-}
-
-public abstract class ConsoleAppFilter(ConsoleAppFilter next)
-{
-    protected ConsoleAppFilter Next = next;
-
-    public abstract ValueTask InvokeAsync(CancellationToken cancellationToken);
-}
-
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
-public sealed class ConsoleAppFilterAttribute<T> : Attribute
-    where T : ConsoleAppFilter
-{
-}
-
-public class TimestampFilter(ConsoleAppFilter next)
-    : ConsoleAppFilter(next)
-{
-    public override ValueTask InvokeAsync(CancellationToken cancellationToken)
-    {
-        return Next.InvokeAsync(cancellationToken);
-    }
-}
-
-
-public class LogExecutionTimeFilter(ConsoleAppFilter next)
-    : ConsoleAppFilter(next)
-{
-    public override async ValueTask InvokeAsync(CancellationToken cancellationToken)
-    {
-        var startingTime = Stopwatch.GetTimestamp();
-        try
+        public class MyClass23
         {
-            await Next.InvokeAsync(cancellationToken);
+            public void Do()
+            {
+                Console.Write("yeah:");
+            }
         }
-        finally
+
+        [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+        internal sealed class CommandAttribute : Attribute
         {
-            var elapsed = Stopwatch.GetElapsedTime(startingTime);
-            ConsoleApp.Log($"Execution Time: {elapsed.ToString()}");
+            public string Command { get; }
+
+            public CommandAttribute(string command)
+            {
+                this.Command = command;
+            }
         }
-    }
-}
-
-
-
-public class MyContext : IServiceProvider
-{
-    public long Timestamp { get; set; }
-    public Guid UserId { get; set; }
-
-    object IServiceProvider.GetService(Type serviceType)
-    {
-        if (serviceType == typeof(MyContext)) return this;
-        throw new InvalidOperationException("Type is invalid:" + serviceType);
-    }
-}
-
-public class MyClass23
-{
-    public void Do()
-    {
-        Console.Write("yeah:");
-    }
-}
-
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-internal sealed class CommandAttribute : Attribute
-{
-    public string Command { get; }
-
-    public CommandAttribute(string command)
-    {
-        this.Command = command;
     }
 }

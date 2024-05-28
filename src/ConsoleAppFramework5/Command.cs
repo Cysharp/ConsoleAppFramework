@@ -32,6 +32,8 @@ public record class Command
     public required MethodKind MethodKind { get; init; }
     public required DelegateBuildType DelegateBuildType { get; init; }
     public CommandMethodInfo? CommandMethodInfo { get; set; } // can set...!
+    public required FilterInfo[] Filters { get; init; }
+    public bool HasFilter => Filters.Length != 0;
 
     public string? BuildDelegateSignature(out string? delegateType)
     {
@@ -316,6 +318,30 @@ public record class CommandMethodInfo
         {
             var type = parameter.ToFullyQualifiedFormatDisplayString();
             return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+        });
+
+        return $"new {TypeFullName}({string.Join(", ", p)})";
+    }
+}
+
+public record class FilterInfo
+{
+    public required string TypeFullName { get; init; }
+    public required ITypeSymbol[] ConstructorParameterTypes { get; init; }
+
+    public string BuildNew(string nextFilterName)
+    {
+        var p = ConstructorParameterTypes.Select(parameter =>
+        {
+            var type = parameter.ToFullyQualifiedFormatDisplayString();
+            if (type.Contains("ConsoleAppFramework.ConsoleAppFilter"))
+            {
+                return nextFilterName;
+            }
+            else
+            {
+                return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+            }
         });
 
         return $"new {TypeFullName}({string.Join(", ", p)})";

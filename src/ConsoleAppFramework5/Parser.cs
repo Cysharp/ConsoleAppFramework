@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConsoleAppFramework;
 
-internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType)
+internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
 {
     public Command? ParseAndValidate() // for ConsoleApp.Run
     {
@@ -23,7 +23,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return null;
     }
 
-    public Command? ParseAndValidateForCommand() // for ConsoleAppBuilder.Add
+    public Command? ParseAndValidateForBuilderDelegateRegistration() // for ConsoleAppBuilder.Add
     {
         // Add(string commandName)
         var args = node.ArgumentList.Arguments;
@@ -57,7 +57,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return null;
     }
 
-    public Command?[] ParseForBuilderClassRegistration()
+    public Command?[] ParseAndValidateForBuilderClassRegistration()
     {
         // Add<T>
         var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
@@ -351,7 +351,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             Parameters = parameters,
             MethodKind = MethodKind.Lambda,
             Description = "",
-            DelegateBuildType = delegateBuildType
+            DelegateBuildType = delegateBuildType,
+            Filters = globalFilters,
         };
 
         return cmd;
@@ -480,7 +481,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             Parameters = parameters,
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
             Description = summary,
-            DelegateBuildType = delegateBuildType
+            DelegateBuildType = delegateBuildType,
+            Filters = globalFilters, // TODO: combine class filter and method filter
         };
 
         return cmd;

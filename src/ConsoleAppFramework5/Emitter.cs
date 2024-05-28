@@ -12,6 +12,11 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
 
+        if (command.HasFilter)
+        {
+            isRunAsync = true;
+            hasCancellationToken = false;
+        }
         var returnType = isRunAsync ? "async Task" : "void";
         var accessibility = !emitForBuilder ? "public" : "private";
         var argsType = !emitForBuilder ? "string[]" : (isRunAsync ? "string[]" : "ReadOnlySpan<string>"); // NOTE: C# 13 will allow Span<T> in async methods so can change to ReadOnlyMemory<string>(and store .Span in local var)
@@ -31,8 +36,10 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             sb.AppendLine();
         }
 
+        var filterCancellationToken = command.HasFilter ? ", CancellationToken cancellationToken" : "";
+
         // method signature
-        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({argsType} args{commandMethodType})"))
+        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({argsType} args{commandMethodType}{filterCancellationToken})"))
         {
             sb.AppendLine($"if (TryShowHelpOrVersion(args, {parsableParameterCount})) return;");
             sb.AppendLine();
@@ -56,7 +63,14 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 }
                 else if (parameter.IsCancellationToken)
                 {
-                    sb.AppendLine($"var arg{i} = posixSignalHandler.Token;");
+                    if (command.HasFilter)
+                    {
+                        sb.AppendLine($"var arg{i} = cancellationToken;");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"var arg{i} = posixSignalHandler.Token;");
+                    }
                 }
                 else if (parameter.IsFromServices)
                 {
@@ -66,8 +80,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             }
             sb.AppendLineIfExists(command.Parameters);
 
-            // try TODO: if using filter, does not emit try
-            using (sb.BeginBlock("try"))
+            using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
                 using (sb.BeginBlock("for (int i = 0; i < args.Length; i++)"))
                 {
@@ -239,27 +252,31 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     sb.AppendLine($"Environment.ExitCode = {invokeCommand};");
                 }
             }
-            using (sb.BeginBlock("catch (Exception ex)"))
+
+            if (!command.HasFilter)
             {
-                if (hasCancellationToken)
+                using (sb.BeginBlock("catch (Exception ex)"))
                 {
-                    using (sb.BeginBlock("if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))"))
+                    if (hasCancellationToken)
                     {
-                        sb.AppendLine("Environment.ExitCode = 130;");
-                        sb.AppendLine("return;");
+                        using (sb.BeginBlock("if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))"))
+                        {
+                            sb.AppendLine("Environment.ExitCode = 130;");
+                            sb.AppendLine("return;");
+                        }
+                        sb.AppendLine();
                     }
-                    sb.AppendLine();
-                }
 
-                sb.AppendLine("Environment.ExitCode = 1;");
+                    sb.AppendLine("Environment.ExitCode = 1;");
 
-                using (sb.BeginBlock("if (ex is ValidationException)"))
-                {
-                    sb.AppendLine("LogError(ex.Message);");
-                }
-                using (sb.BeginBlock("else"))
-                {
-                    sb.AppendLine("LogError(ex.ToString());");
+                    using (sb.BeginBlock("if (ex is ValidationException)"))
+                    {
+                        sb.AppendLine("LogError(ex.Message);");
+                    }
+                    using (sb.BeginBlock("else"))
+                    {
+                        sb.AppendLine("LogError(ex.ToString());");
+                    }
                 }
             }
         }
@@ -332,12 +349,22 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             }
 
             // static sync command function
+            HashSet<Command> emittedCommand = new();
             if (emitSync)
             {
                 sb.AppendLine();
                 foreach (var item in commandIds)
                 {
-                    EmitRun(sb, item.Command, false, $"RunCommand{item.Id}");
+                    if (!emittedCommand.Add(item.Command)) continue;
+
+                    if (item.Command.HasFilter)
+                    {
+                        EmitRun(sb, item.Command, true, $"RunCommand{item.Id}Async");
+                    }
+                    else
+                    {
+                        EmitRun(sb, item.Command, false, $"RunCommand{item.Id}");
+                    }
                 }
             }
 
@@ -347,7 +374,18 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 sb.AppendLine();
                 foreach (var item in commandIds)
                 {
-                    EmitRun(sb, item.Command, true, $"RunAsyncCommand{item.Id}");
+                    if (!emittedCommand.Add(item.Command)) continue;
+                    EmitRun(sb, item.Command, true, $"RunCommand{item.Id}Async");
+                }
+            }
+
+            // filter invoker
+            foreach (var item in commandIds)
+            {
+                if (item.Command.HasFilter)
+                {
+                    sb.AppendLine();
+                    EmitFilterInvoker(item);
                 }
             }
         }
@@ -423,14 +461,56 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                         commandArgs = $", command{command.Id}";
                     }
 
-                    if (!isRunAsync)
+                    if (!command.Command.HasFilter)
                     {
-                        sb.AppendLine($"RunCommand{command.Id}(args.AsSpan({depth}){commandArgs});");
+                        if (!isRunAsync)
+                        {
+                            sb.AppendLine($"RunCommand{command.Id}(args.AsSpan({depth}){commandArgs});");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"result = RunCommand{command.Id}Async(args[{depth}..]{commandArgs});");
+                        }
                     }
                     else
                     {
-                        sb.AppendLine($"result = RunAsyncCommand{command.Id}(args[{depth}..]{commandArgs});");
+                        var invokeCode = $"RunWithFilterAsync(new Command{command.Id}Invoker(args[{depth}..]{commandArgs}).BuildFilter())";
+                        if (!isRunAsync)
+                        {
+                            sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"result = {invokeCode};");
+                        }
                     }
+                }
+            }
+        }
+
+        void EmitFilterInvoker(CommandWithId command)
+        {
+            var commandType = command.Command.BuildDelegateSignature(out _);
+            var needsCommand = commandType != null;
+            if (needsCommand) commandType = $", {commandType} command";
+
+            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker(string[] args{commandType}) : ConsoleAppFilter(null!)"))
+            {
+                using (sb.BeginBlock($"public ConsoleAppFilter BuildFilter()"))
+                {
+                    var i = -1;
+                    foreach (var filter in command.Command.Filters.Reverse())
+                    {
+                        var newFilter = filter.BuildNew(i == -1 ? "this" : $"filter{i}");
+                        sb.AppendLine($"var filter{++i} = {newFilter};");
+                    }
+                    sb.AppendLine($"return filter{i};");
+                }
+
+                using (sb.BeginBlock($"public override Task InvokeAsync(CancellationToken cancellationToken)"))
+                {
+                    var cmdArgs = needsCommand ? ", command" : "";
+                    sb.AppendLine($"return RunCommand{command.Id}Async(args{cmdArgs}, cancellationToken);");
                 }
             }
         }
