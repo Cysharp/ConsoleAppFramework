@@ -71,6 +71,11 @@ internal class SourceBuilder(int level)
         builder.AppendLine(text);
     }
 
+    public void AppendLineWithoutIndent(string text)
+    {
+        builder.AppendLine(text);
+    }
+
     public override string ToString() => builder.ToString();
 
     public struct Scope(SourceBuilder parent) : IDisposable

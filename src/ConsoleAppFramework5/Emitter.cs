@@ -5,8 +5,10 @@ namespace ConsoleAppFramework;
 
 internal class Emitter(WellKnownTypes wellKnownTypes)
 {
-    public void EmitRun(SourceBuilder sb, Command command, bool isRunAsync, string? methodName = null)
+    public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName = null)
     {
+        var command = commandWithId.Command;
+
         var emitForBuilder = methodName != null;
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
@@ -42,7 +44,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         // method signature
         using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({argsType} args{commandMethodType}{filterCancellationToken})"))
         {
-            sb.AppendLine($"if (TryShowHelpOrVersion(args, {parsableParameterCount})) return;");
+            sb.AppendLine($"if (TryShowHelpOrVersion(args, {parsableParameterCount}, {commandWithId.Id})) return;");
             sb.AppendLine();
 
             // prepare argument variables
@@ -362,11 +364,11 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
                     if (item.Command.HasFilter)
                     {
-                        EmitRun(sb, item.Command, true, $"RunCommand{item.Id}Async");
+                        EmitRun(sb, item, true, $"RunCommand{item.Id}Async");
                     }
                     else
                     {
-                        EmitRun(sb, item.Command, false, $"RunCommand{item.Id}");
+                        EmitRun(sb, item, false, $"RunCommand{item.Id}");
                     }
                 }
             }
@@ -378,7 +380,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 foreach (var item in commandIds)
                 {
                     if (!emittedCommand.Add(item.Command)) continue;
-                    EmitRun(sb, item.Command, true, $"RunCommand{item.Id}Async");
+                    EmitRun(sb, item, true, $"RunCommand{item.Id}Async");
                 }
             }
 
@@ -454,7 +456,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             {
                 if (command == null)
                 {
-                    sb.AppendLine("TryShowHelpOrVersion(args, -1);");
+                    sb.AppendLine("TryShowHelpOrVersion(args, -1, -1);");
                 }
                 else
                 {
@@ -517,6 +519,18 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     sb.AppendLine($"return RunCommand{command.Id}Async(args{cmdArgs}, cancellationToken);");
                 }
             }
+        }
+    }
+
+    public void EmitHelp(SourceBuilder sb, Command command)
+    {
+        var helpBuilder = new CommandHelpBuilder();
+        var help = helpBuilder.BuildHelpMessage(command);
+        using (sb.BeginBlock("static partial void ShowHelp(int helpId)"))
+        {
+            sb.AppendLine("Log(\"\"\"");
+            sb.AppendLineWithoutIndent(help);
+            sb.AppendLineWithoutIndent("\"\"\");");
         }
     }
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -154,8 +155,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 }
                 else
                 {
-                    // TODO: commandName convert to snake-case
-                    commandName = x.Name.ToLowerInvariant();
+                    commandName = NameConverter.ToKebabCase(x.Name);
                 }
 
                 var command = ParseFromMethodSymbol(x, false, commandPath, commandName, typeFilters);
@@ -347,7 +347,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
                 return new CommandParameter
                 {
-                    Name = x.Identifier.Text,
+                    Name = NameConverter.ToKebabCase(x.Identifier.Text),
                     IsNullableReference = isNullableReference,
                     IsParams = hasParams,
                     Type = type.Type!,
@@ -500,7 +500,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
                 return new CommandParameter
                 {
-                    Name = x.Name,
+                    Name = NameConverter.ToKebabCase(x.Name),
                     IsNullableReference = isNullableReference,
                     IsParams = x.IsParams,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),

@@ -21,92 +21,19 @@ using static ConsoleAppFramework.ConsoleApp;
 
 
 // args = ["do"]; // test.
-args = ["--ix", "[]", "--sx", "[]"];
+//args = ["--foo-bar", "aiueo"];
 
-//var builder = ConsoleApp.CreateBuilder();
+ConsoleApp.Run(args, (int x, bool tako, int y = 999) => { });
 
-//builder.Add("", () => { });
-////builder.Add("a", () => { });
-////builder.Add("a/b1", () => { });
-////builder.Add("a/b2", () => { });
-////builder.Add("a/b2/c", () => { });
-////builder.Add("do", () => { });
-
-////builder.Add<MyClass>("age");
-
-////builder.Run(args);
-
-
-//builder.AddFilter<NanimosinaiFilter>();
-//builder.AddFilter<LogExecutionTimeFilter>();
-
-
-
-//// builder.Add("", (int x, CancellationToken ct, int y) => { Console.WriteLine("body"); });
-
-//builder.Add<MyClass>();
-
-
-//builder.Run(args);
-
-//stq//ring[] a = [];
-//var i = 2;
-//TryParseParamsArray(args, ref a, ref i);
-
-
-ConsoleApp.Run(args, (int[] ix, string[] sx) =>
+public class MyClass333
 {
-    Console.Write("[" + string.Join(", ", ix) + "]");
-    Console.Write("[" + string.Join(", ", sx) + "]");
-});
-
-
-
-void Tako(ref int x)
-{
-}
-
-static bool TryParseParamsArray(ReadOnlySpan<string> args, ref string[] result, ref int i)
-{
-    result = new string[args.Length - i];
-    var resultIndex = 0;
-    for (; i < args.Length; i++)
+    public void HelloWorld(string fooBar)
     {
-        result[resultIndex++] = args[i];
+        Console.Write("Hello World! " + fooBar);
     }
-    return true;
+
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-var mc = new MyClass();
-
-//ConsoleApp.Run(args, Hello);
-
-
-
-
-
-
-
-
-
-
-
-void Hello(int foo, params string[] aiueo)
-{
-}
-
-
 
 
 
@@ -154,21 +81,11 @@ void Hello(int foo, params string[] aiueo)
 // --x
 
 
-static async Task<int> RunRun(int? x = null, string? y = null)
-{
-    await Task.Yield();
-    Console.WriteLine("Hello World!" + x + y);
-    return 0;
-}
 
 
 
-static void Tests<T>()
-    where T : ISpanParsable<int>
-{
 
 
-}
 
 [ConsoleAppFilter<TimestampFilter>]
 public class MyClass
@@ -507,7 +424,7 @@ namespace ConsoleAppFramework
             {
                 private static async Task RunAsyncCommand1(string[] args)
                 {
-                    if (TryShowHelpOrVersion(args, 0)) return;
+                    // if (TryShowHelpOrVersion(args, 0)) return;
 
                     using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
                     var arg0 = posixSignalHandler.Token;

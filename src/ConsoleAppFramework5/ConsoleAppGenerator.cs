@@ -261,13 +261,13 @@ internal static partial class ConsoleApp
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int parameterCount)
+    static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int parameterCount, int helpId)
     {
         if (args.Length == 0)
         {
             if (parameterCount == 0) return false;
             
-            ShowHelp();
+            ShowHelp(helpId);
             return true;
         }
 
@@ -280,7 +280,7 @@ internal static partial class ConsoleApp
                     return true;
                 case "-h":
                 case "--help":
-                    ShowHelp();
+                    ShowHelp(helpId);
                     return true;
                 default:
                     break;
@@ -310,10 +310,7 @@ internal static partial class ConsoleApp
         Log(version);
     }
 
-    static void ShowHelp()
-    {
-        Log("TODO: Build Help");
-    }
+    static partial void ShowHelp(int helpId);
 
     static async Task RunWithFilterAsync(ConsoleAppFilter invoker)
     {
@@ -503,10 +500,19 @@ using System.ComponentModel.DataAnnotations;
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
             var emitter = new Emitter(wellKnownTypes);
-            emitter.EmitRun(sb, command, isRunAsync);
+            var withId = new Emitter.CommandWithId(null, command, -1);
+            emitter.EmitRun(sb, withId, isRunAsync);
         }
-
         sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString());
+
+        var help = new SourceBuilder(0);
+        help.AppendLine(GeneratedCodeHeader);
+        using (help.BeginBlock("internal static partial class ConsoleApp"))
+        {
+            var emitter = new Emitter(wellKnownTypes);
+            emitter.EmitHelp(help, command);
+        }
+        sourceProductionContext.AddSource("ConsoleApp.Help.g.cs", help.ToString());
     }
 
     static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, ImmutableArray<(InvocationExpressionSyntax Node, string Name, SemanticModel Model)> generatorSyntaxContexts)
