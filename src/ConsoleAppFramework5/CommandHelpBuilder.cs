@@ -38,6 +38,14 @@ public class CommandHelpBuilder
         return BuildHelpMessage(CreateCommandHelpDefinition(command, false), showCommandName: false, fromMultiCommand: false);
     }
 
+    public string BuildHelpMessage(Command[] commands)
+    {
+        // TODO:
+        return "";
+        // return BuildHelpMessage(CreateCommandHelpDefinition(command, false), showCommandName: false, fromMultiCommand: false);
+    }
+
+
     internal string BuildHelpMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
     {
         var sb = new StringBuilder();

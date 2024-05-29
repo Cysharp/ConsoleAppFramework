@@ -522,6 +522,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
     }
 
+    // for single root command(Run)
     public void EmitHelp(SourceBuilder sb, Command command)
     {
         var helpBuilder = new CommandHelpBuilder();
@@ -530,6 +531,28 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         {
             sb.AppendLine("Log(\"\"\"");
             sb.AppendLineWithoutIndent(help);
+            sb.AppendLineWithoutIndent("\"\"\");");
+        }
+    }
+
+    public void EmitHelp(SourceBuilder sb, Command[] commands)
+    {
+        // only root
+        if (commands.Length == 1 && commands[0].IsRootCommand)
+        {
+            EmitHelp(sb, commands[0]);
+            return;
+        }
+
+        var helpBuilder = new CommandHelpBuilder();
+
+        using (sb.BeginBlock("static partial void ShowHelp(int helpId)"))
+        {
+            // TODO:
+            // var help = helpBuilder.BuildHelpMessage(command);
+
+            sb.AppendLine("Log(\"\"\"");
+            // sb.AppendLineWithoutIndent(help);
             sb.AppendLineWithoutIndent("\"\"\");");
         }
     }

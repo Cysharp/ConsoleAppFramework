@@ -627,7 +627,17 @@ using System.ComponentModel.DataAnnotations;
             var emitter = new Emitter(wellKnownTypes);
             emitter.EmitBuilder(sb, commands!, hasRun, hasRunAsync);
         }
-
         sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString());
+
+        // Build Help
+
+        var help = new SourceBuilder(0);
+        help.AppendLine(GeneratedCodeHeader);
+        using (help.BeginBlock("internal static partial class ConsoleApp"))
+        {
+            var emitter = new Emitter(wellKnownTypes);
+            emitter.EmitHelp(help, commands!);
+        }
+        sourceProductionContext.AddSource("ConsoleApp.Help.g.cs", help.ToString());
     }
 }

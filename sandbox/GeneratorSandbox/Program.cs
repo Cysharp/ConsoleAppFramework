@@ -25,6 +25,11 @@ using static ConsoleAppFramework.ConsoleApp;
 
 ConsoleApp.Run(args, (int x, bool tako, int y = 999) => { });
 
+
+
+
+
+
 public class MyClass333
 {
     public void HelloWorld(string fooBar)
