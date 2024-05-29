@@ -16,6 +16,7 @@ public static class CSharpGeneratorRunner
     {
         var globalUsings = """
 global using System;
+global using System.Threading;
 global using System.Threading.Tasks;
 global using System.ComponentModel.DataAnnotations;
 global using ConsoleAppFramework;

@@ -23,9 +23,9 @@ using static ConsoleAppFramework.ConsoleApp;
 // args = ["do"]; // test.
 args = ["sum", "--x", "10", "--y", "20"];
 
-//var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.CreateBuilder();
 
-//builder.Add("", () => { });
+builder.Add("", () => { });
 //builder.Add("a", () => { });
 //builder.Add("a/b1", () => { });
 //builder.Add("a/b2", () => { });
@@ -37,21 +37,21 @@ args = ["sum", "--x", "10", "--y", "20"];
 //builder.Run(args);
 
 
-//builder.AddFilter<NanimosinaiFilter>();
-//builder.AddFilter<LogExecutionTimeFilter>();
+builder.AddFilter<NanimosinaiFilter>();
+builder.AddFilter<LogExecutionTimeFilter>();
 
 
 // builder.Add("", (int x, CancellationToken ct, int y) => { Console.WriteLine("body"); });
 
-//builder.Add<MyClass>();
+builder.Add<MyClass>();
 
-//builder.Run(args);
+builder.Run(args);
 
 
 
 var mc = new MyClass();
 
-// ConsoleApp.Run(args, mc.Sum);
+//ConsoleApp.Run(args, Hello);
 
 
 
@@ -63,8 +63,9 @@ var mc = new MyClass();
 
 
 
-
-
+void Hello()
+{
+}
 
 
 
@@ -537,9 +538,6 @@ namespace ConsoleAppFramework
         {
             public override async Task InvokeAsync(CancellationToken cancellationToken)
             {
-                Console.WriteLine("filter2");
-
-
                 var startingTime = Stopwatch.GetTimestamp();
                 try
                 {
@@ -548,7 +546,7 @@ namespace ConsoleAppFramework
                 finally
                 {
                     var elapsed = Stopwatch.GetElapsedTime(startingTime);
-                    ConsoleApp.Log($"Execution Time: {elapsed.ToString()}");
+                    ConsoleApp.Log($"Execution Time: {elapsed}");
                 }
             }
         }

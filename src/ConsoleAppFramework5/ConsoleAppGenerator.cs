@@ -117,7 +117,7 @@ internal sealed class CommandAttribute : Attribute
 
 internal abstract class ConsoleAppFilter(ConsoleAppFilter next)
 {
-    protected ConsoleAppFilter Next = next;
+    protected readonly ConsoleAppFilter Next = next;
 
     public abstract Task InvokeAsync(CancellationToken cancellationToken);
 }
@@ -477,9 +477,13 @@ using System.ComponentModel.DataAnnotations;
         {
             return;
         }
+        if (command.HasFilter)
+        {
+            sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.CommandHasFilter, node.GetLocation());
+            return;
+        }
 
         var isRunAsync = ((node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync");
-
 
         var sb = new SourceBuilder(0);
         sb.AppendLine(GeneratedCodeHeader);

@@ -244,4 +244,28 @@ var builder = ConsoleApp.CreateBuilder();
 builder.Add("foo", async Task<string> (int x, int y) => { return "foo"; });
 """, "Task<string>");
     }
+
+
+
+    [Fact]
+    public void RunAndFilter()
+    {
+        verifier.Verify(9, """
+ConsoleApp.Run(args, Hello);
+
+[ConsoleAppFilter<NopFilter>]
+void Hello()
+{
+}
+
+public class NopFilter(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(CancellationToken cancellationToken)
+    {
+        return Next.InvokeAsync(cancellationToken);
+    }
+}
+""", "ConsoleApp.Run(args, Hello)");
+    }
 }
