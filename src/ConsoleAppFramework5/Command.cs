@@ -39,7 +39,7 @@ public record class Command
     {
         if (DelegateBuildType == DelegateBuildType.MakeDelegateWhenHasDefaultValue)
         {
-            if (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue))
+            if (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue || x.IsParams))
             {
                 delegateType = BuildDelegateType("RunCommand");
                 return "RunCommand";
@@ -150,6 +150,7 @@ public record class CommandParameter
     public required ITypeSymbol Type { get; init; }
     public required Location Location { get; init; }
     public required bool IsNullableReference { get; init; }
+    public required bool IsParams { get; init; }
     public required string Name { get; init; }
     public required bool HasDefaultValue { get; init; }
     public object? DefaultValue { get; init; }
@@ -162,6 +163,7 @@ public record class CommandParameter
     public bool IsArgument => ArgumentIndex != -1;
     public required string[] Aliases { get; init; }
     public required string Description { get; init; }
+    public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams);
 
     public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes, bool increment)
     {
@@ -214,6 +216,12 @@ public record class CommandParameter
                     if (type.TypeKind == TypeKind.Enum)
                     {
                         return $"if (!Enum.TryParse<{type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[{index}], true, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                    }
+
+                    // ParamsArray
+                    if (IsParams)
+                    {
+                        return $"{(increment ? "i++; " : "")}if (!TryParseParamsArray(args, ref arg{argCount}, ref i)) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
                     }
 
                     // Array
@@ -291,6 +299,10 @@ public record class CommandParameter
     public override string ToString()
     {
         var sb = new StringBuilder();
+        if (IsParams)
+        {
+            sb.Append("params ");
+        }
         sb.Append(ToTypeDisplayString());
         sb.Append(" ");
         sb.Append(Name);

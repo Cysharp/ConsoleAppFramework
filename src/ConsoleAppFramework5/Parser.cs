@@ -277,6 +277,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     defaultValue = false;
                 }
 
+                var hasParams = x.Modifiers.Any(x => x.IsKind(SyntaxKind.ParamsKeyword));
+
                 var customParserType = x.AttributeLists.SelectMany(x => x.Attributes)
                     .Select(x =>
                     {
@@ -347,6 +349,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 {
                     Name = x.Identifier.Text,
                     IsNullableReference = isNullableReference,
+                    IsParams = hasParams,
                     Type = type.Type!,
                     Location = x.GetLocation(),
                     HasDefaultValue = hasDefault,
@@ -499,6 +502,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 {
                     Name = x.Name,
                     IsNullableReference = isNullableReference,
+                    IsParams = x.IsParams,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
                     Type = x.Type,
                     HasDefaultValue = x.HasExplicitDefaultValue,

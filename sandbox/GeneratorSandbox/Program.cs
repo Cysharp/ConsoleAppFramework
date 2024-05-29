@@ -21,31 +21,70 @@ using static ConsoleAppFramework.ConsoleApp;
 
 
 // args = ["do"]; // test.
-args = ["sum", "--x", "10", "--y", "20"];
+args = ["--ix", "[]", "--sx", "[]"];
 
-var builder = ConsoleApp.CreateBuilder();
+//var builder = ConsoleApp.CreateBuilder();
 
-builder.Add("", () => { });
-//builder.Add("a", () => { });
-//builder.Add("a/b1", () => { });
-//builder.Add("a/b2", () => { });
-//builder.Add("a/b2/c", () => { });
-//builder.Add("do", () => { });
+//builder.Add("", () => { });
+////builder.Add("a", () => { });
+////builder.Add("a/b1", () => { });
+////builder.Add("a/b2", () => { });
+////builder.Add("a/b2/c", () => { });
+////builder.Add("do", () => { });
 
-//builder.Add<MyClass>("age");
+////builder.Add<MyClass>("age");
+
+////builder.Run(args);
+
+
+//builder.AddFilter<NanimosinaiFilter>();
+//builder.AddFilter<LogExecutionTimeFilter>();
+
+
+
+//// builder.Add("", (int x, CancellationToken ct, int y) => { Console.WriteLine("body"); });
+
+//builder.Add<MyClass>();
+
 
 //builder.Run(args);
 
+//stq//ring[] a = [];
+//var i = 2;
+//TryParseParamsArray(args, ref a, ref i);
 
-builder.AddFilter<NanimosinaiFilter>();
-builder.AddFilter<LogExecutionTimeFilter>();
+
+ConsoleApp.Run(args, (int[] ix, string[] sx) =>
+{
+    Console.Write("[" + string.Join(", ", ix) + "]");
+    Console.Write("[" + string.Join(", ", sx) + "]");
+});
 
 
-// builder.Add("", (int x, CancellationToken ct, int y) => { Console.WriteLine("body"); });
 
-builder.Add<MyClass>();
+void Tako(ref int x)
+{
+}
 
-builder.Run(args);
+static bool TryParseParamsArray(ReadOnlySpan<string> args, ref string[] result, ref int i)
+{
+    result = new string[args.Length - i];
+    var resultIndex = 0;
+    for (; i < args.Length; i++)
+    {
+        result[resultIndex++] = args[i];
+    }
+    return true;
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -63,7 +102,7 @@ var mc = new MyClass();
 
 
 
-void Hello()
+void Hello(int foo, params string[] aiueo)
 {
 }
 
@@ -411,6 +450,29 @@ namespace ConsoleAppFramework
 {
     partial class ConsoleApp
     {
+        //static bool TryParseParamsArray(ReadOnlySpan<string> args, ref string[] result, ref int i)
+        //{
+        //    result = new string[args.Length - i];
+        //    var resultIndex = 0;
+        //    for (; i < args.Length; i++)
+        //    {
+        //        result[resultIndex++] = args[++i];
+        //    }
+        //    return true;
+        //}
+
+        //static bool TryParseParamsArray<T>(ReadOnlySpan<string> args, ref T[] result, ref int i)
+        //   where T : ISpanParsable<T>
+        //{
+        //    result = new T[args.Length - i];
+        //    var resultIndex = 0;
+        //    for (; i < args.Length; i++)
+        //    {
+        //        if (!T.TryParse(args[++i], null, out result[resultIndex++]!)) return false;
+        //    }
+        //    return true;
+        //}
+
 
 
         partial struct ConsoleAppBuilder

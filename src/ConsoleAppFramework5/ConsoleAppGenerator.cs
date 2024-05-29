@@ -173,6 +173,18 @@ internal static partial class ConsoleApp
         throw new ArgumentException($"Argument '{argumentName}' does not found in command prameters.");
     }
 
+    static bool TryParseParamsArray<T>(ReadOnlySpan<string> args, ref T[] result, ref int i)
+       where T : IParsable<T>
+    {
+        result = new T[args.Length - i];
+        var resultIndex = 0;
+        for (; i < args.Length; i++)
+        {
+            if (!T.TryParse(args[i], null, out result[resultIndex++]!)) return false;
+        }
+        return true;
+    }
+
     static bool TrySplitParse<T>(ReadOnlySpan<char> s, out T[] result)
        where T : ISpanParsable<T>
     {
@@ -181,6 +193,7 @@ internal static partial class ConsoleApp
             try
             {
                 result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s)!;
+                return true;
             }
             catch
             {
@@ -493,7 +506,7 @@ using System.ComponentModel.DataAnnotations;
             emitter.EmitRun(sb, command, isRunAsync);
         }
 
-        sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString());
     }
 
     static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, ImmutableArray<(InvocationExpressionSyntax Node, string Name, SemanticModel Model)> generatorSyntaxContexts)

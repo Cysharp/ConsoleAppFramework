@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
@@ -32,7 +33,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         // emit custom delegate type
         if (delegateType != null && !emitForBuilder)
         {
-            sb.AppendLine($"internal {{delgateType}}");
+            sb.AppendLine($"internal {delegateType}");
             sb.AppendLine();
         }
 
@@ -54,9 +55,11 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 var parameter = command.Parameters[i];
                 if (parameter.IsParsable)
                 {
-                    var defaultValue = parameter.HasDefaultValue ? parameter.DefaultValueToString() : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
+                    var defaultValue = parameter.IsParams ? $"({parameter.ToTypeDisplayString()})[]"
+                                     : parameter.HasDefaultValue ? parameter.DefaultValueToString()
+                                     : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
                     sb.AppendLine($"var arg{i} = {defaultValue};");
-                    if (!parameter.HasDefaultValue)
+                    if (parameter.RequireCheckArgumentParsed)
                     {
                         sb.AppendLine($"var arg{i}Parsed = false;");
                     }
@@ -96,7 +99,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                             using (sb.BeginBlock())
                             {
                                 sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
-                                if (!parameter.HasDefaultValue)
+                                if (parameter.RequireCheckArgumentParsed)
                                 {
                                     sb.AppendLine($"arg{i}Parsed = true;");
                                 }
@@ -126,7 +129,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                             using (sb.BeginBlock())
                             {
                                 sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
-                                if (!parameter.HasDefaultValue)
+                                if (parameter.RequireCheckArgumentParsed)
                                 {
                                     sb.AppendLine($"arg{i}Parsed = true;");
                                 }
@@ -152,7 +155,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                                 using (sb.BeginBlock())
                                 {
                                     sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
-                                    if (!parameter.HasDefaultValue)
+                                    if (parameter.RequireCheckArgumentParsed)
                                     {
                                         sb.AppendLine($"arg{i}Parsed = true;");
                                     }
@@ -172,7 +175,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     var parameter = command.Parameters[i];
                     if (!parameter.IsParsable) continue;
 
-                    if (!parameter.HasDefaultValue)
+                    if (parameter.RequireCheckArgumentParsed)
                     {
                         sb.AppendLine($"if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
                     }
@@ -506,7 +509,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     }
                     sb.AppendLine($"return filter{i};");
                 }
-                
+
                 sb.AppendLine();
                 using (sb.BeginBlock($"public override Task InvokeAsync(CancellationToken cancellationToken)"))
                 {
