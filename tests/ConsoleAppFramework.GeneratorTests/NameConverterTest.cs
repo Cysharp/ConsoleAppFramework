@@ -33,7 +33,7 @@ public class NameConverterTest(ITestOutputHelper output)
     public void CommmandName()
     {
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 builder.Run(args);
 
@@ -51,7 +51,7 @@ public class MyClass
     public void OptionName()
     {
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 builder.Run(args);
 
@@ -66,7 +66,7 @@ public class MyClass
 
 
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 var mc = new MyClass();
 builder.Add("hello-world", mc.HelloWorld);
 builder.Run(args);

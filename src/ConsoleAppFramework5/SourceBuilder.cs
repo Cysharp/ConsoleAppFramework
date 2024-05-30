@@ -71,6 +71,11 @@ internal class SourceBuilder(int level)
         builder.AppendLine(text);
     }
 
+    public void AppendWithoutIndent(string text)
+    {
+        builder.Append(text);
+    }
+
     public void AppendLineWithoutIndent(string text)
     {
         builder.AppendLine(text);

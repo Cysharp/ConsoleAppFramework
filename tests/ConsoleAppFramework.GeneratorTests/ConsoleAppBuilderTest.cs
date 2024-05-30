@@ -16,7 +16,7 @@ public class ConsoleAppBuilderTest(ITestOutputHelper output)
     public void BuilderRun()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add("foo", (int x, int y) => { Console.Write(x + y); });
 builder.Add("bar", (int x, int y = 10) => { Console.Write(x + y); });
 builder.Add("baz", int (int x, string y) => { Console.Write(x + y); return 10; });
@@ -39,7 +39,7 @@ builder.Run(args);
     public void BuilderRunAsync()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add("foo", (int x, int y) => { Console.Write(x + y); });
 builder.Add("bar", (int x, int y = 10) => { Console.Write(x + y); });
 builder.Add("baz", int (int x, string y) => { Console.Write(x + y); return 10; });
@@ -62,7 +62,7 @@ await builder.RunAsync(args);
     public void AddClass()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 await builder.RunAsync(args);
 
@@ -102,7 +102,7 @@ public class MyClass
     public void ClassDispose()
     {
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 builder.Run(args);
 
@@ -121,7 +121,7 @@ public class MyClass : IDisposable
 """, "do", "yeah:disposed!");
 
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 await builder.RunAsync(args);
 
@@ -140,7 +140,7 @@ public class MyClass : IDisposable
 """, "do", "yeah:disposed!");
 
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 await builder.RunAsync(args);
 
@@ -169,7 +169,7 @@ serviceCollection.Register(typeof(string), "hoge!");
 serviceCollection.Register(typeof(int), 9999);
 ConsoleApp.ServiceProvider = serviceCollection;
 
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 builder.Run(args);
 
@@ -204,7 +204,7 @@ public class MiniDI : IServiceProvider
     public void CommandAttr()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 builder.Run(args);
 

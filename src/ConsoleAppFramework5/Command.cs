@@ -152,6 +152,7 @@ public record class CommandParameter
     public required bool IsNullableReference { get; init; }
     public required bool IsParams { get; init; }
     public required string Name { get; init; }
+    public required string OriginalParameterName { get; init; }
     public required bool HasDefaultValue { get; init; }
     public object? DefaultValue { get; init; }
     public required ITypeSymbol? CustomParserType { get; init; }
@@ -270,7 +271,7 @@ public record class CommandParameter
         }
     }
 
-    public string DefaultValueToString(bool castValue = true)
+    public string DefaultValueToString(bool castValue = true, bool enumIncludeTypeName = true)
     {
         if (DefaultValue is bool b)
         {
@@ -285,14 +286,39 @@ public record class CommandParameter
             // null -> default(T) to support both class and struct
             return $"default({Type.ToFullyQualifiedFormatDisplayString()})";
         }
+        if (Type.TypeKind == TypeKind.Enum)
+        {
+            var symbol = Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => object.Equals(x.ConstantValue, DefaultValue));
+            if (symbol == null)
+            {
+                return $"default({Type.ToFullyQualifiedFormatDisplayString()})";
+            }
+            else
+            {
+                return enumIncludeTypeName ? $"{Type.ToFullyQualifiedFormatDisplayString()}.{symbol.Name}" : symbol.Name;
+            }
+        }
 
         if (!castValue) return DefaultValue.ToString();
         return $"({Type.ToFullyQualifiedFormatDisplayString()}){DefaultValue}";
     }
 
+    public string? GetEnumSymbolName(object value)
+    {
+        var symbol = Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => x.ConstantValue == value);
+        if (symbol == null) return "";
+        return symbol.Name;
+    }
+
     public string ToTypeDisplayString()
     {
         var t = Type.ToFullyQualifiedFormatDisplayString();
+        return IsNullableReference ? $"{t}?" : t;
+    }
+
+    public string ToTypeShortString()
+    {
+        var t = Type.ToDisplayString(NullableFlowState.NotNull, SymbolDisplayFormat.MinimallyQualifiedFormat);
         return IsNullableReference ? $"{t}?" : t;
     }
 
@@ -305,7 +331,7 @@ public record class CommandParameter
         }
         sb.Append(ToTypeDisplayString());
         sb.Append(" ");
-        sb.Append(Name);
+        sb.Append(OriginalParameterName);
         if (HasDefaultValue)
         {
             sb.Append(" = ");

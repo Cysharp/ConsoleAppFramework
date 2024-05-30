@@ -91,13 +91,13 @@ public class DiagnosticsTest(ITestOutputHelper output)
     public void BuilderAddConstCommandName()
     {
         verifier.Verify(6, """
-var builder = ConsoleApp.CreateBuilder(); 
+var builder = ConsoleApp.Create(); 
 var baz = "foo";
 builder.Add(baz, (int x, int y) => { } );
 """, "baz");
 
         verifier.Ok("""
-var builder = ConsoleApp.CreateBuilder(); 
+var builder = ConsoleApp.Create(); 
 builder.Add("foo", (int x, int y) => { } );
 builder.Run(args);
 """);
@@ -107,7 +107,7 @@ builder.Run(args);
     public void DuplicateCommandName()
     {
         verifier.Verify(7, """
-var builder = ConsoleApp.CreateBuilder(); 
+var builder = ConsoleApp.Create(); 
 builder.Add("foo", (int x, int y) => { } );
 builder.Add("foo", (int x, int y) => { } );
 """, "\"foo\"");
@@ -117,7 +117,7 @@ builder.Add("foo", (int x, int y) => { } );
     public void DuplicateCommandNameClass()
     {
         verifier.Verify(7, """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 
 public class MyClass
@@ -135,7 +135,7 @@ public class MyClass
 """, "builder.Add<MyClass>()");
 
         verifier.Verify(7, """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add("do", (int x, int y) => { } );
 builder.Add<MyClass>();
 builder.Run(args);
@@ -163,7 +163,7 @@ public class MyClass
 }
 """;
         verifier.Verify(8, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 while (true)
 {
     builder.Add<MyClass>();
@@ -173,7 +173,7 @@ while (true)
 """, "builder.Add<MyClass>()");
 
         verifier.Verify(8, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 for (int i = 0; i < 10; i++)
 {
     builder.Add<MyClass>();
@@ -183,7 +183,7 @@ for (int i = 0; i < 10; i++)
 """, "builder.Add<MyClass>()");
 
         verifier.Verify(8, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 do
 {
     builder.Add<MyClass>();
@@ -193,7 +193,7 @@ do
 """, "builder.Add<MyClass>()");
 
         verifier.Verify(8, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 foreach (var item in new[]{1,2,3})
 {
     builder.Add<MyClass>();
@@ -207,7 +207,7 @@ foreach (var item in new[]{1,2,3})
     public void ErrorInBuilderAPI()
     {
         verifier.Verify(3, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 
 public class MyClass
@@ -221,7 +221,7 @@ public class MyClass
 """, "string");
 
         verifier.Verify(3, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 
 public class MyClass
@@ -235,12 +235,12 @@ public class MyClass
 """, "Task<string>");
 
         verifier.Verify(2, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add("foo", string (int x, int y) => { return "foo"; });
 """, "string");
 
         verifier.Verify(2, $$"""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 builder.Add("foo", async Task<string> (int x, int y) => { return "foo"; });
 """, "Task<string>");
     }

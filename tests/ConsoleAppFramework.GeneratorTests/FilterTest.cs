@@ -15,10 +15,10 @@ public class FilterTest(ITestOutputHelper output)
     public void ForLambda()
     {
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 
-builder.AddFilter<NopFilter1>();
-builder.AddFilter<NopFilter2>();
+builder.UseFilter<NopFilter1>();
+builder.UseFilter<NopFilter2>();
 
 builder.Add("", Hello);
 
@@ -77,10 +77,10 @@ internal class NopFilter4(ConsoleAppFilter next)
     public void ForClass()
     {
         verifier.Execute("""
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 
-builder.AddFilter<NopFilter1>();
-builder.AddFilter<NopFilter2>();
+builder.UseFilter<NopFilter1>();
+builder.UseFilter<NopFilter2>();
 
 builder.Add<MyClass>();
 
@@ -170,9 +170,9 @@ serviceCollection.Register(typeof(string), "hoge!");
 serviceCollection.Register(typeof(int), 9999);
 ConsoleApp.ServiceProvider = serviceCollection;
 
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
 
-builder.AddFilter<DIFilter>();
+builder.UseFilter<DIFilter>();
 
 builder.Add("", () => Console.Write("do"));
 

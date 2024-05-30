@@ -87,7 +87,7 @@ public class Benchmark
     //[Benchmark(Description = "ConsoleAppFramework.Builder")]
     //public unsafe void ExecuteConsoleAppFrameworkBuilder()
     //{
-    //    var builder = ConsoleApp.CreateBuilder();
+    //    var builder = ConsoleApp.Create();
     //    builder.Add("", ConsoleAppFrameworkCommand.Execute);
     //    builder.Run(TempArguments);
     //}

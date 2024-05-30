@@ -15,7 +15,7 @@ public class SubCommandTest(ITestOutputHelper output)
     public void Zeroargs()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
             
 builder.Add("", () => { Console.Write("root"); });
 builder.Add("a", () => { Console.Write("a"); });
@@ -43,7 +43,7 @@ builder.Run(args);
     public void Withargs()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
             
 builder.Add("", (int x, int y) => { Console.Write($"root {x} {y}"); });
 builder.Add("a", (int x, int y) => { Console.Write($"a {x} {y}"); });
@@ -71,7 +71,7 @@ builder.Run(args);
     public void ZeroargsAsync()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
             
 builder.Add("", () => { Console.Write("root"); });
 builder.Add("a", () => { Console.Write("a"); });
@@ -99,7 +99,7 @@ await builder.RunAsync(args);
     public void WithargsAsync()
     {
         var code = """
-var builder = ConsoleApp.CreateBuilder();
+var builder = ConsoleApp.Create();
             
 builder.Add("", (int x, int y) => { Console.Write($"root {x} {y}"); });
 builder.Add("a", (int x, int y) => { Console.Write($"a {x} {y}"); });

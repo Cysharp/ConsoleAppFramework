@@ -20,11 +20,12 @@ using Microsoft.Extensions.DependencyInjection;
 using static ConsoleAppFramework.ConsoleApp;
 
 
-// args = ["do"]; // test.
-//args = ["--foo-bar", "aiueo"];
+ConsoleApp.Run(args, (int xxx = 100, Fruit myFruit = Fruit.Apple) => { });
 
-ConsoleApp.Run(args, (int x, bool tako, int y = 999) => { });
-
+enum Fruit
+{
+    Orange, Grape, Apple
+}
 
 
 
@@ -32,12 +33,14 @@ ConsoleApp.Run(args, (int x, bool tako, int y = 999) => { });
 
 public class MyClass333
 {
+    /// <summary>
+    /// -f|-fb, hello my world.
+    /// </summary>
+    /// <param name="fooBar"></param>
     public void HelloWorld(string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
     }
-
-
 }
 
 
@@ -401,7 +404,7 @@ namespace ConsoleAppFramework
         {
 
 
-            // public void AddFilter<T>() where T : ConsoleAppFilter { }
+            // public void UseFilter<T>() where T : ConsoleAppFilter { }
 
 
             //public class ConsoleAppBuilder

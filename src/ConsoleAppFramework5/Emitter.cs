@@ -287,22 +287,11 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
     }
 
-    public void EmitBuilder(SourceBuilder sb, Command[] commands, bool emitSync, bool emitAsync)
+    public void EmitBuilder(SourceBuilder sb, CommandWithId[] commandIds, bool emitSync, bool emitAsync)
     {
-        // with id number
-        var commandIds = commands
-            .Select((x, i) =>
-            {
-                return new CommandWithId(
-                    FieldType: x.BuildDelegateSignature(out _), // for builder, always generate Action/Func so ok to ignore out var.
-                    Command: x,
-                    Id: i
-                );
-            })
-            .ToArray();
-
         // grouped by path
         var commandGroup = commandIds.ToLookup(x => x.Command.CommandPath.Length == 0 ? x.Command.CommandName : x.Command.CommandPath[0]);
+        var hasRootCommand = commandIds.Any(x => x.Command.IsRootCommand);
 
         using (sb.BeginBlock("partial struct ConsoleAppBuilder"))
         {
@@ -339,6 +328,15 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 sb.AppendLine();
                 using (sb.BeginBlock("partial void RunCore(string[] args)"))
                 {
+                    if (hasRootCommand)
+                    {
+                        using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
+                        {
+                            sb.AppendLine("ShowHelp(-1);");
+                            sb.AppendLine("return;");
+                        }
+                    }
+
                     EmitRunBody(commandGroup, 0, false);
                 }
             }
@@ -349,6 +347,15 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 sb.AppendLine();
                 using (sb.BeginBlock("partial void RunAsyncCore(string[] args, ref Task result)"))
                 {
+                    if (hasRootCommand)
+                    {
+                        using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
+                        {
+                            sb.AppendLine("ShowHelp(-1);");
+                            sb.AppendLine("return;");
+                        }
+                    }
+
                     EmitRunBody(commandGroup, 0, true);
                 }
             }
@@ -456,7 +463,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             {
                 if (command == null)
                 {
-                    sb.AppendLine("TryShowHelpOrVersion(args, -1, -1);");
+                    sb.AppendLine("ShowHelp(-1);");
                 }
                 else
                 {
@@ -525,35 +532,39 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
     // for single root command(Run)
     public void EmitHelp(SourceBuilder sb, Command command)
     {
-        var helpBuilder = new CommandHelpBuilder();
-        var help = helpBuilder.BuildHelpMessage(command);
         using (sb.BeginBlock("static partial void ShowHelp(int helpId)"))
         {
             sb.AppendLine("Log(\"\"\"");
-            sb.AppendLineWithoutIndent(help);
+            sb.AppendWithoutIndent(CommandHelpBuilder.BuildRootHelpMessage(command));
             sb.AppendLineWithoutIndent("\"\"\");");
         }
     }
 
-    public void EmitHelp(SourceBuilder sb, Command[] commands)
+    public void EmitHelp(SourceBuilder sb, CommandWithId[] commands)
     {
-        // only root
-        if (commands.Length == 1 && commands[0].IsRootCommand)
-        {
-            EmitHelp(sb, commands[0]);
-            return;
-        }
-
-        var helpBuilder = new CommandHelpBuilder();
-
         using (sb.BeginBlock("static partial void ShowHelp(int helpId)"))
         {
-            // TODO:
-            // var help = helpBuilder.BuildHelpMessage(command);
+            using (sb.BeginBlock("switch (helpId)"))
+            {
+                foreach (var command in commands)
+                {
+                    using (sb.BeginIndent($"case {command.Id}:"))
+                    {
+                        sb.AppendLine("Log(\"\"\"");
+                        sb.AppendWithoutIndent(CommandHelpBuilder.BuildCommandHelpMessage(command.Command));
+                        sb.AppendLineWithoutIndent("\"\"\");");
+                        sb.AppendLine("break;");
+                    }
+                }
 
-            sb.AppendLine("Log(\"\"\"");
-            // sb.AppendLineWithoutIndent(help);
-            sb.AppendLineWithoutIndent("\"\"\");");
+                using (sb.BeginIndent("default:"))
+                {
+                    sb.AppendLine("Log(\"\"\"");
+                    sb.AppendWithoutIndent(CommandHelpBuilder.BuildRootHelpMessage(commands.Select(x => x.Command).ToArray()));
+                    sb.AppendLineWithoutIndent("\"\"\");");
+                    sb.AppendLine("break;");
+                }
+            }
         }
     }
 

@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.ComponentModel.Design;
 using System.Reflection;
 using System.Xml.Linq;
+using static ConsoleAppFramework.Emitter;
 
 namespace ConsoleAppFramework;
 
@@ -52,7 +53,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
                     var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Add" or "AddFilter" or "Run" or "RunAsync")
+                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync")
                     {
                         return true;
                     }
@@ -156,7 +157,7 @@ internal static partial class ConsoleApp
         return Task.CompletedTask;
     }
 
-    public static ConsoleAppBuilder CreateBuilder() => new ConsoleAppBuilder();
+    public static ConsoleAppBuilder Create() => new ConsoleAppBuilder();
 
     static void ThrowArgumentParseFailed(string argumentName, string value)
     {
@@ -410,7 +411,7 @@ internal static partial class ConsoleApp
         public void Add<T>(string commandPath) { }
 
         [System.Diagnostics.Conditional("DEBUG")]
-        public void AddFilter<T>() where T : ConsoleAppFilter { }
+        public void UseFilter<T>() where T : ConsoleAppFilter { }
 
         public void Run(string[] args)
         {
@@ -432,6 +433,38 @@ internal static partial class ConsoleApp
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         partial void RunAsyncCore(string[] args, ref Task result);
+
+        static partial void ShowHelp(int helpId);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int parameterCount, int helpId)
+        {
+            if (args.Length == 0)
+            {
+                if (parameterCount == 0) return false;
+            
+                ShowHelp(helpId);
+                return true;
+            }
+
+            if (args.Length == 1)
+            {
+                switch (args[0])
+                {
+                    case "--version":
+                        ShowVersion();
+                        return true;
+                    case "-h":
+                    case "--help":
+                        ShowHelp(helpId);
+                        return true;
+                    default:
+                        break;
+                }
+            }
+
+            return false;
+        }
     }
 }
 """;
@@ -512,7 +545,7 @@ using System.ComponentModel.DataAnnotations;
             var emitter = new Emitter(wellKnownTypes);
             emitter.EmitHelp(help, command);
         }
-        sourceProductionContext.AddSource("ConsoleApp.Help.g.cs", help.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString());
     }
 
     static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, ImmutableArray<(InvocationExpressionSyntax Node, string Name, SemanticModel Model)> generatorSyntaxContexts)
@@ -547,7 +580,7 @@ using System.ComponentModel.DataAnnotations;
             return x.Name;
         });
 
-        var globalFilters = methodGroup["AddFilter"]
+        var globalFilters = methodGroup["UseFilter"]
             .Select(x =>
             {
                 var genericName = (x.Node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
@@ -622,10 +655,22 @@ using System.ComponentModel.DataAnnotations;
         var sb = new SourceBuilder(0);
         sb.AppendLine(GeneratedCodeHeader);
 
+        // with id number
+        var commandIds = commands
+            .Select((x, i) =>
+            {
+                return new CommandWithId(
+                    FieldType: x!.BuildDelegateSignature(out _), // for builder, always generate Action/Func so ok to ignore out var.
+                    Command: x!,
+                    Id: i
+                );
+            })
+            .ToArray();
+
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
             var emitter = new Emitter(wellKnownTypes);
-            emitter.EmitBuilder(sb, commands!, hasRun, hasRunAsync);
+            emitter.EmitBuilder(sb, commandIds, hasRun, hasRunAsync);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString());
 
@@ -634,10 +679,11 @@ using System.ComponentModel.DataAnnotations;
         var help = new SourceBuilder(0);
         help.AppendLine(GeneratedCodeHeader);
         using (help.BeginBlock("internal static partial class ConsoleApp"))
+        using (help.BeginBlock("internal partial struct ConsoleAppBuilder"))
         {
             var emitter = new Emitter(wellKnownTypes);
-            emitter.EmitHelp(help, commands!);
+            emitter.EmitHelp(help, commandIds!);
         }
-        sourceProductionContext.AddSource("ConsoleApp.Help.g.cs", help.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
     }
 }

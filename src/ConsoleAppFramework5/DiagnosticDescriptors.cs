@@ -61,7 +61,7 @@ internal static class DiagnosticDescriptors
 
     public static DiagnosticDescriptor AddInLoopIsNotAllowed { get; } = Create(
         8,
-        "ConsoleAppBuilder.Add/AddFilter is not allowed in loop statements(while, do, for, foreach).");
+        "ConsoleAppBuilder.Add/UseFilter is not allowed in loop statements(while, do, for, foreach).");
 
     public static DiagnosticDescriptor CommandHasFilter { get; } = Create(
         9,

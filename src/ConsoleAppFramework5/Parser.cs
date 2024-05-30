@@ -54,7 +54,6 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             return null;
         }
 
-        context.ReportDiagnostic(DiagnosticDescriptors.RequireArgsAndMethod, node.GetLocation());
         return null;
     }
 
@@ -269,6 +268,14 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                         defaultValue = token.Value;
                     }
                 }
+                else if (x.Default != null)
+                {
+                    var value = model.GetConstantValue(x.Default.Value);
+                    if (value.HasValue)
+                    {
+                        defaultValue = value.Value;
+                    }
+                }
 
                 // bool is always optional flag
                 if (type.Type?.SpecialType == SpecialType.System_Boolean)
@@ -348,6 +355,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return new CommandParameter
                 {
                     Name = NameConverter.ToKebabCase(x.Identifier.Text),
+                    OriginalParameterName = x.Identifier.Text,
                     IsNullableReference = isNullableReference,
                     IsParams = hasParams,
                     Type = type.Type!,
@@ -501,6 +509,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return new CommandParameter
                 {
                     Name = NameConverter.ToKebabCase(x.Name),
+                    OriginalParameterName = x.Name,
                     IsNullableReference = isNullableReference,
                     IsParams = x.IsParams,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
