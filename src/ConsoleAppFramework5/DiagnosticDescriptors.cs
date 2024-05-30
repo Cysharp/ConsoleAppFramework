@@ -66,4 +66,20 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor CommandHasFilter { get; } = Create(
         9,
         "ConsoleApp.Run does not allow the use of filters, but the function has a filter attribute.");
+
+    public static DiagnosticDescriptor FilterMultipleConsturtor { get; } = Create(
+        10,
+        "ConsoleAppFilter class does not allow multiple constructors.");
+
+    public static DiagnosticDescriptor ClassMultipleConsturtor { get; } = Create(
+        11,
+        "ConsoleAppBuilder.Add<T> class does not allow multiple constructors.");
+
+    public static DiagnosticDescriptor ClassHasNoPublicMethods { get; } = Create(
+        12,
+        "ConsoleAppBuilder.Add<T> class must have at least one public method.");
+
+    public static DiagnosticDescriptor ClassIsStaticOrAbstract { get; } = Create(
+        13,
+        "ConsoleAppBuilder.Add<T> class does not allow static or abstract classes.");
 }

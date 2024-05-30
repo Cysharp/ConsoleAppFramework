@@ -268,4 +268,170 @@ public class NopFilter(ConsoleAppFilter next)
 }
 """, "ConsoleApp.Run(args, Hello)");
     }
+
+    [Fact]
+    public void MultiConstructorFilter()
+    {
+        verifier.Verify(10, """
+var app = ConsoleApp.Create();
+app.UseFilter<NopFilter>();
+app.Add("", Hello);
+app.Run(args);
+
+void Hello()
+{
+}
+
+internal class NopFilter : ConsoleAppFilter
+{
+    public NopFilter(ConsoleAppFilter next)
+        :base(next)
+    {
+    }
+
+    public NopFilter(string x, ConsoleAppFilter next)
+        :base(next)
+    {
+    }
+
+    public override Task InvokeAsync(CancellationToken cancellationToken)
+    {
+        return Next.InvokeAsync(cancellationToken);
+    }
+}
+""", "NopFilter");
+
+        verifier.Verify(10, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+[ConsoleAppFilter<NopFilter>]
+public class Foo
+{
+    public void Hello()
+    {
+    }
+}
+
+internal class NopFilter : ConsoleAppFilter
+{
+    public NopFilter(ConsoleAppFilter next)
+        :base(next)
+    {
+    }
+
+    public NopFilter(string x, ConsoleAppFilter next)
+        :base(next)
+    {
+    }
+
+    public override Task InvokeAsync(CancellationToken cancellationToken)
+    {
+        return Next.InvokeAsync(cancellationToken);
+    }
+}
+""", "ConsoleAppFilter<NopFilter>");
+
+        verifier.Verify(10, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    [ConsoleAppFilter<NopFilter>]
+    public void Hello()
+    {
+    }
+}
+
+internal class NopFilter : ConsoleAppFilter
+{
+    public NopFilter(ConsoleAppFilter next)
+        :base(next)
+    {
+    }
+
+    public NopFilter(string x, ConsoleAppFilter next)
+        :base(next)
+    {
+    }
+
+    public override Task InvokeAsync(CancellationToken cancellationToken)
+    {
+        return Next.InvokeAsync(cancellationToken);
+    }
+}
+""", "ConsoleAppFilter<NopFilter>");
+    }
+
+
+    [Fact]
+    public void MultipleCtorClass()
+    {
+        verifier.Verify(11, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    public Foo() { }
+    public Foo(int x) { }
+
+    public void Hello()
+    {
+    }
+}
+""", "app.Add<Foo>()");
+    }
+
+    [Fact]
+    public void PublicMethods()
+    {
+        verifier.Verify(12, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    public Foo() { }
+    public Foo(int x) { }
+
+    private void Hello()
+    {
+    }
+}
+""", "app.Add<Foo>()");
+    }
+
+    [Fact]
+    public void AbstractNotAllow()
+    {
+        verifier.Verify(13, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public abstract class Foo
+{
+    public void Hello()
+    {
+    }
+}
+""", "app.Add<Foo>()");
+
+        verifier.Verify(13, """
+var app = ConsoleApp.Create();
+app.Add<IFoo>();
+app.Run(args);
+
+public interface IFoo
+{
+    void Hello();
+}
+""", "app.Add<IFoo>()");
+    }
 }

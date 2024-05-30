@@ -84,7 +84,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
         if (type.IsStatic || type.IsAbstract)
         {
-            // TODO: validation
+            context.ReportDiagnostic(DiagnosticDescriptors.ClassIsStaticOrAbstract, node.GetLocation());
+            return [];
         }
 
         var publicMethods = type.GetMembers()
@@ -102,12 +103,14 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
         if (publicMethods.Length == 0)
         {
-            // TODO: validation
+            context.ReportDiagnostic(DiagnosticDescriptors.ClassHasNoPublicMethods, node.GetLocation());
+            return [];
         }
 
         if (publicConstructors.Length != 1)
         {
-            // TODO: validation
+            context.ReportDiagnostic(DiagnosticDescriptors.ClassMultipleConsturtor, node.GetLocation());
+            return [];
         }
 
         var hasIDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IDisposable));
@@ -123,7 +126,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
                     if (filter == null)
                     {
-                        // TODO: validation, ctor is invalid.
+                        context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
                         return null!;
                     }
 
@@ -131,8 +134,11 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 }
                 return null!;
             })
-            .Where(x => x != null)
             .ToArray();
+        if (typeFilters.Any(x => x == null))
+        {
+            return [];
+        }
 
         var methodInfoBase = new CommandMethodInfo
         {
@@ -275,13 +281,6 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     {
                         defaultValue = value.Value;
                     }
-                }
-
-                // bool is always optional flag
-                if (type.Type?.SpecialType == SpecialType.System_Boolean)
-                {
-                    hasDefault = true;
-                    defaultValue = false;
                 }
 
                 var hasParams = x.Modifiers.Any(x => x.IsKind(SyntaxKind.ParamsKeyword));
@@ -463,7 +462,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
                     if (filter == null)
                     {
-                        // TODO: validation, ctor is invalid.
+                        context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
                         return null!;
                     }
 
@@ -471,8 +470,11 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 }
                 return null!;
             })
-            .Where(x => x != null)
             .ToArray();
+        if (methodFilters.Any(x => x == null))
+        {
+            return null;
+        }
 
         var parsableIndex = 0;
         var parameters = methodSymbol.Parameters

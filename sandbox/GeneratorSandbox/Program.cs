@@ -21,28 +21,26 @@ using Microsoft.Extensions.Hosting;
 using static ConsoleAppFramework.ConsoleApp;
 
 
-var host = Host.CreateApplicationBuilder().Build();
-
-
-
-
-host.Start(); // what is?
-
-
-ConsoleApp.ServiceProvider = host.Services;
-
-    
-
-
-
-ConsoleApp.Run(args, (int xxx = 100, Fruit myFruit = Fruit.Apple) => { });
+ConsoleApp.Run(args, (int foo, string bar, Fruit ft, bool flag, Half half, int? itt, Obj obj) =>
+{
+    Console.Write(foo);
+    Console.Write(bar);
+    Console.Write(ft);
+    Console.Write(flag);
+    Console.Write(half);
+    Console.Write(itt);
+    Console.Write(obj.Foo);
+});
 
 enum Fruit
 {
     Orange, Grape, Apple
 }
 
-
+public class Obj
+{
+    public int Foo { get; set; }
+}
 
 
 

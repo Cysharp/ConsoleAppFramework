@@ -54,4 +54,33 @@ ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.
         Environment.ExitCode.Should().Be(1);
         Environment.ExitCode = 0;
     }
+    [Fact]
+    public void Parameters()
+    {
+        verifier.Execute("""
+ConsoleApp.Run(args, (int foo, string bar, Fruit ft, bool flag, Half half, int? itt, Takoyaki.Obj obj) => 
+{
+    Console.Write(foo); 
+    Console.Write(bar); 
+    Console.Write(ft); 
+    Console.Write(flag); 
+    Console.Write(half); 
+    Console.Write(itt);
+    Console.Write(obj.Foo); 
+});
+
+enum Fruit
+{
+    Orange, Grape, Apple
+}
+
+namespace Takoyaki
+{
+    public class Obj
+    {
+         public int Foo { get; set; }
+    }
+}
+""", "--foo 10 --bar aiueo --ft Grape --flag --half 1.3 --itt 99 --obj {\"Foo\":1999}", "10aiueoGrapeTrue1.3991999");
+    }
 }

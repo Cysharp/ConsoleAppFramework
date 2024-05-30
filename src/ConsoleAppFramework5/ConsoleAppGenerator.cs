@@ -581,6 +581,7 @@ using System.ComponentModel.DataAnnotations;
         });
 
         var globalFilters = methodGroup["UseFilter"]
+            .OrderBy(x => x.Node.GetLocation().SourceSpan) // sort by line number
             .Select(x =>
             {
                 var genericName = (x.Node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
@@ -592,13 +593,19 @@ using System.ComponentModel.DataAnnotations;
 
                 if (filter == null)
                 {
-                    // TODO: validation, ctor is invalid.
+                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, genericType.GetLocation());
+                    return null;
                 }
 
                 return filter!;
             })
-            .Where(x => x != null)
             .ToArray();
+
+        // don't emit if exists failure(already reported error)
+        if (globalFilters.Any(x => x == null))
+        {
+            return;
+        }
 
         var names = new HashSet<string>();
         var commands1 = methodGroup["Add"]
