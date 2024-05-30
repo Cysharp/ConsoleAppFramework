@@ -2,6 +2,149 @@ ConsoleAppFramework
 ===
 [![GitHub Actions](https://github.com/Cysharp/ConsoleAppFramework/workflows/Build-Debug/badge.svg)](https://github.com/Cysharp/ConsoleAppFramework/actions) [![Releases](https://img.shields.io/github/release/Cysharp/ConsoleAppFramework.svg)](https://github.com/Cysharp/ConsoleAppFramework/releases)
 
+ConsoleAppFramework v5 is Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator. Leveraging the latest features of .NET 8 and C# 12 ([IncrementalGenerator](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md), [managed function pointer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers#function-pointers-1), [params arrays and default values lambda expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions#input-parameters-of-a-lambda-expression), [`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1), [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration), etc.), this library ensures maximum performance while maintaining flexibility and extensibility.
+
+![image](https://github.com/Cysharp/ConsoleAppFramework/assets/46207/db4bf599-9fe0-4ce4-801f-0003f44d5628)
+> Set `RunStrategy=ColdStart WarmupCount=0` to calculate the cold start benchmark, which is suitable for CLI application.
+
+The magical performance is achieved by statically generating everything and parsing inline. Let's take a look at a minimal example:
+
+```csharp
+using ConsoleAppFramework;
+
+// args: ./cmd --foo 10 --bar 20
+ConsoleApp.Run(args, (int foo, int bar) => Console.WriteLine($"Sum: {foo + bar}"));
+```
+
+Unlike typical Source Generators that use attributes as keys for generation, ConsoleAppFramework analyzes the provided lambda expressions or method references and generates the actual code body of the Run method.
+
+```csharp
+namespace ConsoleAppFramework;
+
+internal static partial class ConsoleApp
+{
+    public static void Run(string[] args, Action<int, int> command)
+    {
+        if (TryShowHelpOrVersion(args, 2, -1)) return;
+
+        var arg0 = default(int);
+        var arg0Parsed = false;
+        var arg1 = default(int);
+        var arg1Parsed = false;
+
+        try
+        {
+            for (int i = 0; i < args.Length; i++)
+            {
+                var name = args[i];
+
+                switch (name)
+                {
+                    case "--foo":
+                    {
+                        if (!int.TryParse(args[++i], out arg0)) { ThrowArgumentParseFailed("foo", args[i]); }
+                        arg0Parsed = true;
+                        break;
+                    }
+                    case "--bar":
+                    {
+                        if (!int.TryParse(args[++i], out arg1)) { ThrowArgumentParseFailed("bar", args[i]); }
+                        arg1Parsed = true;
+                        break;
+                    }
+                    default:
+                        if (string.Equals(name, "--foo", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!int.TryParse(args[++i], out arg0)) { ThrowArgumentParseFailed("foo", args[i]); }
+                            arg0Parsed = true;
+                            break;
+                        }
+                        if (string.Equals(name, "--bar", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!int.TryParse(args[++i], out arg1)) { ThrowArgumentParseFailed("bar", args[i]); }
+                            arg1Parsed = true;
+                            break;
+                        }
+                        ThrowArgumentNameNotFound(name);
+                        break;
+                }
+            }
+            if (!arg0Parsed) ThrowRequiredArgumentNotParsed("foo");
+            if (!arg1Parsed) ThrowRequiredArgumentNotParsed("bar");
+
+            command(arg0!, arg1!);
+        }
+        catch (Exception ex)
+        {
+            Environment.ExitCode = 1;
+            if (ex is ValidationException)
+            {
+                LogError(ex.Message);
+            }
+            else
+            {
+                LogError(ex.ToString());
+            }
+        }
+    }
+
+    static partial void ShowHelp(int helpId)
+    {
+        Log("""
+Usage: [options...] [-h|--help] [--version]
+
+Options:
+  --foo <int>     (Required)
+  --bar <int>     (Required)
+""");
+    }
+}
+```
+
+As you can see, the code is straightforward and simple, making it easy to imagine the execution cost of the framework portion. That's right, it's zero. This technique was influenced by Rust's macros. Rust has [Attribute-like macros and Function-like macros](https://doc.rust-lang.org/book/ch19-06-macros.html), and ConsoleAppFramework's generation can be considered as Function-like macros.
+
+
+
+
+
+
+
+
+
+Dependency Injection, 
+async/await
+Exit code,
+
+SIGINT/SIGTERM(Ctrl+C) handling with gracefully shutdown via CancellationToken, 
+
+filter(middleware) pipeline, 
+
+multi commands,
+nested command,
+options aliases,
+params array,
+
+JSON argument,
+help builder
+
+
+
+
+Requirements
+
+.NET 8, C# 12
+
+
+
+
+
+---
+
+# v4 ReadMe(will DELETE).
+
+---
+
+
 ConsoleAppFramework is an infrastructure of creating CLI(Command-line interface) tools, daemon, and multi batch application. You can create full feature of command line tool on only one-line.
 
 ![image](https://user-images.githubusercontent.com/46207/147662718-f7756523-67a9-4295-b090-3cfc94203017.png)

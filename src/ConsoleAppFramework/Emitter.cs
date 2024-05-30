@@ -264,7 +264,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 {
                     if (hasCancellationToken)
                     {
-                        using (sb.BeginBlock("if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))"))
+                        using (sb.BeginBlock("if (ex is OperationCanceledException)"))
                         {
                             sb.AppendLine("Environment.ExitCode = 130;");
                             sb.AppendLine("return;");

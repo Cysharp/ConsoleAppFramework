@@ -320,13 +320,9 @@ internal static partial class ConsoleApp
         {
             await Task.Run(() => invoker.InvokeAsync(posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
         }
-	    catch (OperationCanceledException ex) when (ex.CancellationToken == posixSignalHandler.Token || ex.CancellationToken == posixSignalHandler.TimeoutToken)
-	    {
-		    Environment.ExitCode = 130;
-	    }
         catch (Exception ex)
         {
-            if ((ex is OperationCanceledException oce) && (oce.CancellationToken == posixSignalHandler.Token || oce.CancellationToken == posixSignalHandler.TimeoutToken))
+            if (ex is OperationCanceledException)
             {
                 Environment.ExitCode = 130;
                 return;
