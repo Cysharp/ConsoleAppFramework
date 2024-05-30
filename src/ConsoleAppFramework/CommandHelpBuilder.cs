@@ -1,239 +1,246 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+﻿using Microsoft.CodeAnalysis;
 using System.Text;
 
-namespace ConsoleAppFramework
+namespace ConsoleAppFramework;
+
+public static class CommandHelpBuilder
 {
-    internal class CommandHelpBuilder
+    public static string BuildRootHelpMessage(Command command)
     {
-        readonly Func<string> getExecutionCommandName;
-        readonly bool isStrictOption;
-        readonly IServiceProviderIsService isService;
-        readonly ConsoleAppOptions options;
+        return BuildHelpMessageCore(command, showCommandName: false, showCommand: false);
+    }
 
-        public CommandHelpBuilder(Func<string>? getExecutionCommandName, IServiceProviderIsService isService, ConsoleAppOptions options)
+    public static string BuildRootHelpMessage(Command[] commands)
+    {
+        var sb = new StringBuilder();
+
+        var rootCommand = commands.FirstOrDefault(x => x.IsRootCommand);
+        var withoutRoot = commands.Where(x => !x.IsRootCommand).ToArray();
+
+        if (rootCommand != null && withoutRoot.Length == 0)
         {
-            this.getExecutionCommandName = getExecutionCommandName ?? GetExecutionCommandNameDefault;
-            this.isStrictOption = options.StrictOption;
-            this.isService = isService;
-            this.options = options;
+            return BuildRootHelpMessage(commands[0]);
         }
 
-        private string GetExecutionCommandNameDefault()
+        if (rootCommand != null)
         {
-            if (options.ApplicationName != null)
-            {
-                return options.ApplicationName;
-            }
-            else
-            {
-                return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly()!.Location);
-            }
+            sb.AppendLine(BuildHelpMessageCore(rootCommand, false, withoutRoot.Length != 0));
         }
-
-        public string GetExecutionCommandName() => getExecutionCommandName();
-
-        public string BuildHelpMessage(CommandDescriptor? defaultCommand, IEnumerable<CommandDescriptor> commands, bool shortCommandName)
+        else
         {
-            var sb = new StringBuilder();
-
-            bool showHeader = (defaultCommand != null);
-            if (defaultCommand != null)
-            {
-                // Display a help messages for default method
-                sb.Append(BuildHelpMessage(CreateCommandHelpDefinition(defaultCommand, shortCommandName), showCommandName: false, fromMultiCommand: false));
-            }
-
-            var orderedCommands = options.HelpSortCommandsByFullName
-                ? commands.OrderBy(x => x.GetCommandName(options)).ToArray()
-                : commands.OrderBy(x => x.GetNamesFormatted(options)).ToArray();
-            if (orderedCommands.Length > 0)
-            {
-                if (defaultCommand == null)
-                {
-                    sb.Append(BuildUsageMessage());
-                    sb.AppendLine();
-                }
-
-                sb.Append(BuildMethodListMessage(orderedCommands, shortCommandName, out var maxWidth));
-            }
-
-            return sb.ToString();
-        }
-
-        public string BuildHelpMessage(CommandDescriptor command)
-        {
-            return BuildHelpMessage(CreateCommandHelpDefinition(command, false), showCommandName: false, fromMultiCommand: false);
-        }
-
-        internal string BuildHelpMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendLine(BuildUsageMessage(definition, showCommandName, fromMultiCommand));
+            sb.AppendLine("Usage: [command] [-h|--help] [--version]");
             sb.AppendLine();
+        }
 
-            if (!string.IsNullOrEmpty(definition.Description))
+        if (withoutRoot.Length == 0) return sb.ToString();
+
+        var helpDefinitions = withoutRoot.OrderBy(x => x.CommandFullName).ToArray();
+
+        var list = BuildMethodListMessage(helpDefinitions, out _);
+        sb.Append(list);
+
+        return sb.ToString();
+    }
+
+    public static string BuildCommandHelpMessage(Command command)
+    {
+        return BuildHelpMessageCore(command, showCommandName: command.CommandName != "", showCommand: false);
+    }
+
+    static string BuildHelpMessageCore(Command command, bool showCommandName, bool showCommand)
+    {
+        var definition = CreateCommandHelpDefinition(command);
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine(BuildUsageMessage(definition, showCommandName, showCommand));
+
+        if (!string.IsNullOrEmpty(definition.Description))
+        {
+            sb.AppendLine();
+            sb.AppendLine(definition.Description);
+        }
+
+        if (definition.Options.Any())
+        {
+            var hasArgument = definition.Options.Any(x => x.Index.HasValue);
+            var hasOptions = definition.Options.Any(x => !x.Index.HasValue);
+
+            if (hasArgument)
             {
-                sb.AppendLine(definition.Description);
                 sb.AppendLine();
+                sb.AppendLine(BuildArgumentsMessage(definition));
             }
 
-            if (definition.Options.Any())
+            if (hasOptions)
             {
-                sb.Append(BuildArgumentsMessage(definition));
-                sb.Append(BuildOptionsMessage(definition));
+                sb.AppendLine();
+                sb.AppendLine(BuildOptionsMessage(definition));
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    static string BuildUsageMessage(CommandHelpDefinition definition, bool showCommandName, bool showCommand)
+    {
+        var sb = new StringBuilder();
+        sb.Append($"Usage:");
+
+        if (showCommandName)
+        {
+            sb.Append($" {definition.CommandName}");
+        }
+
+        if (showCommand)
+        {
+            sb.Append(" [command]");
+        }
+
+        if (definition.Options.Any(x => x.Index.HasValue))
+        {
+            sb.Append(" [arguments...]");
+        }
+
+        if (definition.Options.Any(x => !x.Index.HasValue))
+        {
+            sb.Append(" [options...]");
+        }
+
+        sb.Append(" [-h|--help] [--version]");
+
+        return sb.ToString();
+    }
+
+    static string BuildArgumentsMessage(CommandHelpDefinition definition)
+    {
+        var argumentsFormatted = definition.Options
+            .Where(x => x.Index.HasValue)
+            .Select(x => (Argument: $"[{x.Index}] {x.FormattedValueTypeName}", x.Description))
+            .ToArray();
+
+        if (!argumentsFormatted.Any()) return string.Empty;
+
+        var maxWidth = argumentsFormatted.Max(x => x.Argument.Length);
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine("Arguments:");
+        var first = true;
+        foreach (var arg in argumentsFormatted)
+        {
+            if (first)
+            {
+                first = false;
             }
             else
             {
-                sb.AppendLine("Options:");
-                sb.AppendLine("  ()");
                 sb.AppendLine();
             }
+            var padding = maxWidth - arg.Argument.Length;
 
-            return sb.ToString();
-        }
-
-        internal string BuildUsageMessage()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"Usage: {GetExecutionCommandName()} <Command>");
-
-            return sb.ToString();
-        }
-
-        internal string BuildUsageMessage(CommandHelpDefinition definition, bool showCommandName, bool fromMultiCommand)
-        {
-            var sb = new StringBuilder();
-            sb.Append($"Usage: {GetExecutionCommandName()}");
-
-            if (showCommandName)
+            sb.Append("  ");
+            sb.Append(arg.Argument);
+            if (!string.IsNullOrEmpty(arg.Description))
             {
-                sb.Append($" {(definition.CommandAliases.Any() ? ((fromMultiCommand ? definition.Command + " " : "") + definition.CommandAliases[0]) : definition.Command)}");
-            }
-
-            foreach (var opt in definition.Options.Where(x => x.Index.HasValue))
-            {
-                sb.Append($" <{(string.IsNullOrEmpty(opt.Description) ? opt.Options[0] : opt.Description)}>");
-            }
-
-            if (definition.Options.Any(x => !x.Index.HasValue))
-            {
-                sb.Append(" [options...]");
-            }
-
-            return sb.ToString();
-        }
-
-        internal string BuildArgumentsMessage(CommandHelpDefinition definition)
-        {
-            var argumentsFormatted = definition.Options
-                .Where(x => x.Index.HasValue)
-                .Select(x => (Argument: $"[{x.Index}] {x.FormattedValueTypeName}", x.Description))
-                .ToArray();
-
-            if (!argumentsFormatted.Any()) return string.Empty;
-
-            var maxWidth = argumentsFormatted.Max(x => x.Argument.Length);
-
-            var sb = new StringBuilder();
-
-            sb.AppendLine("Arguments:");
-            foreach (var arg in argumentsFormatted)
-            {
-                var padding = maxWidth - arg.Argument.Length;
-
-                sb.Append("  ");
-                sb.Append(arg.Argument);
                 for (var i = 0; i < padding; i++)
                 {
                     sb.Append(' ');
                 }
 
                 sb.Append("    ");
-                sb.AppendLine(arg.Description);
+                sb.Append(arg.Description);
             }
-
-            sb.AppendLine();
-
-            return sb.ToString();
         }
 
-        internal string BuildOptionsMessage(CommandHelpDefinition definition)
+        return sb.ToString();
+    }
+
+    static string BuildOptionsMessage(CommandHelpDefinition definition)
+    {
+        var optionsFormatted = definition.Options
+            .Where(x => !x.Index.HasValue)
+            .Select(x => (Options: string.Join("|", x.Options) + (x.IsFlag ? string.Empty : $" {x.FormattedValueTypeName}{(x.IsParams ? "..." : "")}"), x.Description, x.IsRequired, x.IsFlag, x.DefaultValue))
+            .ToArray();
+
+        if (!optionsFormatted.Any()) return string.Empty;
+
+        var maxWidth = optionsFormatted.Max(x => x.Options.Length);
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine("Options:");
+        var first = true;
+        foreach (var opt in optionsFormatted)
         {
-            var optionsFormatted = definition.Options
-                .Where(x => !x.Index.HasValue)
-                .Select(x => (Options: string.Join(", ", x.Options) + (x.IsFlag ? string.Empty : $" {x.FormattedValueTypeName}"), x.Description, x.IsRequired, x.IsFlag, x.DefaultValue))
-                .ToArray();
-
-            if (!optionsFormatted.Any()) return string.Empty;
-
-            var maxWidth = optionsFormatted.Max(x => x.Options.Length);
-
-            var sb = new StringBuilder();
-
-            sb.AppendLine("Options:");
-            foreach (var opt in optionsFormatted)
+            if (first)
             {
-                var options = opt.Options;
-                var padding = maxWidth - options.Length;
-
-                sb.Append("  ");
-                sb.Append(options);
-                for (var i = 0; i < padding; i++)
-                {
-                    sb.Append(' ');
-                }
-
-                sb.Append("    ");
-                sb.Append(opt.Description);
-
-                if (opt.IsFlag)
-                {
-                    sb.Append($" (Optional)");
-                }
-                else if (opt.DefaultValue != null)
-                {
-                    sb.Append($" (Default: {opt.DefaultValue})");
-                }
-                else if (opt.IsRequired)
-                {
-                    sb.Append($" (Required)");
-                }
-
+                first = false;
+            }
+            else
+            {
                 sb.AppendLine();
             }
 
-            sb.AppendLine();
+            var options = opt.Options;
+            var padding = maxWidth - options.Length;
 
-            return sb.ToString();
-        }
-
-        internal string BuildMethodListMessage(IEnumerable<CommandDescriptor> types, bool shortCommandName, out int maxWidth)
-        {
-            maxWidth = 0;
-            return BuildMethodListMessage(types.Select(x => CreateCommandHelpDefinition(x, shortCommandName)), true, out maxWidth);
-        }
-
-        internal string BuildMethodListMessage(IEnumerable<CommandHelpDefinition> commandHelpDefinitions, bool appendCommand, out int maxWidth)
-        {
-            var formatted = commandHelpDefinitions
-                .Select(x => (Command: $"{(x.CommandAliases.Length != 0 ? ((appendCommand ? x.Command + " " : "") + string.Join(", ", x.CommandAliases)) : x.Command)}", Description: x.Description))
-                .ToArray();
-            maxWidth = formatted.Max(x => x.Command.Length);
-
-            var sb = new StringBuilder();
-
-            sb.AppendLine("Commands:");
-            foreach (var item in formatted)
+            sb.Append("  ");
+            sb.Append(options);
+            for (var i = 0; i < padding; i++)
             {
-                sb.Append("  ");
-                sb.Append(item.Command);
+                sb.Append(' ');
+            }
 
+            sb.Append("    ");
+            sb.Append(opt.Description);
+
+            if (opt.IsFlag)
+            {
+                sb.Append($" (Optional)");
+            }
+            else if (opt.DefaultValue != null)
+            {
+                sb.Append($" (Default: {opt.DefaultValue})");
+            }
+            else if (opt.IsRequired)
+            {
+                sb.Append($" (Required)");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    static string BuildMethodListMessage(IEnumerable<Command> commands, out int maxWidth)
+    {
+        var formatted = commands
+            .Select(x =>
+            {
+                var full = x.CommandName;
+                if (x.CommandPath.Length > 0)
+                {
+                    full = string.Join(" ", x.CommandPath) + " " + x.CommandName;
+                }
+
+                return (Command: full, x.Description);
+            })
+            .ToArray();
+        maxWidth = formatted.Max(x => x.Command.Length);
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine("Commands:");
+        foreach (var item in formatted)
+        {
+            sb.Append("  ");
+            sb.Append(item.Command);
+            if (string.IsNullOrEmpty(item.Description))
+            {
+                sb.AppendLine();
+            }
+            else
+            {
                 var padding = maxWidth - item.Command.Length;
                 for (var i = 0; i < padding; i++)
                 {
@@ -243,148 +250,114 @@ namespace ConsoleAppFramework
                 sb.Append("    ");
                 sb.AppendLine(item.Description);
             }
-
-            return sb.ToString();
         }
 
-        internal CommandHelpDefinition CreateCommandHelpDefinition(CommandDescriptor descriptor, bool shortCommandName)
+        return sb.ToString();
+    }
+
+    static CommandHelpDefinition CreateCommandHelpDefinition(Command descriptor)
+    {
+        var parameterDefinitions = new List<CommandOptionHelpDefinition>();
+
+        foreach (var item in descriptor.Parameters)
         {
-            var parameterDefinitions = new List<CommandOptionHelpDefinition>();
+            // ignore DI params.
+            if (!item.IsParsable) continue;
 
-            foreach (var item in descriptor.MethodInfo.GetParameters())
+            // -i, -input | [default=foo]...
+
+            var index = item.ArgumentIndex == -1 ? null : (int?)item.ArgumentIndex;
+            var options = new List<string>();
+            if (item.ArgumentIndex != -1)
             {
-                // ignore DI params.
-                if (item.ParameterType == typeof(ConsoleAppContext) || (isService != null && isService.IsService(item.ParameterType))) continue;
-
-                // -i, -input | [default=foo]...
-
-                var index = default(int?);
-                var itemName = this.options.NameConverter(item.Name!);
-
-                var options = new List<string>();
-                var option = item.GetCustomAttribute<OptionAttribute>();
-                if (option != null)
+                options.Add($"[{item.ArgumentIndex}]");
+            }
+            else
+            {
+                // aliases first
+                foreach (var alias in item.Aliases)
                 {
-                    if (option.Index != -1)
-                    {
-                        index = option.Index;
-                        options.Add($"[{option.Index}]");
-                    }
-                    else
-                    {
-                        // If Index is -1, ShortName is initialized at Constractor.
-                        if (option.ShortName != null)
-                        {
-                            options.Add($"-{option.ShortName.Trim('-')}");
-                        }
-                    }
+                    options.Add(alias);
                 }
-
-                if (!index.HasValue)
-                {
-                    if (isStrictOption)
-                    {
-                        options.Add($"--{itemName}");
-                    }
-                    else
-                    {
-                        options.Add($"-{itemName}");
-                    }
-                }
-
-                var description = string.Empty;
-                if (option != null && !string.IsNullOrEmpty(option.Description))
-                {
-                    description = option.Description ?? string.Empty;
-                }
-                else
-                {
-                    description = string.Empty;
-                }
-
-                var isFlag = item.ParameterType == typeof(bool);
-
-                var defaultValue = default(string);
-                if (item.HasDefaultValue)
-                {
-                    if (option?.DefaultValue != null)
-                    {
-                        defaultValue = option.DefaultValue;
-                    }
-                    else
-                    {
-                        defaultValue = (item.DefaultValue?.ToString() ?? "null");
-                    }
-                    if (isFlag)
-                    {
-                        if (item.DefaultValue is true)
-                        {
-                            // bool option with true default value is not flag.
-                            isFlag = false;
-                        }
-                        else if (item.DefaultValue is false)
-                        {
-                            // false default value should be omitted for flag.
-                            defaultValue = null;
-                        }
-                    }
-                }
-
-                var paramTypeName = item.ParameterType.Name;
-                if (item.ParameterType.IsGenericType && item.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                {
-                    paramTypeName = item.ParameterType.GetGenericArguments()[0].Name + "?";
-                }
-
-                parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, paramTypeName, defaultValue, index, isFlag));
+                options.Add("--" + item.Name);
             }
 
-            return new CommandHelpDefinition(
-                shortCommandName ? descriptor.GetNamesFormatted(options) : descriptor.GetCommandName(options),
-                descriptor.Aliases,
-                parameterDefinitions.OrderBy(x => x.Index ?? int.MaxValue).ToArray(),
-                descriptor.Description
-            );
-        }
+            var description = item.Description;
+            var isFlag = item.Type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Boolean;
+            var isParams = item.IsParams;
 
-        public class CommandHelpDefinition
-        {
-            public string Command { get; }
-            public string[] CommandAliases { get; }
-            public CommandOptionHelpDefinition[] Options { get; }
-            public string Description { get; }
-
-            public CommandHelpDefinition(string command, string[] commandAliases, CommandOptionHelpDefinition[] options, string description)
+            var defaultValue = default(string);
+            if (item.HasDefaultValue)
             {
-                Command = command;
-                CommandAliases = commandAliases;
-                Options = options;
-                Description = description;
+                defaultValue = item.DefaultValue == null ? "null" : item.DefaultValueToString(castValue: false, enumIncludeTypeName: false);
+                if (isFlag)
+                {
+                    if (item.DefaultValue is true)
+                    {
+                        // bool option with true default value is not flag.
+                        isFlag = false;
+                    }
+                    else if (item.DefaultValue is false)
+                    {
+                        // false default value should be omitted for flag.
+                        defaultValue = null;
+                    }
+                }
             }
+
+            var paramTypeName = item.ToTypeShortString();
+            parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, paramTypeName, defaultValue, index, isFlag, isParams));
         }
 
-        public class CommandOptionHelpDefinition
+        var commandName = descriptor.CommandName;
+        if (descriptor.CommandPath.Length != 0)
         {
-            public string[] Options { get; }
-            public string Description { get; }
-            public string? DefaultValue { get; }
-            public string ValueTypeName { get; }
-            public int? Index { get; }
-
-            public bool IsRequired => DefaultValue == null;
-            public bool IsFlag { get; }
-            public string FormattedValueTypeName => "<" + ValueTypeName + ">";
-
-            public CommandOptionHelpDefinition(string[] options, string description, string valueTypeName, string? defaultValue, int? index, bool isFlag)
-            {
-                Options = options;
-                Description = description;
-                ValueTypeName = valueTypeName;
-                DefaultValue = defaultValue;
-                Index = index;
-                IsFlag = isFlag;
-            }
+            commandName = string.Join(" ", descriptor.CommandPath) + " " + descriptor.CommandName;
         }
 
+        return new CommandHelpDefinition(
+            commandName,
+            parameterDefinitions.ToArray(),
+            descriptor.Description
+        );
+    }
+
+    class CommandHelpDefinition
+    {
+        public string CommandName { get; }
+        public CommandOptionHelpDefinition[] Options { get; }
+        public string Description { get; }
+
+        public CommandHelpDefinition(string command, CommandOptionHelpDefinition[] options, string description)
+        {
+            CommandName = command;
+            Options = options;
+            Description = description;
+        }
+    }
+
+    class CommandOptionHelpDefinition
+    {
+        public string[] Options { get; }
+        public string Description { get; }
+        public string? DefaultValue { get; }
+        public string ValueTypeName { get; }
+        public int? Index { get; }
+
+        public bool IsRequired => DefaultValue == null && !IsParams;
+        public bool IsFlag { get; }
+        public bool IsParams { get; }
+        public string FormattedValueTypeName => "<" + ValueTypeName + ">";
+
+        public CommandOptionHelpDefinition(string[] options, string description, string valueTypeName, string? defaultValue, int? index, bool isFlag, bool isParams)
+        {
+            Options = options;
+            Description = description;
+            ValueTypeName = valueTypeName;
+            DefaultValue = defaultValue;
+            Index = index;
+            IsFlag = isFlag;
+            IsParams = isParams;
+        }
     }
 }

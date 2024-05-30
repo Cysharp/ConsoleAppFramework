@@ -117,22 +117,19 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var hasIAsyncDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IAsyncDisposable));
 
         var typeFilters = type.GetAttributes()
+            .Where(x => x.AttributeClass?.Name == "ConsoleAppFilterAttribute")
             .Select(x =>
             {
-                if (x.AttributeClass?.Name == "ConsoleAppFilterAttribute")
+                var filterType = x.AttributeClass!.TypeArguments[0];
+                var filter = FilterInfo.Create(filterType);
+
+                if (filter == null)
                 {
-                    var filterType = x.AttributeClass.TypeArguments[0];
-                    var filter = FilterInfo.Create(filterType);
-
-                    if (filter == null)
-                    {
-                        context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
-                        return null!;
-                    }
-
-                    return filter;
+                    context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
+                    return null!;
                 }
-                return null!;
+
+                return filter;
             })
             .ToArray();
         if (typeFilters.Any(x => x == null))
@@ -453,22 +450,19 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         }
 
         var methodFilters = methodSymbol.GetAttributes()
+            .Where(x => x.AttributeClass?.Name == "ConsoleAppFilterAttribute")
             .Select(x =>
             {
-                if (x.AttributeClass?.Name == "ConsoleAppFilterAttribute")
+                var filterType = x.AttributeClass!.TypeArguments[0];
+                var filter = FilterInfo.Create(filterType);
+
+                if (filter == null)
                 {
-                    var filterType = x.AttributeClass.TypeArguments[0];
-                    var filter = FilterInfo.Create(filterType);
-
-                    if (filter == null)
-                    {
-                        context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
-                        return null!;
-                    }
-
-                    return filter;
+                    context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
+                    return null!;
                 }
-                return null!;
+
+                return filter;
             })
             .ToArray();
         if (methodFilters.Any(x => x == null))

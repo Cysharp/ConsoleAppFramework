@@ -15,7 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\ConsoleAppFramework5\ConsoleAppFramework5.csproj">
+		<ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj">
 			<OutputItemType>Analyzer</OutputItemType>
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 		</ProjectReference>

@@ -1,33 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿
+
+<Project Sdk="Microsoft.NET.Sdk">
+
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
-		<LangVersion>8.0</LangVersion>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>12</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<SignAssembly>true</SignAssembly>
-		<AssemblyOriginatorKeyFile>release.snk</AssemblyOriginatorKeyFile>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<RootNamespace>ConsoleAppFramework</RootNamespace>
 
-		<!-- NuGet -->
-		<PackageId>ConsoleAppFramework</PackageId>
-		<Description>Micro-framework for console applications.</Description>
-        <IsPackable>true</IsPackable>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<NoWarn>1701;1702;1591</NoWarn>
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<AnalyzerLanguage>cs</AnalyzerLanguage>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0" />
-		<PackageReference Include="System.Text.Json" Version="6.0.1" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0" />
+		<PackageReference Include="PolySharp" Version="1.14.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 
-	<ItemGroup>
-		<!-- Only for .NET 6, default implicit Using. -->
-		<None Include="ConsoleAppFramework.props" Pack="true" PackagePath="build\net6.0\ConsoleAppFramework.props" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Include="Icon.png" Pack="true" PackagePath="/" />
-	</ItemGroup>
 </Project>
+
+

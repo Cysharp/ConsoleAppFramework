@@ -20,43 +20,18 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using static ConsoleAppFramework.ConsoleApp;
 
+var builder = ConsoleApp.Create();
+builder.Add<MyClass>();
+builder.Run(args);
 
-ConsoleApp.Run(args, (int foo, string bar, Fruit ft, bool flag, Half half, int? itt, Obj obj) =>
+public class MyClass()
 {
-    Console.Write(foo);
-    Console.Write(bar);
-    Console.Write(ft);
-    Console.Write(flag);
-    Console.Write(half);
-    Console.Write(itt);
-    Console.Write(obj.Foo);
-});
-
-enum Fruit
-{
-    Orange, Grape, Apple
-}
-
-public class Obj
-{
-    public int Foo { get; set; }
-}
-
-
-
-public class MyClass333
-{
-    /// <summary>
-    /// -f|-fb, hello my world.
-    /// </summary>
-    /// <param name="fooBar"></param>
-    public void HelloWorld(string fooBar)
+    [Command("nomunomu")]
+    public void Do()
     {
-        Console.Write("Hello World! " + fooBar);
+        Console.Write("yeah");
     }
 }
-
-
 
 
 
@@ -582,15 +557,6 @@ namespace ConsoleAppFramework
             }
         }
 
-        [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-        internal sealed class CommandAttribute : Attribute
-        {
-            public string Command { get; }
-
-            public CommandAttribute(string command)
-            {
-                this.Command = command;
-            }
-        }
+        
     }
 }

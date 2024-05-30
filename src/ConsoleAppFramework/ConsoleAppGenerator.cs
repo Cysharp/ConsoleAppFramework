@@ -594,7 +594,7 @@ using System.ComponentModel.DataAnnotations;
                 if (filter == null)
                 {
                     sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, genericType.GetLocation());
-                    return null;
+                    return null!;
                 }
 
                 return filter!;
