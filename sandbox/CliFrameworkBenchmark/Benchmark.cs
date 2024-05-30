@@ -98,4 +98,30 @@ public class Benchmark
         var app = new CommandApp<SpectreConsoleCliCommand>();
         app.Run(Arguments);
     }
+
+
+    //[Benchmark(Description = "ConsoleAppFramework Builder API")]
+    //public unsafe void ExecuteConsoleAppFramework2()
+    //{
+    //    var app = ConsoleApp.Create();
+    //    app.Add("", ConsoleAppFrameworkCommand.Execute);
+    //    app.Run(Arguments);
+    //}
+
+    //[Benchmark(Description = "ConsoleAppFramework CancellationToken")]
+    //public unsafe void ExecuteConsoleAppFramework3()
+    //{
+    //    var app = ConsoleApp.Create();
+    //    app.Add("", ConsoleAppFrameworkCommandWithCancellationToken.Execute);
+    //    app.Run(Arguments);
+    //}
+
+    //[Benchmark(Description = "ConsoleAppFramework With Filter")]
+    //public unsafe void ExecuteConsoleAppFramework4()
+    //{
+    //    var app = ConsoleApp.Create();
+    //    app.UseFilter<NopConsoleAppFilter>();
+    //    app.Add("", ConsoleAppFrameworkCommand.Execute);
+    //    app.Run(Arguments);
+    //}
 }

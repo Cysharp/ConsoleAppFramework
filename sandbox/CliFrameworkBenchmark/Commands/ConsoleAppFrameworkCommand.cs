@@ -15,6 +15,8 @@
 //    }
 //}
 
+using ConsoleAppFramework;
+
 public class ConsoleAppFrameworkCommand
 {
     /// <summary>
@@ -26,5 +28,27 @@ public class ConsoleAppFrameworkCommand
     public static void Execute(string? str, int intOption, bool boolOption)
     {
 
+    }
+}
+
+public class ConsoleAppFrameworkCommandWithCancellationToken
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="str">-s</param>
+    /// <param name="intOption">-i</param>
+    /// <param name="boolOption">-b</param>
+    public static void Execute(string? str, int intOption, bool boolOption, CancellationToken cancellationToken)
+    {
+
+    }
+}
+
+internal class NopConsoleAppFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(CancellationToken cancellationToken)
+    {
+        return Next.InvokeAsync(cancellationToken);
     }
 }

@@ -17,7 +17,22 @@ using System.Threading;
 using System.Threading.Tasks;
 using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using static ConsoleAppFramework.ConsoleApp;
+
+
+var host = Host.CreateApplicationBuilder().Build();
+
+
+
+
+host.Start(); // what is?
+
+
+ConsoleApp.ServiceProvider = host.Services;
+
+    
+
 
 
 ConsoleApp.Run(args, (int xxx = 100, Fruit myFruit = Fruit.Apple) => { });
