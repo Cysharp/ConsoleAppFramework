@@ -330,6 +330,7 @@ app.Run(args);
 Parse and Value Binding
 ---
 
+// TODO:reason and policy of limitation of parsing
 
 `[Argument]`
 
@@ -418,6 +419,7 @@ Filter(Middleware) Pipline
 ---
 
 // TODO:samples? change exit code, log, etc...
+// TODO: how to share filter
 
 ```csharp
 internal class TimestampFilter(ConsoleAppFilter next)
