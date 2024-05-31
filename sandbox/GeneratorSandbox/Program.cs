@@ -1,17 +1,46 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using ConsoleAppFramework;
 
 //args = ["--foo", "10", "--bar", "20"];
+args = ["--help"];
+
+var app = ConsoleApp.Create();
 
 
-ConsoleApp.Run(args, (int foo, int bar) => Console.WriteLine($"Sum: {foo + bar}"));
+app.Add<MyCommands>("foo");
 
+// Commands:
+//   foo
+//   foo bar
+//   foo bar barbaz
+//   foo baz
+app.Run(args);
 
+public class MyCommands : IDisposable
+{
+    /// <summary>Root command test.</summary>
+    /// <param name="msg">-m, Message to show.</param>
+    [Command("")]
+    public void Root(string msg) => Console.WriteLine(msg);
 
+    /// <summary>Display message.</summary>
+    /// <param name="msg">Message to show.</param>
+    public void Echo(string msg) => Console.WriteLine(msg);
 
+    /// <summary>Sum parameters.</summary>
+    /// <param name="x">left value.</param>
+    /// <param name="y">right value.</param>
+    public void Sum(int x, int y) => Console.WriteLine(x + y);
+
+    public void Dispose()
+    {
+        Console.WriteLine("Disposed.");
+    }
+}
 
 
 [AttributeUsage(AttributeTargets.Parameter)]

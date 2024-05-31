@@ -7,7 +7,6 @@ using BenchmarkDotNet.Order;
 using CliFx;
 using Cocona.Benchmark.External.Commands;
 using CommandLine;
-using ConsoleAppFramework;
 using PowerArgs;
 using Spectre.Console.Cli;
 using System.ComponentModel.DataAnnotations.Schema;

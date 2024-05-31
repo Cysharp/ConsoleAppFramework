@@ -130,8 +130,9 @@ This library is distributed via NuGet, minimal requirement is .NET 8 and C# 12.
 
 > PM> Install-Package [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
 
-ConsoleAppFramework is analyzer(Source Generator) and all generated types are internal.
+ConsoleAppFramework is an analyzer (Source Generator) and does not have any dll references. When referenced, the entry point class `ConsoleAppFramework.ConsoleApp` is generated internally.
 
+The first argument of `Run` or `RunAsync` can be `string[] args`, and the second argument can be any lambda expression, method, or function reference. Based on the content of the second argument, the corresponding function is automatically generated.
 
 ```csharp
 using ConsoleAppFramework;
@@ -141,987 +142,347 @@ ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 
 You can execute command like `sampletool --name "foo"`.
 
+* The return value can be `void`, `int`, `Task`, or `Task<int>`
+    * If an `int` is returned, that value will be set to `Environment.ExitCode`
+* By default, option argument names are converted to `--lower-kebab-case`
+    * For example, `XmlReader` becomes `xml-reader`
+    * Option argument names are case-insensitive, but lower-case matches faster
 
-
-
-
-
-
-
-
-```
-
-If you are using .NET 6, automatically enabled implicit global `using ConsoleAppFramework;`. So you can write one line code.
+When passing a method, you can write it as follows:
 
 ```csharp
-ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
+ConsoleApp.Run(args, Sum);
+
+void Sum(int x, int y) => Console.Write(x + y);
 ```
 
-You can execute command like `sampletool --name "foo"`.
-
-The Option parser is no longer needed. You can also use the `OptionAttribute` to describe the parameter and set short-name.
+Additionally, for static functions, you can pass them as function pointers. In that case, the managed function pointer arguments will be generated, resulting in maximum performance.
 
 ```csharp
-ConsoleApp.Run(args, ([Option("n", "name of send user.")] string name) => Console.WriteLine($"Hello {name}"));
-```
-
-```
-Usage: sampletool [options...]
-
-Options:
-  -n, --name <String>    name of user. (Required)
-
-Commands:
-  help       Display help.
-  version    Display version.
-```
-
-Method parameter will be required parameter, optional parameter will be oprional parameter with default value. Also support boolean flag, if parameter is bool, in default it will be optional parameter and with `--foo` set true to parameter.
-
-```csharp
-// lambda expression does not support default value so require to use local function
-static void Hello([Option("m")]string message, [Option("e")] bool end, [Option("r")] int repeat = 3)
+unsafe
 {
-    for (int i = 0; i < repeat; i++)
-    {
-        Console.WriteLine(message);
-    }
-    if (end)
-    {
-        Console.WriteLine("END");
-    }
+    ConsoleApp.Run(args, &Sum);
 }
 
-ConsoleApp.Run(args, Hello);
+static void Sum(int x, int y) => Console.Write(x + y);
 ```
 
 ```csharp
-Options:
-  -m, --message <String>     (Required)
-  -e, --end                  (Optional)
-  -r, --repeat <Int32>       (Default: 3)
+public static unsafe void Run(string[] args, delegate* managed<int, int, void> command)
 ```
 
-`help` command (or no argument to pass) and `version` command is enabled in default(You can disable this in options or can override by add same name of command). Also enables `command --help` option. This help format is similar as `dotnet` command, `version` command shows `AssemblyInformationalVersion` or `AssemblylVersion`.
+Unfortunately, currently [static lambdas cannot be assigned to function pointers](https://github.com/dotnet/csharplang/discussions/6746), so defining a named function is necessary.
 
-```
-> sampletool help
-Usage: sampletool [options...]
-
-Options:
-  -n, --name <String>     name of user. (Required)
-  -r, --repeat <Int32>    repeat count. (Default: 3)
-
-Commands:
-  help          Display help.
-  version       Display version.
-```
-
-```
-> sampletool version
-1.0.0
-```
-
-You can use `Run<T>` or `AddCommands<T>` to add multi commands easily.
+When defining an asynchronous method using a lambda expression, the `async` keyword is required.
 
 ```csharp
-ConsoleApp.Run<MyCommands>(args);
-
-// require to inherit ConsoleAppBase
-public class MyCommands : ConsoleAppBase
+// --foo, --bar
+await ConsoleApp.RunAsync(args, async (int foo, int bar, CancellationToken cancellationToken) =>
 {
-    //  You can receive DI services in constructor.
-
-    // All public methods is registred.
-
-    // Using [RootCommand] attribute will be root-command
-    [RootCommand]
-    public void Hello(
-        [Option("n", "name of send user.")] string name,
-        [Option("r", "repeat count.")] int repeat = 3)
-    {
-        for (int i = 0; i < repeat; i++)
-        {
-            Console.WriteLine($"Hello My ConsoleApp from {name}");
-        }
-    }
-
-    // [Option(int)] describes that parameter is passed by index
-    [Command("escape")]
-    public void UrlEscape([Option(0)] string input)
-    {
-        Console.WriteLine(Uri.EscapeDataString(input));
-    }
-
-    // define async method returns Task
-    [Command("timer")]
-    public async Task Timer([Option(0)] uint waitSeconds)
-    {
-        Console.WriteLine(waitSeconds + " seconds");
-        while (waitSeconds != 0)
-        {
-            // ConsoleAppFramework does not stop immediately on terminate command(Ctrl+C)
-            // for allows gracefully shutdown(keeping safe cleanup)
-            // so you should pass Context.CancellationToken to async method.
-            // If not, abort timeout by HostOptions.ShutdownTimeout(default is 00:00:05).
-            await Task.Delay(TimeSpan.FromSeconds(1), Context.CancellationToken);
-            waitSeconds--;
-            Console.WriteLine(waitSeconds + " seconds");
-        }
-    }
-}
-```
-
-You can call like
-
-```
-sampletool -n "foo" -r 3
-sampletool escape http://foo.bar/
-sampletool timer 10
-```
-
-This is recommended way to register multi commands.
-
-If you omit `[Command]` attribute, command and option name is used by there name and convert to `kebab-case` in default.
-
-```csharp
-
-// Command is url-escape
-// Option  is --input-file
-public void UrlEscape(string inputFile)
-{
-}
-```
-
-This converting behaviour can configure by `ConsoleAppOptions.NameConverter`.
-
-ConsoleApp / ConsoleAppBuilder
----
-`ConsoleApp` is an entrypoint of creating ConsoleAppFramework app. It has three APIs, `Create`, `CreateBuilder`, `CreateFromHostBuilder` and `Run`.
-
-```csharp
-// Create is shorthand of CraeteBuilder(args).Build();
-var app = ConsoleApp.Create(args);
-
-// Builder returns IHost so you can configure application hosting option.
-var app = ConsoleApp.CreateBuilder(args)
-    .ConfigureServices(services =>
-    {
-    })
-    .Build();
-
-// Run is shorthand of Create(args).AddRootCommand(rootCommand).Run();
-// If you want to create simple app, this API is faster.
-ConsoleApp.Run(args, /* lambda expression */);
-
-// Run<T> is shorthand of Create(args).AddCommands<T>().Run();
-// AddCommands<T> is recommend option to register many commands.
-ConsoleApp.Run<MyCommands>(args);
-```
-
-When calling `Create/CreateBuilder/CreateFromHostBuilder`, also configure `ConsoleAppOptions`. Full option details, see [ConsoleAppOptions](#consoleappoptions) section.
-
-```csharp
-var app = ConsoleApp.Create(args, options =>
-{
-    options.ShowDefaultCommand = false;
-    options.NameConverter = x => x.ToLower();
+    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+    Console.WriteLine($"Sum: {foo + bar}");
 });
 ```
 
-Advanced API of `ConsoleApp`, `CreateFromHostBuilder` creates ConsoleApp from IHostBuilder.
+You can use either the `Run` or `RunAsync` method for invocation. It is optional to use `CancellationToken` as an argument. This becomes a special parameter and is excluded from the command options. Internally, it uses [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration) to handle `SIGINT`, `SIGTERM`, and `SIGKILL`. When these signals are invoked (e.g., Ctrl+C), the CancellationToken is set to CancellationRequested. If `CancellationToken` is not used as an argument, these signals will not be handled, and the program will terminate immediately. For more details, refer to the [CancellationToken and Gracefully Shutdown](#cancellationtokengracefully-shutdown-and-timeout) section.
 
-```csharp
-// Setup services outside of ConsoleAppFramework.
-var hostBuilder = Host.CreateDefaultBuilder()
-    .ConfigureServices();
-    
-var app = ConsoleApp.CreateFromHostBuilder(hostBuilder);
-```
-
-`ConsoleAppBuilder` itself is `IHostBuilder` so you can use any configuration methods like `ConfigureServices`, `ConfigureLogging`, etc. If method chain is not returns `ConsoleAppBuilder`(for example,  using external lib's extension methods), can not get `ConsoleApp` directly. In that case, use `BuildAsConsoleApp()` instead of `Build()`.
-
-`ConsoleApp` exposes some utility properties.
-
-* `IHost` Host
-* `ILogger<ConsoleApp>` Logger
-* `IServiceProvider` Services
-* `IConfiguration` Configuration
-* `IHostEnvironment` Environment
-* `IHostApplicationLifetime` Lifetime
-
-`Run()` and `RunAsync(CancellationToken)` to finally invoke application. Run is shorthand of `RunAsync().GetAwaiter().GetResult()` so receives same result of `await RunAsync()`. On Entrypoint, there is not much need to do `await RunAsync()`. Therefore, it is usually a good to choose `Run()`.
-
-Delegate convention
+Option aliases and Help, Version
 ---
-`AddCommand` accepts `Delegate` in argument. In C# 10.0 allows naturaly syntax of lambda expressions.
+By default, if `-h` or `--help` is provided, or if no arguments are passed, the help display will be invoked.
 
 ```csharp
-app.AddCommand("no-argument", () => { });
-app.AddCommand("any-arguments",  (int x, string y, TimeSpan z) => { });
-app.AddCommand("instance", new MyClass().Cmd);
-app.AddCommand("async", async () => { });
-app.AddCommand("attribute", ([Option("msg")]string message) => { });
+ConsoleApp.Run(args, (string message) => Console.Write($"Hello, {message}"));
+```
 
-static void Hello1() { }
-app.AddCommand("local-static", Hello1);
+```txt
+Usage: [options...] [-h|--help] [--version]
 
-void Hello2() { }
-app.AddCommand("local-method", Hello2);
+Options:
+  --message <string>     (Required)
+```
 
-async Task Async() { }
-app.AddCommand("async-method", Async);
+In ConsoleAppFramework, instead of using attributes, you can provide descriptions and aliases for functions by writing Document Comments. This avoids the common issue in frameworks where arguments become cluttered with attributes, making the code difficult to read. With this approach, a natural writing style is achieved.
 
-void OptionalParameter(int x = 10, int y = 20) { }
-app.AddCommand("optional", OptionalParameter);
+```csharp
+ConsoleApp.Run(args, Commands.Hello);
 
-public class MyClass
+static class Commands
 {
-    public void Cmd()
-    {
-        Console.WriteLine("OK");
-    }
+    /// <summary>
+    /// Display Hello.
+    /// </summary>
+    /// <param name="message">-m, Message to show.</param>
+    public static void Hello(string message) => Console.Write($"Hello, {message}");
 }
 ```
 
-lambda expressions can not use optional parameter so if you want to need it, using local/static functions.
+```txt
+Usage: [options...] [-h|--help] [--version]
 
-Delegate(both lambda and method) allows to receive `ConsoleAppContext` or any your DI types. DI types is ignored as parameter.
+Display Hello.
 
-```csharp
-// option is --param1, --param2
-app.AddCommand("di", (ConsoleAppContext ctx, ILogger logger, int param1, int param2) => { });
+Options:
+  -m|--message <string>    Message to show. (Required)
 ```
 
-AddCommand
+To add aliases to parameters, list the aliases separated by `|` before the comma in the comment. For example, if you write a comment like `-a|-b|--abcde, Description.`, then `-a`, `-b`, and `--abcde` will be treated as aliases, and `Description.` will be the description.
+
+Unfortunately, due to current C# specifications, lambda expressions and [local functions do not support document comments](https://github.com/dotnet/csharplang/issues/2110), so a class is required.
+
+In addition to `-h|--help`, there is another special built-in option: `--version`. This displays the `AssemblyInformationalVersion` or `AssemblyVersion`.
+
+Command
 ---
-### `AddRootCommand`
-
-`RootCommand` means default(no command name) command of application. `ConsoleApp.Run(Delegate)` uses root command.
-
-### `AddCommand` / `AddCommands<T>`
-
-`AddCommand` requires first argument as command-name. `AddCommands<T>` allows to register many command via `ConsoleAppBase` `ConsoleAppBase` has `Context`, it has executing information and `CancellationToken`.
+If you want to register multiple commands or perform complex operations (such as adding filters), instead of using `Run/RunAsync`, obtain the `ConsoleAppBuilder` using `ConsoleApp.Create()`. Call `Add`, `Add<T>`, or `UseFilter<T>` multiple times on the `ConsoleAppBuilder` to register commands and filters, and finally execute the application using `Run` or `RunAsync`.
 
 ```csharp
-// Commands:
-//   hello
-//   world
-app.AddCommands<MyCommands>();
-app.Run();
+var app = ConsoleApp.Create();
 
-// Inherit ConsoleAPpBase
-public class MyCommands : ConsoleAppBase, IDisposable
+app.Add("", (string msg) => Console.WriteLine(msg));
+app.Add("echo", (string msg) => Console.WriteLine(msg));
+app.Add("sum", (int x, int y) => Console.WriteLine(x + y));
+
+// --msg
+// echo --msg
+// sum --x --y
+app.Run(args);
+```
+
+The first argument of `Add` is the command name. If you specify an empty string `""`, it becomes the root command. Unlike parameters, command names are case-sensitive and cannot have multiple names.
+
+With `Add<T>`, you can add multiple commands at once using a class-based approach, where public methods are treated as commands. If you want to write document comments for multiple commands, this approach allows for cleaner code, so it is recommended. Additionally, as mentioned later, you can also write clean code for Dependency Injection (DI) using constructor injection.
+
+```csharp
+var app = ConsoleApp.Create();
+app.Add<MyCommands>();
+app.Run(args);
+
+public class MyCommands
 {
-    readonly ILogger<MyCommands> logger;
+    /// <summary>Root command test.</summary>
+    /// <param name="msg">-m, Message to show.</param>
+    [Command("")]
+    public void Root(string msg) => Console.WriteLine(msg);
 
-    //  You can receive DI services in constructor.
-    public MyCommands(ILogger<MyCommands> logger)
-    {
-        this.logger = logger;
-    }
+    /// <summary>Display message.</summary>
+    /// <param name="msg">Message to show.</param>
+    public void Echo(string msg) => Console.WriteLine(msg);
 
-    // All public methods is registered.
-
-    // Using [RootCommand] attribute will be root-command
-    [RootCommand]
-    public void Hello() 
-    {
-        // Context has any useful information.
-        Console.WriteLine(this.Context.Timestamp);
-    }
-
-    public async Task World() 
-    {
-        await Task.Delay(1000, this.Context.CancellationToken);
-    }
-
-    // If implements IDisposable, called for cleanup
-    public void Dispose()
-    {
-    }
+    /// <summary>Sum parameters.</summary>
+    /// <param name="x">left value.</param>
+    /// <param name="y">right value.</param>
+    public void Sum(int x, int y) => Console.WriteLine(x + y);
 }
 ```
 
-### `AddSubCommand` / `AddSubCommands<T>`
+When you check the registered commands with `--help`, it will look like this. Note that you can register multiple `Add<T>` and also add commands using `Add`.
 
-`AddSubCommand(string parentCommandName, string commandName, Delegate command)` registers nested command.
+```txt
+Usage: [command] [options...] [-h|--help] [--version]
 
-```csharp
-// Commands:
-//   foo bar1
-//   foo bar2
-//   foo bar3
-app.AddSubCommand("foo", "bar1", () => { });
-app.AddSubCommand("foo", "bar2", () => { });
-app.AddSubCommand("foo", "bar3", () => { });
+Root command test.
+
+Options:
+  -m|--msg <string>    Message to show. (Required)
+
+Commands:
+  echo    Display message.
+  sum     Sum parameters.
 ```
 
-`AddSubCommands<T>` is similar as `AddCommands<T>` but used type-name(or `[Command]` name) as parentCommandName.
+By default, the command name is derived from the method name converted to `lower-kebab-case`. However, you can change the name to any desired value using the `[Command(string commandName)]` attribute.
+
+If the class implements `IDisposable` or `IAsyncDisposable`, the Dispose or DisposeAsync method will be called after the command execution.
+
+### Nested command
+
+You can create a deep command hierarchy by adding commands with paths separated by `/` when registering them. This allows you to add commands at nested levels.
 
 ```csharp
+var app = ConsoleApp.Create();
+
+app.Add("foo", () => { });
+app.Add("foo/bar", () => { });
+app.Add("foo/bar/barbaz", () => { });
+app.Add("foo/baz", () => { });
+
 // Commands:
-//   my-commands hello
-//   my-commands world
-app.AddSubCommands<MyCommands>();
+//   foo
+//   foo bar
+//   foo bar barbaz
+//   foo baz
+app.Run(args);
 ```
 
-### `AddAllCommandType`
-
-`AddAllCommandType` searches all `ConsoleAppBase` type in assembly and register by `AddSubCommands<T>`.
+`Add<T>` can also add commands to a hierarchy by passing a `string commandPath` argument.
 
 ```csharp
+var app = ConsoleApp.Create();
+app.Add<MyCommands>("foo");
+
 // Commands:
-//   foo echo
-//   foo sum
-//   bar hello2
-app.AddAllCommandType();
-
-// Batches.
-public class Foo : ConsoleAppBase
-{
-    public void Echo(string msg)
-    {
-        Console.WriteLine(msg);
-    }
-
-    public void Sum(int x, int y)
-    {
-        Console.WriteLine((x + y).ToString());
-    }
-}
-
-public class Bar : ConsoleAppBase
-{
-    public void Hello2()
-    {
-        Console.WriteLine("H E L L O");
-    }
-}
+//  foo         Root command test.
+//  foo echo    Display message.
+//  foo sum     Sum parameters.
+app.Run(args);
 ```
 
-This is most easy to create many commands so useful for application batch that requires many many command. 
-
-Commands are searched from loaded assemblies(in default `AppDomain.CurrentDomain.GetAssemblies()`), when does not touch other assemblies type, it will be trimmed and can not load it. In that case, use `AddAllCommandType(params Assembly[] searchAssemblies)` overload to pass target assembly, for example `AddAllCommandType(typeof(Foo).Assembly)` preserve types.
-
-Complex Argument
+Parse and Value Binding
 ---
-If the argument is not primitive, you can pass JSON string.
+
+
+`[Argument]`
+
+`bool`
+
+
+
+
+
+
+
+
+`enum`
+`nullable?`
+`DateTime`
+
+`ISpanParsable<T>`
+#### default
+#### json
+#### params T[]
+
+
+#### Custom Value Converter
+
+// TODO:
 
 ```csharp
-public class ComplexArgTest : ConsoleAppBase
+[AttributeUsage(AttributeTargets.Parameter)]
+public class Vector3ParserAttribute : Attribute, IArgumentParser<Vector3>
 {
-    public void Foo(int[] array, Person person)
+    public static bool TryParse(ReadOnlySpan<char> s, out Vector3 result)
     {
-        Console.WriteLine(string.Join(", ", array));
-        Console.WriteLine(person.Age + ":" + person.Name);
+        Span<Range> ranges = stackalloc Range[3];
+        var splitCount = s.Split(ranges, ',');
+        if (splitCount != 3)
+        {
+            result = default;
+            return false;
+        }
+
+        float x;
+        float y;
+        float z;
+        if (float.TryParse(s[ranges[0]], out x) && float.TryParse(s[ranges[1]], out y) && float.TryParse(s[ranges[2]], out z))
+        {
+            result = new Vector3(x, y, z);
+            return true;
+        }
+
+        result = default;
+        return false;
     }
 }
-
-public class Person
-{
-    public int Age { get; set; }
-    public string Name { get; set; }
-}
 ```
 
-You can call like here.
+CancellationToken(Gracefully Shutdown) and Timeout
+---
 
-```
-> sampletool -array [10,20,30] -person {"Age":10,"Name":"foo"}
 
-# including space, use escaping
-> SampleApp.exe -array [10,20,30] -person "{\"Age\":10,\"Name\":\"foo bar\"}"
-```
 
-> be careful with JSON string double quotation.
 
-For the array handling, it can be a treat without correct JSON.
-e.g. one-length argument can handle without `[]`.
-
-```csharp
-Foo(int[] array)
-> SampleApp.exe -array 9999
-```
-
-multiple-argument can handle by split with ` ` or `,`.
-
-```csharp
-Foo(int[] array)
-> SampleApp.exe -array "11 22 33"
-> SampleApp.exe -array "11,22,33"
-> SampleApp.exe -array "[11,22,33]"
-```
-
-string argument can handle without `"`.
-
-```csharp
-Foo(string[] array)
-> SampleApp.exe -array hello
-> SampleApp.exe -array "foo bar baz"
-> SampleApp.exe -array foo,bar,baz
-> SampleApp.exe -array "["foo","bar","baz"]"
-```
 
 Exit Code
 ---
 If the method returns `int` or `Task<int>` or `ValueTask<int> value, ConsoleAppFramework will set the return value to the exit code.
 
-```csharp
-public class ExampleApp : ConsoleAppBase
-{
-    [Command("exit")]
-    public int ExitCode()
-    {
-        return 12345;
-    }
-    
-    [Command("exit-with-task")]
-    public async Task<int> ExitCodeWithTask()
-    {
-        return 54321;
-    }
-}
-```
+
 
 > **NOTE**: If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code.
 
-Implicit Using
----
-In .NET 6, `global using ConsoleAppFramework` is enabled in default. If you remove global using, setup this element to target `.csproj`.
 
-```xml
-<ItemGroup>
-    <Using Remove="ConsoleAppFramework" />
-</ItemGroup>
-```
 
-CommandAttribute
+Log
 ---
-`CommandAttribute` enables subscommand on `RunConsoleAppFramework<T>()`(for single type CLI app), changes command name on `RunConsoleAppFramework()`(for muilti type command routing), also describes the description.
+
+
+Attribute based parameters validation
+---
+
+
+
+
+
+
+Filter(Middleware) Pipline
+---
+
+// TODO:samples? change exit code, log, etc...
 
 ```csharp
-RunConsoleAppFramework<App>();
-
-public class App : ConsoleAppBase
+internal class TimestampFilter(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
 {
-    // as Root Command(no command argument)
-    public void Run()
+    public override Task InvokeAsync(CancellationToken cancellationToken)
     {
-    }
-
-    [Command("sec", "sub comman of this app")]
-    public void Second()
-    {
-    }
-}
-```
-
-```csharp
-RunConsoleAppFramework();
-
-public class App2 : ConsoleAppBase
-{
-    // routing command: `app2 exec`
-    [Command("exec", "exec app.")]
-    public void Exec1()
-    {
+        Console.WriteLine("filter1");
+        return Next.InvokeAsync(cancellationToken);
     }
 }
 
-// command attribute also can use to class.
-[Command("mycmd")]
-public class App3 : ConsoleAppBase
+
+internal class LogExecutionTimeFilter(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
 {
-     // routing command: `mycmd e2`
-    [Command("e2", "exec app 2.")]
-    public void ExecExec()
+    public override async Task InvokeAsync(CancellationToken cancellationToken)
     {
-    }
-}
-```
-
-OptionAttribute
----
-OptionAttribute configure parameter, it can set shortName or order index, and help description.
-
-If you want to add only description, set "" or null to shortName parameter.
-
-```csharp
-public void Hello(
-    [Option("n", "name of send user.")]string name,
-    [Option("r", "repeat count.")]int repeat = 3)
-{
-}
-
-[Command("escape")]
-public void UrlEscape([Option(0, "input of this command")]string input)
-{
-}
-
-[Command("unescape")]
-public void UrlUnescape([Option(null, "input of this command")]string input)
-{
-}
-```
-
-## Command parameters validation
-
-Values of command parameters can be validated via validation attributes from `System.ComponentModel.DataAnnotations`
-namespace and custom ones inheriting `ValidationAttribute` type.
-
-```csharp
-using System.ComponentModel.DataAnnotations;
-// ...
-
-internal class TestConsoleApp : ConsoleAppBase
-{
-    [Command("some-command")]
-    public void SomeCommand(
-        [EmailAddress] string firstArg,
-        [Range(0, 2)]  int secondArg) => Console.WriteLine($"hello from {nameof(TestConsoleApp)}");
-}
-```
-
-Output (command invoked with params [**--first-arg "invalid-email-address" --second-arg" 10**])
-
-```
-Some parameters have invalid values:
-first-arg (invalid-email-address): The String field is not a valid e-mail address.
-second-arg (10): The field Int32 must be between 0 and 2.
-```
-
-Daemon
----
-If use infinite-loop, it becomes daemon program. `ConsoleAppContext.CancellationToken` is lifecycle token of application. You can check `CancellationToken.IsCancellationRequested` and shutdown gracefully. 
-
-```csharp
-public class Daemon : ConsoleAppBase
-{
-    [RootCommand]
-    public async Task Run()
-    {
-        // you can write infinite-loop while stop request(Ctrl+C or docker terminate).
+        var startingTime = Stopwatch.GetTimestamp();
         try
         {
-            while (!this.Context.CancellationToken.IsCancellationRequested)
-            {
-                try
-                {
-                    Console.WriteLine("Wait One Minutes");
-                }
-                catch (Exception ex)
-                {
-                    // error occured but continue to run(or terminate).
-                    Console.WriteLine(ex, "Found error");
-                }
-
-                // wait for next time
-                await Task.Delay(TimeSpan.FromMinutes(1), this.Context.CancellationToken);
-            }
-        }
-        catch (Exception ex) when (!(ex is OperationCanceledException))
-        {
-            // you can write finally exception handling(without cancellation)
+            await Next.InvokeAsync(cancellationToken);
         }
         finally
         {
-            // you can write cleanup code here.
+            var elapsed = Stopwatch.GetElapsedTime(startingTime);
+            ConsoleApp.Log($"Execution Time: {elapsed}");
         }
     }
 }
 ```
 
-Abort Timeout
+
+
+
+Dependency Injection(Logging, Configuration, etc...)
 ---
-ConsoleAppFramework's execution lifetime is managed via generic host. If you do cancel(Ctrl+C), host starts cancellation process with timeout. If you don't pass `CancellationToken` in async method, does not cancel immediately.
+
+`[FromServices]`
+
+// TODO: minimum single context
 
 ```csharp
-public async Task Wait1() 
+public class FilterContext : IServiceProvider
 {
-    // Not good.
-    await Task.Delay(TimeSpan.FromMinutes(60));
-}
+    public long Timestamp { get; set; }
+    public Guid UserId { get; set; }
 
-public async Task Wait2() 
-{
-    // Good.
-    await Task.Delay(TimeSpan.FromMinutes(60), this.Context.CancellationToken);
-}
-```
-
-Default timeout time is `00:00:05`, you can change via `ConfigureHostOptions`.
-
-```csharp
-var app = ConsoleApp.CreateBuilder(args)
-    .ConfigureHostOptions(options =>
+    object IServiceProvider.GetService(Type serviceType)
     {
-        // change timeout.
-        options.ShutdownTimeout = TimeSpan.FromMinutes(30);
-    })
-    .Build();
-```
-
-Filter
----
-Filter can hook before/after batch running event. You can implement `ConsoleAppFilter` for it and attach to global/class/method.
-
-```csharp
-public class MyFilter : ConsoleAppFilter
-{
-    // Filter is instantiated by DI so you can get parameter by constructor injection.
-
-    public async override ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
-    {
-        try
-        {
-            /* on before */
-            await next(context); // next
-        }
-        catch
-        {
-            /* on after */
-            throw;
-        }
-        finally
-        {
-            /* on finally */
-        }
+        if (serviceType == typeof(FilterContext)) return this;
+        throw new InvalidOperationException("Type is invalid:" + serviceType);
     }
 }
 ```
 
-`ConsoleAppContext.Timestamp` has start time so if subtraction from now, get elapsed time.
 
-```csharp
-public class LogRunningTimeFilter : ConsoleAppFilter
-{
-    public override async ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
-    {
-        context.Logger.LogInformation("Call method at " + context.Timestamp.ToLocalTime()); // LocalTime for human readable time
-        try
-        {
-            await next(context);
-            context.Logger.LogInformation("Call method Completed successfully, Elapsed:" + (DateTimeOffset.UtcNow - context.Timestamp));
-        }
-        catch
-        {
-            context.Logger.LogInformation("Call method Completed Failed, Elapsed:" + (DateTimeOffset.UtcNow - context.Timestamp));
-            throw;
-        }
-    }
-}
-```
 
-In default, ConsoleAppFramework does not prevent double startup but if create filter, can do. 
-
-```csharp
-public class MutexFilter : ConsoleAppFilter
-{
-    public override async ValueTask Invoke(ConsoleAppContext context, Func<ConsoleAppContext, ValueTask> next)
-    {
-        var name = context.MethodInfo.DeclaringType.Name + "." + context.MethodInfo.Name;
-        using (var mutex = new Mutex(true, name, out var createdNew))
-        {
-            if (!createdNew)
-            {
-                throw new Exception($"already running {name} in another process.");
-            }
-            
-            await next(context);
-        }
-    }
-}
-```
-
-There filters can pass to `ConsoleAppOptions.GlobalFilters` on startup or attach by attribute on class, method.
-
-```csharp
-var app = ConsoleApp.Create(args, options =>
-{
-    options.GlobalFilters = new ConsoleAppFilter[]
-    {
-        new MutextFilter() { Order = -9999 } ,
-        new LogRunningTimeFilter() { Oder = -9998 }, 
-    }
-});
-
-[ConsoleAppFilter(typeof(MyFilter3))]
-public class MyBatch : ConsoleAppBase
-{
-    [ConsoleAppFilter(typeof(MyFilter4), Order = -9999)]
-    [ConsoleAppFilter(typeof(MyFilter5), Order = 9999)]
-    public void Do()
-    {
-    }
-}
-```
-
-Execution order can control by `int Order` property.
-
-Logging
----
-In default, `Context.Logger` has `ILogger<ConsoleApp>` and `ILogger<T>` can inject to constructor. Default `ConsoleLogger` format in `Host.CreateDefaultBuilder` is supernumerary and not suitable for console application. ConsoleAppFramework provides `SimpleConsoleLogger` to replace default ConsoleLogger in default. If you want to keep default `ConsoleLogger`, use `ConsoleAppOptions.ReplaceToUseSimpleConsoleLogger` to `false`.
-
-If you want to use high performance logger/output to file, also use [Cysharp/ZLogger](https://github.com/Cysharp/ZLogger/) that easy to integrate ConsoleAppFramework.
-
-```csharp
-using ZLogger;
-
-var app = ConsoleApp.CreateDefaultBuilder(args)
-    .ConfigureLogging(x =>
-    {
-        x.ClearProviders(); // clear all providers
-        x.SetMinimumLevel(LogLevel.Trace); // change log level if you want
-
-        x.AddZLoggerConsole(); // add ZLogger Console
-        x.AddZLoggerFile("fileName.log"); // add ZLogger file output
-    })
-    .Build();
-```
-
-Configuration
----
-ConsoleAppFramework is just an infrastructure. You can add `appsettings.json` or other configs as .NET Core offers via `Microsoft.Extensions.Options`.
-You can add `appsettings.json` and `appsettings.{environment}.json` and typesafe load via map config to Class w/IOption.
-
-Here's single contained batch with Config loading sample.
-
-```json
-// appconfig.json(Content, Copy to Output Directory)
-{
-  "Foo": 42,
-  "Bar": true
-}
-```
-
-```csharp
-using Microsoft.Extensions.DependencyInjection;
-
-var app = ConsoleApp.CreateBuilder(args)
-    .ConfigureServices((hostContext, services) =>
-    {
-        // mapping config json to IOption<MyConfig>
-        // requires "Microsoft.Extensions.Options.ConfigurationExtensions" package
-        // if you want to map subscetion in json, use Configure<T>(hostContext.Configuration.GetSection("foo"))
-        services.Configure<MyConfig>(hostContext.Configuration);
-    })
-    .Build();
-
-public class ConfigAppSample : ConsoleAppBase
-{
-    MyConfig config;
-
-    // get configuration from DI.
-    public ConfigAppSample(IOptions<MyConfig> config)
-    {
-        this.config = config.Value;
-    }
-
-    public void ShowOption()
-    {
-        Console.WriteLine(config.Bar);
-        Console.WriteLine(config.Foo);
-    }
-}
-```
-
-for the details, please see [.NET Core Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host) documentation.
-
-DI
----
-You can use DI(constructor injection) by GenericHost.
-
-```csharp
-IOptions<MyConfig> config;
-ILogger<MyApp> logger;
-
-public MyApp(IOptions<MyConfig> config, ILogger<MyApp> logger)
-{
-    this.config = config;
-    this.logger = logger;
-}
-```
-
-DI also allows delegate registration.
-
-```csharp
-app.AddCommand("di", (ConsoleAppContext ctx, ILogger logger, int param1, int param2) => { });
-```
-
-DI also inject to filter.
-
-Cleanup
----
-You can implement `IDisposable.Dispose` or `IAsyncDisposable.DisposeAsync` explicitly, that is called after command finished.
-
-```csharp
-public class MyApp : ConsoleAppBase, IDisposable
-{
-    public void Hello()
-    {
-        Console.WriteLine("Hello");
-    }
-
-    // Dispose/DisposeAsync method is not registered as Command.
-    public void Dispose()
-    {
-        Console.WriteLine("DISPOSED");
-    }
-}
-```
-
-If implements both `IDisposable` and `IAsyncDisposable`, called only `IAsyncDisposable`.
-
-```csharp
-public class MyApp : ConsoleAppBase, IDisposable, IAsyncDisposable
-{
-    public void Hello()
-    {
-        Console.WriteLine("Hello");
-    }
-
-    public void Dispose()
-    {
-        Console.WriteLine("Not called.");
-    }
-        
-    public async ValueTask DisposeAsync()
-    {
-        Console.WriteLine("called.");
-    }
-}
-```
-
-ConsoleAppContext
----
-ConsoleAppContext is injected to property on method executing.
-
-```csharp
-public class ConsoleAppContext
-{
-    public string?[] Arguments { get; }
-    public DateTime Timestamp { get; }
-    public CancellationToken CancellationToken { get; }
-    public ILogger<ConsoleAppEngine> Logger { get; }
-    public MethodInfo MethodInfo { get; }
-    public IServiceProvider ServiceProvider { get; }
-    public IDictionary<string, object> Items { get; }
-
-    public void Cancel();
-    public void Terminate();
-}
-```
-
-`Cancel()` set `CancellationToken` to canceled. Also `Terminate()` set token to cancled and terminate process(internal throws `OperationCanceledException` immediately).
-
-ConsoleAppOptions
----
-You can configure framework behaviour by ConsoleAppOptions.
-
-```csharp
-var app = ConsoleApp.Create(args, options =>
-{
-    options.StrictOption = false, // default is true.
-    options.ShowDefaultCommand = false, // default is true
-});
-```
-
-```csharp
-public class ConsoleAppOptions
-{
-    /// <summary>Argument parser uses strict(-short, --long) option. Default is true.</summary>
-    public bool StrictOption { get; set; } = true;
-
-    /// <summary>Show default command(help/version) to help. Default is true.</summary>
-    public bool ShowDefaultCommand { get; set; } = true;
-
-    public bool ReplaceToUseSimpleConsoleLogger { get; set; } = true;
-
-    public JsonSerializerOptions? JsonSerializerOptions { get; set; }
-
-    public ConsoleAppFilter[]? GlobalFilters { get; set; }
-
-    public bool NoAttributeCommandAsImplicitlyDefault { get; set; }
-
-    public Func<string, string> NameConverter { get; set; } = KebabCaseConvert;
-
-    public string? ApplicationName { get; set; } = null;
-}
-```
-
-If StrictOption = false, does not distinguish between the number of `-`.  For example, this method
-
-```
-public void Hello([Option("m", "Message to display.")]string message)
-```
-
-can pass argument by `-m`, `--message` and `-message`. This is styled like a go lang command. But if you want to strictly distinguish argument of `-`, set `StrcitOption = true`(default), that allows `-m` and `--message`.
-
-Also, by default, the `help` and `version` commands appear as help, which can be hidden by setting `ShowDefaultCommand = false`.
-
-NameConverter is used type-name, method-name, parameter-name converting as command. Default is convert to lower kebab-case.
-
-```csharp
-// my-command query-data --organization-id --user-id
-public class MyCommand
-{
-    public void QueryData(string organizationId, string userId);
-}
-```
-
-You can set func to change this behaviour like `NameConverter = x => x.ToLower();`.
-
-`ApplicationName` configure help usages `Usage: ***`, default(null) shows filename without extension.
-
-Terminate handling in Console.Read
----
-ConsoleAppFramework handle terminate signal(Ctrl+C) gracefully with `ConsoleAppContext.CancellationToken`. If your application waiting with Console.Read/ReadLine/ReadKey, requires additional handling.
-
-```csharp
-// case of Console.Read/ReadLine, pressed Ctrl+C, Read returns null.
-ConsoleApp.Run(args, (ConsoleAppContext ctx) =>
-{
-    var read = Console.ReadLine();
-    if (read == null) ctx.Terminate();
-});
-```
-
-```csharp
-// case of Console.ReadKey, can not cancel itself so use with Task.Run and WaitAsync.
-ConsoleApp.Run(args, async (ConsoleAppContext ctx) =>
-{
-    var key = await Task.Run(() => Console.ReadKey()).WaitAsync(ctx.CancellationToken);
-});
-```
 
 Publish to executable file
 ---
-[dotnet run](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-run) is useful for local development or execute in CI tool. For example in CI, git pull and execute by `dotnet run -- --options` is easy to manage and execute utilities.
 
-[dotnet publish](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-publish) to create executable file. [.NET Core 3.0 offers Single Executable File](https://docs.microsoft.com/en-us/dotnet/core/whats-new/dotnet-core-3-0) via `PublishSingleFile`.
-
-CLI tool can use [.NET Core Local/Global Tools](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools). If you want to create it, check the [Tutorial: Create a .NET tool using the .NET CLI](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools-how-to-create) and [Use a global tool](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools-how-to-use) or [Use a local tool](https://docs.microsoft.com/en-us/dotnet/core/tools/local-tools-how-to-use).
-
-v3 Legacy Compatibility
----
-v1-v3 does not exist minimal api style(`ConsoleApp.Create/CreateBuilder`).
-
-```csharp
-await Host.CreateDefaultBuilder()
-    .RunConsoleAppFrameworkAsync<Program>(args);
-```
-
-`RunConsoleAppFrameworkAsync` is still exists but does not recommend to use. Also, since v4, there is a change in the default behavior. When `RunConsoleAppFrameworkAsync` is used, the option settings of v3 and earlier will be used.
-
-```csharp
-options.NoAttributeCommandAsImplicitlyDefault = true;
-options.StrictOption = false;
-options.NameConverter = x => x.ToLower();
-options.ReplaceToUseSimpleConsoleLogger = false;
-```
-
-You can also get this option setting in `ConsoleAppOptions.CreateLegacyCompatible()`.
+* Native AOT
+* dotnet run
+* dotnet publish
 
 License
 ---
