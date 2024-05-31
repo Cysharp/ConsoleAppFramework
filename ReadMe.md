@@ -103,265 +103,52 @@ Options:
 
 As you can see, the code is straightforward and simple, making it easy to imagine the execution cost of the framework portion. That's right, it's zero. This technique was influenced by Rust's macros. Rust has [Attribute-like macros and Function-like macros](https://doc.rust-lang.org/book/ch19-06-macros.html), and ConsoleAppFramework's generation can be considered as Function-like macros.
 
-
-
-
-
-
-
-
-
-Dependency Injection, 
-async/await
-Exit code,
-
-SIGINT/SIGTERM(Ctrl+C) handling with gracefully shutdown via CancellationToken, 
-
-filter(middleware) pipeline, 
-
-multi commands,
-nested command,
-options aliases,
-params array,
-
-JSON argument,
-help builder
-
-
-
-
-Requirements
-
-.NET 8, C# 12
-
-
-
-
-
----
-
-# v4 ReadMe(will DELETE).
-
----
-
-
-ConsoleAppFramework is an infrastructure of creating CLI(Command-line interface) tools, daemon, and multi batch application. You can create full feature of command line tool on only one-line.
-
-![image](https://user-images.githubusercontent.com/46207/147662718-f7756523-67a9-4295-b090-3cfc94203017.png)
-
-This simplicity is by C# 10.0 and .NET 6 new features, similar as [ASP.NET Core 6.0 Minimal APIs](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis).
-
-Most minimal API is one-line(with top-level-statements, global-usings).
-
-```csharp
-ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
-```
-
-Of course, ConsoleAppFramework has extensibility.
-
-```csharp
-// Register two commands(use short-name, argument)
-// hello -m
-// sum [x] [y]
-var app = ConsoleApp.Create(args);
-app.AddCommand("hello", ([Option("m", "Message to display.")] string message) => Console.WriteLine($"Hello {message}"));
-app.AddCommand("sum", ([Option(0)] int x, [Option(1)] int y) => Console.WriteLine(x + y));
-app.Run();
-```
-
-You can register public method as command. This provides a simple way to registering multiple commands.
-
-```csharp
-// AddCommands register as command.
-// echo --msg --repeat(default = 3)
-// sum [x] [y]
-var app = ConsoleApp.Create(args);
-app.AddCommands<Foo>();
-app.Run();
-
-public class Foo : ConsoleAppBase
-{
-    public void Echo(string msg, int repeat = 3)
-    {
-        for (var i = 0; i < repeat; i++)
-        {
-            Console.WriteLine(msg);
-        }
-    }
-
-    public void Sum([Option(0)]int x, [Option(1)]int y)
-    {
-        Console.WriteLine((x + y).ToString());
-    }
-}
-```
-
-If you have many commands, you can define class separetely and use `AddAllCommandType` to register all commands one-line.
-
-```csharp
-// Register `Foo` and `Bar` as SubCommands(You can also use AddSubCommands<T> to register manually).
-// foo echo --msg
-// foo sum [x] [y]
-// bar hello2
-var app = ConsoleApp.Create(args);
-app.AddAllCommandType();
-app.Run();
-
-public class Foo : ConsoleAppBase
-{
-    public void Echo(string msg)
-    {
-        Console.WriteLine(msg);
-    }
-
-    public void Sum([Option(0)]int x, [Option(1)]int y)
-    {
-        Console.WriteLine((x + y).ToString());
-    }
-}
-
-public class Bar : ConsoleAppBase
-{
-    public void Hello2()
-    {
-        Console.WriteLine("H E L L O");
-    }
-}
-```
-
- ConsoleAppFramework is built on [.NET Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host), you can use configuration, logging, DI, lifetime management by Microsoft.Extensions packages. ConsoleAppFramework do parameter binding from string args, routing many commands, dotnet style help builder, etc.
-
-![image](https://user-images.githubusercontent.com/46207/72047323-a08e0c80-32fd-11ea-850a-7f926adf3d22.png)
-
-Here is the full-sample of power of ConsoleAppFramework.
-
-```csharp
-// You can use full feature of Generic Host(same as ASP.NET Core).
-
-var builder = ConsoleApp.CreateBuilder(args);
-builder.ConfigureServices((ctx,services) =>
-{
-    // Register EntityFramework database context
-    services.AddDbContext<MyDbContext>();
-
-    // Register appconfig.json to IOption<MyConfig>
-    services.Configure<MyConfig>(ctx.Configuration);
-
-    // Using Cysharp/ZLogger for logging to file
-    services.AddLogging(logging =>
-    {
-        logging.AddZLoggerFile("log.txt");
-    });
-});
-
-var app = builder.Build();
-
-// setup many command, async, short-name/description option, subcommand, DI
-app.AddCommand("calc-sum", (int x, int y) => Console.WriteLine(x + y));
-app.AddCommand("sleep", async ([Option("t", "seconds of sleep time.")] int time) =>
-{
-    await Task.Delay(TimeSpan.FromSeconds(time));
-});
-app.AddSubCommand("verb", "childverb", () => Console.WriteLine("called via 'verb childverb'"));
-
-// You can insert all public methods as sub command => db select / db insert
-// or AddCommand<T>() all public methods as command => select / insert
-app.AddSubCommands<DatabaseApp>();
-
-// some argument from DI.
-app.AddRootCommand((ConsoleAppContext ctx, IOptions<MyConfig> config, string name) => { });
-
-app.Run();
-
-// ----
-
-[Command("db")]
-public class DatabaseApp : ConsoleAppBase, IAsyncDisposable
-{
-    readonly ILogger<DatabaseApp> logger;
-    readonly MyDbContext dbContext;
-    readonly IOptions<MyConfig> config;
-
-    // you can get DI parameters.
-    public DatabaseApp(ILogger<DatabaseApp> logger,IOptions<MyConfig> config, MyDbContext dbContext)
-    {
-        this.logger = logger;
-        this.dbContext = dbContext;
-        this.config = config;
-    }
-
-    [Command("select")]
-    public async Task QueryAsync(int id)
-    {
-        // select * from...
-    }
-
-    // also allow defaultValue.
-    [Command("insert")]
-    public async Task InsertAsync(string value, int id = 0)
-    {
-        // insert into...
-    }
-
-    // support cleanup(IDisposable/IAsyncDisposable)
-    public async ValueTask DisposeAsync()
-    {
-        await dbContext.DisposeAsync();
-    }
-}
-
-public class MyConfig
-{
-    public string FooValue { get; set; } = default!;
-    public string BarValue { get; set; } = default!;
-}
-```
-
-ConsoleAppFramework can create easily to many command application. Also enable to use GenericHost configuration is best way to share configuration/workflow when creating batch application for other .NET web app. If tool is for CI, git pull and run by `dotnet run -- [Command] [Option]` is very helpful.
-
-dotnet's standard CommandLine api - [System.CommandLine](https://github.com/dotnet/command-line-api) is low level, require many boilerplate codes. ConsoleAppFramework is like ASP.NET Core in CLI Applications, no needs boilerplate. However, with the power of Generic Host, it is simple and easy, but much more powerful.
-
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Getting Started](#getting-started)
-- [ConsoleApp / ConsoleAppBuilder](#consoleapp--consoleappbuilder)
-- [Delegate convention](#delegate-convention)
-- [AddCommand](#addcommand)
-  - [`AddRootCommand`](#addrootcommand)
-  - [`AddCommand` / `AddCommands<T>`](#addcommand--addcommandst)
-  - [`AddSubCommand` / `AddSubCommands<T>`](#addsubcommand--addsubcommandst)
-  - [`AddAllCommandType`](#addallcommandtype)
-- [Complex Argument](#complex-argument)
-- [Exit Code](#exit-code)
-- [Implicit Using](#implicit-using)
-- [CommandAttribute](#commandattribute)
-- [OptionAttribute](#optionattribute)
-- [Command parameters validation](#command-parameters-validation)
-- [Daemon](#daemon)
-- [Abort Timeout](#abort-timeout)
-- [Filter](#filter)
-- [Logging](#logging)
-- [Configuration](#configuration)
-- [DI](#di)
-- [Cleanup](#cleanup)
-- [ConsoleAppContext](#consoleappcontext)
-- [ConsoleAppOptions](#consoleappoptions)
-- [Terminate handling in Console.Read](#terminate-handling-in-consoleread)
-- [Publish to executable file](#publish-to-executable-file)
-- [v3 Legacy Compatibility](#v3-legacy-compatibility)
-- [License](#license)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
+The `ConsoleApp` class, along with everything else, is generated entirely by the Source Generator, resulting in no dependencies, including ConsoleAppFramework itself. This characteristic should contribute to the small assembly size and ease of handling, including support for Native AOT.
+
+Moreover, CLI applications typically involve single-shot execution from a cold start. As a result, common optimization techniques such as dynamic code generation (IL Emit, ExpressionTree.Compile) and caching (ArrayPool) do not work effectively. ConsoleAppFramework generates everything statically in advance, achieving performance equivalent to optimized hand-written code without reflection or boxing.
+
+ConsoleAppFramework offers a rich set of features as a framework. The Source Generator analyzes which modules are being used and generates the minimal code necessary to implement the desired functionality.
+
+* SIGINT/SIGTERM(Ctrl+C) handling with gracefully shutdown via `CancellationToken`
+* Filter(middleware) pipeline to intercept before/after execution
+* Exit code management
+* Support for async commands
+* Registration of multiple commands
+* Registration of nested commands
+* Setting option aliases and descriptions from code document comment
+* `System.ComponentModel.DataAnnotations` attribute-based Validation
+* Dependency Injection for command registration by type and public methods
+* High performance value parsing via `ISpanParsable<T>`
+* Parsing of params arrays
+* Parsing of JSON arguments
+* Help(`-h|--help`) option builder
+* Default show version(`--version`) option
 
 Getting Started
 --
-NuGet: [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
+This library is distributed via NuGet, minimal requirement is .NET 8 and C# 12.
 
+> PM> Install-Package [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
+
+ConsoleAppFramework is analyzer(Source Generator) and all generated types are internal.
+
+
+```csharp
+using ConsoleAppFramework;
+
+ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 ```
-Install-Package ConsoleAppFramework
+
+You can execute command like `sampletool --name "foo"`.
+
+
+
+
+
+
+
+
+
 ```
 
 If you are using .NET 6, automatically enabled implicit global `using ConsoleAppFramework;`. So you can write one line code.
