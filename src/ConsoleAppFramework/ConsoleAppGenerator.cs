@@ -391,6 +391,17 @@ internal static partial class ConsoleApp
         }
     }
 
+    struct SyncAsyncDisposeWrapper<T>(T value) : IDisposable
+        where T : IAsyncDisposable
+    {
+        public readonly T Value => value;
+
+        public void Dispose()
+        {
+            value.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+    }
+
     internal partial struct ConsoleAppBuilder
     {
         public ConsoleAppBuilder()

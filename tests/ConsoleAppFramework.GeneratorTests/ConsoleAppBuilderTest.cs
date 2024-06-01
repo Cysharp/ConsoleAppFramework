@@ -158,6 +158,27 @@ public class MyClass : IAsyncDisposable
     }
 }
 """, "do", "yeah:disposed!");
+
+        // DisposeAsync: sync pattern
+        verifier.Execute("""
+var builder = ConsoleApp.Create();
+builder.Add<MyClass>();
+builder.Run(args);
+
+public class MyClass : IAsyncDisposable
+{
+    public void Do()
+    {
+        Console.Write("yeah:");
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Console.Write("disposed!");
+        return default;
+    }
+}
+""", "do", "yeah:disposed!");
     }
 
     [Fact]

@@ -236,12 +236,20 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                         // sync
                         (false, true, true) => "using ",
                         (false, true, false) => "using ",
-                        (false, false, true) => "", // IAsyncDisposable but sync, can't call disposeasync......
+                        (false, false, true) => "__use_wrapper", // IAsyncDisposable but sync, needs special wrapper
                         (false, false, false) => ""
                     };
 
-                    sb.AppendLine($"{usingInstance}var instance = {command.CommandMethodInfo.BuildNew()};");
-                    invokeCommand = $"instance.{command.CommandMethodInfo.MethodName}({methodArguments})";
+                    if (usingInstance != "__use_wrapper")
+                    {
+                        sb.AppendLine($"{usingInstance}var instance = {command.CommandMethodInfo.BuildNew()};");
+                        invokeCommand = $"instance.{command.CommandMethodInfo.MethodName}({methodArguments})";
+                    }
+                    else
+                    {
+                        sb.AppendLine($"using var instance = new SyncAsyncDisposeWrapper<{command.CommandMethodInfo.TypeFullName}>({command.CommandMethodInfo.BuildNew()});");
+                        invokeCommand = $"instance.Value.{command.CommandMethodInfo.MethodName}({methodArguments})";
+                    }
                 }
 
                 if (hasCancellationToken)
