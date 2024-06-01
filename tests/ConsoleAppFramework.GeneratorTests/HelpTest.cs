@@ -67,7 +67,7 @@ Options:
 var app = ConsoleApp.Create();
 app.Add("a", (int x, int y) => { });
 app.Add("ab", (int x, int y) => { });
-app.Add("a/b/c", (int x, int y) => { });
+app.Add("a b c", (int x, int y) => { });
 app.Run(args);
 """;
         verifier.Execute(code, args: "--help", expected: """
@@ -89,7 +89,7 @@ var app = ConsoleApp.Create();
 app.Add("", (int x, int y) => { });
 app.Add("a", (int x, int y) => { });
 app.Add("ab", (int x, int y) => { });
-app.Add("a/b/c", (int x, int y) => { });
+app.Add("a b c", (int x, int y) => { });
 app.Run(args);
 """;
         verifier.Execute(code, args: "--help", expected: """
@@ -115,7 +115,7 @@ var app = ConsoleApp.Create();
 app.Add("", (int x, int y) => { });
 app.Add("a", (int x, int y) => { });
 app.Add("ab", (int x, int y) => { });
-app.Add("a/b/c", (int x, int y) => { });
+app.Add("a b c", (int x, int y) => { });
 app.Run(args);
 """;
         verifier.Execute(code, args: "a b c --help", expected: """

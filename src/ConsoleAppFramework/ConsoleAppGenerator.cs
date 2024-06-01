@@ -613,9 +613,9 @@ using System.ComponentModel.DataAnnotations;
                 var command = parser.ParseAndValidateForBuilderDelegateRegistration();
 
                 // validation command name duplicate
-                if (command != null && !names.Add(command.CommandFullName))
+                if (command != null && !names.Add(command.Name))
                 {
-                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.ArgumentList.Arguments[0].GetLocation(), command!.CommandFullName);
+                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.ArgumentList.Arguments[0].GetLocation(), command!.Name);
                     return null;
                 }
 
@@ -629,12 +629,12 @@ using System.ComponentModel.DataAnnotations;
                 var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
                 var commands = parser.ParseAndValidateForBuilderClassRegistration();
 
-                // validation command name duplicate?
+                // validation command name duplicate
                 foreach (var command in commands)
                 {
-                    if (command != null && !names.Add(command.CommandFullName))
+                    if (command != null && !names.Add(command.Name))
                     {
-                        sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.CommandFullName);
+                        sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.Name);
                         return [null];
                     }
                 }

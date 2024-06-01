@@ -42,9 +42,10 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         }
 
         var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken" : "";
+        var rawArgs = !emitForBuilder ? "" : "string[] rawArgs, ";
 
         // method signature
-        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}(string[] rawArgs, {argsType} args{commandMethodType}{filterCancellationToken})"))
+        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({rawArgs}{argsType} args{commandMethodType}{filterCancellationToken})"))
         {
             sb.AppendLine($"if (TryShowHelpOrVersion(args, {parsableParameterCount}, {commandWithId.Id})) return;");
             sb.AppendLine();
@@ -56,7 +57,8 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             }
             if (hasConsoleAppContext)
             {
-                sb.AppendLine($"var context = new ConsoleAppContext(\"{command.CommandFullName}\", rawArgs, null);");
+                var rawArgsName = !emitForBuilder ? "args" : "rawArgs";
+                sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", {rawArgsName}, null);");
             }
             for (var i = 0; i < command.Parameters.Length; i++)
             {
@@ -300,7 +302,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
     public void EmitBuilder(SourceBuilder sb, CommandWithId[] commandIds, bool emitSync, bool emitAsync)
     {
         // grouped by path
-        var commandGroup = commandIds.ToLookup(x => x.Command.CommandPath.Length == 0 ? x.Command.CommandName : x.Command.CommandPath[0]);
+        var commandGroup = commandIds.ToLookup(x => x.Command.Name.Split(' ')[0]);
         var hasRootCommand = commandIds.Any(x => x.Command.IsRootCommand);
 
         using (sb.BeginBlock("partial struct ConsoleAppBuilder"))
@@ -319,7 +321,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 {
                     foreach (var item in commandIds.Where(x => x.FieldType != null))
                     {
-                        using (sb.BeginIndent($"case \"{item.Command.CommandFullName}\":"))
+                        using (sb.BeginIndent($"case \"{item.Command.Name}\":"))
                         {
                             sb.AppendLine($"this.command{item.Id} = Unsafe.As<{item.FieldType}>(command);");
                             sb.AppendLine("break;");
@@ -441,14 +443,10 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                         var nextGroup = commands
                             .ToLookup(x =>
                             {
-                                var len = x.Command.CommandPath.Length;
-                                if (len > nextDepth)
+                                var path = x.Command.Name.Split(' ');
+                                if (path.Length > nextDepth)
                                 {
-                                    return x.Command.CommandPath[nextDepth];
-                                }
-                                if (len == nextDepth)
-                                {
-                                    return x.Command.CommandName;
+                                    return path[nextDepth];
                                 }
                                 else
                                 {
@@ -496,7 +494,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     }
                     else
                     {
-                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.CommandFullName}\", args, new Command{command.Id}Invoker(args[{depth}..]{commandArgs}).BuildFilter())";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, new Command{command.Id}Invoker(args[{depth}..]{commandArgs}).BuildFilter())";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");

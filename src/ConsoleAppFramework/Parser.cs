@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -12,7 +11,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var args = node.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = args, 1 = lambda
         {
-            var command = ExpressionToCommand(args[1].Expression, [], ""); // rootCommand(path and commandName = "")
+            var command = ExpressionToCommand(args[1].Expression, ""); // rootCommand(commandName = "")
             if (command != null)
             {
                 return ValidateCommand(command);
@@ -26,7 +25,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
     public Command? ParseAndValidateForBuilderDelegateRegistration() // for ConsoleAppBuilder.Add
     {
-        // Add(string commandName)
+        // Add(string commandName, Delgate command)
         var args = node.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = string command, 1 = lambda
         {
@@ -38,15 +37,8 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return null;
             }
 
-            string[] path = [];
             var name = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
-            var pathAndName = name.Split(['/'], StringSplitOptions.RemoveEmptyEntries);
-            if (pathAndName.Length > 1)
-            {
-                path = pathAndName.AsSpan(0, pathAndName.Length - 1).ToArray();
-                name = pathAndName[^1];
-            }
-            var command = ExpressionToCommand(args[1].Expression, path, name);
+            var command = ExpressionToCommand(args[1].Expression, name);
             if (command != null)
             {
                 return ValidateCommand(command);
@@ -64,7 +56,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         var genericType = genericName!.TypeArgumentList.Arguments[0];
 
         // Add<T>(string commandPath)
-        string[] commandPath = [];
+        string? commandPath = null;
         var args = node.ArgumentList.Arguments;
         if (node.ArgumentList.Arguments.Count == 1)
         {
@@ -75,8 +67,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return [];
             }
 
-            var name = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
-            commandPath = name.Split(['/'], StringSplitOptions.RemoveEmptyEntries);
+            commandPath = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
         }
 
         // T
@@ -160,7 +151,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     commandName = NameConverter.ToKebabCase(x.Name);
                 }
 
-                var command = ParseFromMethodSymbol(x, false, commandPath, commandName, typeFilters);
+                var command = ParseFromMethodSymbol(x, false, (commandPath == null) ? commandName : $"{commandPath.Trim()} {commandName}", typeFilters);
                 if (command == null) return null;
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
@@ -169,7 +160,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             .ToArray();
     }
 
-    Command? ExpressionToCommand(ExpressionSyntax expression, string[] commandPath, string commandName)
+    Command? ExpressionToCommand(ExpressionSyntax expression, string commandName)
     {
         var lambda = expression as ParenthesizedLambdaExpressionSyntax;
         if (lambda == null)
@@ -181,7 +172,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var methodSymbols = model.GetMemberGroup(operand);
                 if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    return ParseFromMethodSymbol(methodSymbol, addressOf: true, commandPath, commandName, []);
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: true, commandName, []);
                 }
             }
             else
@@ -189,19 +180,19 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var methodSymbols = model.GetMemberGroup(expression);
                 if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandPath, commandName, []);
+                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandName, []);
                 }
             }
         }
         else
         {
-            return ParseFromLambda(lambda, commandPath, commandName);
+            return ParseFromLambda(lambda, commandName);
         }
 
         return null;
     }
 
-    Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda, string[] commandPath, string commandName)
+    Command? ParseFromLambda(ParenthesizedLambdaExpressionSyntax lambda, string commandName)
     {
         var isAsync = lambda.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword);
 
@@ -374,8 +365,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
         var cmd = new Command
         {
-            CommandName = commandName,
-            CommandPath = commandPath,
+            Name = commandName,
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,
@@ -388,7 +378,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
         return cmd;
     }
 
-    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string[] commandPath, string commandName, FilterInfo[] typeFilters)
+    Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string commandName, FilterInfo[] typeFilters)
     {
         var docComment = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax().GetDocumentationCommentTriviaSyntax();
         var summary = "";
@@ -529,8 +519,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
 
         var cmd = new Command
         {
-            CommandName = commandName,
-            CommandPath = commandPath,
+            Name = commandName,
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,

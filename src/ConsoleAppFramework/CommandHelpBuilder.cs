@@ -34,7 +34,7 @@ public static class CommandHelpBuilder
 
         if (withoutRoot.Length == 0) return sb.ToString();
 
-        var helpDefinitions = withoutRoot.OrderBy(x => x.CommandFullName).ToArray();
+        var helpDefinitions = withoutRoot.OrderBy(x => x.Name).ToArray();
 
         var list = BuildMethodListMessage(helpDefinitions, out _);
         sb.Append(list);
@@ -44,7 +44,7 @@ public static class CommandHelpBuilder
 
     public static string BuildCommandHelpMessage(Command command)
     {
-        return BuildHelpMessageCore(command, showCommandName: command.CommandName != "", showCommand: false);
+        return BuildHelpMessageCore(command, showCommandName: command.Name != "", showCommand: false);
     }
 
     static string BuildHelpMessageCore(Command command, bool showCommandName, bool showCommand)
@@ -217,13 +217,7 @@ public static class CommandHelpBuilder
         var formatted = commands
             .Select(x =>
             {
-                var full = x.CommandName;
-                if (x.CommandPath.Length > 0)
-                {
-                    full = string.Join(" ", x.CommandPath) + " " + x.CommandName;
-                }
-
-                return (Command: full, x.Description);
+                return (Command: x.Name, x.Description);
             })
             .ToArray();
         maxWidth = formatted.Max(x => x.Command.Length);
@@ -309,12 +303,7 @@ public static class CommandHelpBuilder
             parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, paramTypeName, defaultValue, index, isFlag, isParams));
         }
 
-        var commandName = descriptor.CommandName;
-        if (descriptor.CommandPath.Length != 0)
-        {
-            commandName = string.Join(" ", descriptor.CommandPath) + " " + descriptor.CommandName;
-        }
-
+        var commandName = descriptor.Name;
         return new CommandHelpDefinition(
             commandName,
             parameterDefinitions.ToArray(),
