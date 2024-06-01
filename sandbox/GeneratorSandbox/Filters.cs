@@ -60,15 +60,12 @@ internal class ChangeExitCodeFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
     }
 }
 
-internal class PreventMultipleInstanceFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+internal class PreventMultipleSameCommandInvokeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
 {
     public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
     {
-        // allow another command
-        // prevent: location + command
         var basePath = Assembly.GetEntryAssembly()?.Location.Replace(Path.DirectorySeparatorChar, '_');
-
-        var mutexKey = $"{basePath}$$${context.CommandName}";
+        var mutexKey = $"{basePath}$$${context.CommandName}"; // lock per command-name
 
         using var mutex = new Mutex(true, mutexKey, out var createdNew);
         if (!createdNew)
