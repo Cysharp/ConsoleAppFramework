@@ -157,8 +157,9 @@ public record class CommandParameter
     public object? DefaultValue { get; init; }
     public required ITypeSymbol? CustomParserType { get; init; }
     public required bool IsFromServices { get; init; }
+    public required bool IsConsoleAppContext { get; init; }
     public required bool IsCancellationToken { get; init; }
-    public bool IsParsable => !(IsFromServices || IsCancellationToken);
+    public bool IsParsable => !(IsFromServices || IsCancellationToken || IsConsoleAppContext);
     public bool IsFlag => Type.SpecialType == SpecialType.System_Boolean;
     public required bool HasValidation { get; init; }
     public required int ArgumentIndex { get; init; } // -1 is not Argument, other than marked as [Argument]

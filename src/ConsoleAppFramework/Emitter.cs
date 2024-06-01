@@ -11,6 +11,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
         var emitForBuilder = methodName != null;
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
+        var hasConsoleAppContext = command.Parameters.Any(x => x.IsConsoleAppContext);
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
@@ -19,6 +20,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         {
             isRunAsync = true;
             hasCancellationToken = false;
+            hasConsoleAppContext = false;
         }
         var returnType = isRunAsync ? "async Task" : "void";
         var accessibility = !emitForBuilder ? "public" : "private";
@@ -42,7 +44,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken" : "";
 
         // method signature
-        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({argsType} args{commandMethodType}{filterCancellationToken})"))
+        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}(string[] rawArgs, {argsType} args{commandMethodType}{filterCancellationToken})"))
         {
             sb.AppendLine($"if (TryShowHelpOrVersion(args, {parsableParameterCount}, {commandWithId.Id})) return;");
             sb.AppendLine();
@@ -51,6 +53,10 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             if (hasCancellationToken)
             {
                 sb.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
+            }
+            if (hasConsoleAppContext)
+            {
+                sb.AppendLine($"var context = new ConsoleAppContext(\"{command.CommandFullName}\", rawArgs, null);");
             }
             for (var i = 0; i < command.Parameters.Length; i++)
             {
@@ -76,6 +82,10 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     {
                         sb.AppendLine($"var arg{i} = posixSignalHandler.Token;");
                     }
+                }
+                else if (parameter.IsConsoleAppContext)
+                {
+                    sb.AppendLine($"var arg{i} = context;");
                 }
                 else if (parameter.IsFromServices)
                 {
@@ -477,11 +487,11 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     {
                         if (!isRunAsync)
                         {
-                            sb.AppendLine($"RunCommand{command.Id}(args.AsSpan({depth}){commandArgs});");
+                            sb.AppendLine($"RunCommand{command.Id}(args, args.AsSpan({depth}){commandArgs});");
                         }
                         else
                         {
-                            sb.AppendLine($"result = RunCommand{command.Id}Async(args[{depth}..]{commandArgs});");
+                            sb.AppendLine($"result = RunCommand{command.Id}Async(args, args[{depth}..]{commandArgs});");
                         }
                     }
                     else
@@ -523,7 +533,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 using (sb.BeginBlock($"public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)"))
                 {
                     var cmdArgs = needsCommand ? ", command" : "";
-                    sb.AppendLine($"return RunCommand{command.Id}Async(args{cmdArgs}, context, cancellationToken);");
+                    sb.AppendLine($"return RunCommand{command.Id}Async(context.Arguments, args{cmdArgs}, context, cancellationToken);");
                 }
             }
         }

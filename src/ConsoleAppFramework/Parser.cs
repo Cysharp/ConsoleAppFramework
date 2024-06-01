@@ -332,9 +332,10 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     });
 
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(type.Type!, wellKnownTypes.CancellationToken);
+                var isConsoleAppContext = type.Type!.Name == "ConsoleAppContext";
 
                 var argumentIndex = -1;
-                if (!(isFromServices || isCancellationToken))
+                if (!(isFromServices || isCancellationToken || isConsoleAppContext))
                 {
                     if (hasArgument)
                     {
@@ -353,6 +354,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     Name = NameConverter.ToKebabCase(x.Identifier.Text),
                     OriginalParameterName = x.Identifier.Text,
                     IsNullableReference = isNullableReference,
+                    IsConsoleAppContext = isConsoleAppContext,
                     IsParams = hasParams,
                     Type = type.Type!,
                     Location = x.GetLocation(),
@@ -479,6 +481,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 var hasArgument = x.GetAttributes().Any(x => x.AttributeClass?.Name == "ArgumentAttribute");
                 var hasValidation = x.GetAttributes().Any(x => x.AttributeClass?.GetBaseTypes().Any(y => y.Name == "ValidationAttribute") ?? false);
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
+                var isConsoleAppContext = x.Type!.Name == "ConsoleAppContext";
 
                 string description = "";
                 string[] aliases = [];
@@ -507,6 +510,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                     Name = NameConverter.ToKebabCase(x.Name),
                     OriginalParameterName = x.Name,
                     IsNullableReference = isNullableReference,
+                    IsConsoleAppContext = isConsoleAppContext,
                     IsParams = x.IsParams,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
                     Type = x.Type,
