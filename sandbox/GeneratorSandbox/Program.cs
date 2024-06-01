@@ -1,4 +1,5 @@
 ﻿using ConsoleAppFramework;
+using GeneratorSandbox;
 using System.ComponentModel.DataAnnotations;
 
 var serviceCollection = new MiniDI();
@@ -6,16 +7,60 @@ serviceCollection.Register(typeof(string), "hoge!");
 serviceCollection.Register(typeof(int), 9999);
 ConsoleApp.ServiceProvider = serviceCollection;
 
-var builder = ConsoleApp.Create();
-
-builder.UseFilter<DIFilter>();
-
-builder.Add("", (ConsoleAppContext ctx) => Console.Write("do"));
-
-builder.Run(args);
 
 
+// ConsoleApp.Run(args, (int x, int y) => { });
+////
+//args = ["foo-bar-baz"];
 
+////args = ["foo-bar-baz", "-h"];
+
+//var builder = ConsoleApp.Create();
+
+////builder.UseFilter<PreventMultipleInstanceFilter>();
+
+
+
+
+//builder.Add<MyCommand>();
+
+//builder.
+
+
+public class MyCommand
+{
+
+    /// <summary>
+    /// <para>You can pass second argument that generates new Run overload.</para>
+    /// ConsoleApp.Run(args, (int x, int y) => { });<br/>
+    /// ConsoleApp.Run(args, Foo);<br/>
+    /// ConsoleApp.Run(args, &amp;Foo);<br/>
+    /// </summary>
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void FooBarBaz(int hogeMogeHugahuga)
+    {
+        Console.WriteLine(hogeMogeHugahuga);
+    }
+
+    public override int GetHashCode()
+    {
+        return base.GetHashCode();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return base.Equals(obj);
+    }
+
+    public override string? ToString()
+    {
+        return base.ToString();
+    }
+}
 
 internal class DIFilter(string foo, int bar, ConsoleAppFilter next)
     : ConsoleAppFilter(next)

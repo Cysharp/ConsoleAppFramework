@@ -84,7 +84,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             .OfType<IMethodSymbol>()
             .Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic)
             .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Ordinary)
-            .Where(x => !(x.Name is "Dispose" or "DisposeAsync"))
+            .Where(x => !(x.Name is "Dispose" or "DisposeAsync" or "GetHashCode" or "Equals" or "ToString"))
             .ToArray();
 
         var publicConstructors = type.GetMembers()

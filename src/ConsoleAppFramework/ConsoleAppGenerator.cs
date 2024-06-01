@@ -150,10 +150,22 @@ internal static partial class ConsoleApp
         set => logErrorAction = value;
     }
 
+    /// <summary>
+    /// <para>You can pass second argument that generates new Run overload.</para>
+    /// ConsoleApp.Run(args, (int x, int y) => { });<br/>
+    /// ConsoleApp.Run(args, Foo);<br/>
+    /// ConsoleApp.Run(args, &amp;Foo);<br/>
+    /// </summary>
     public static void Run(string[] args)
     {
     }
 
+    /// <summary>
+    /// <para>You can pass second argument that generates new RunAsync overload.</para>
+    /// ConsoleApp.RunAsync(args, (int x, int y) => { });<br/>
+    /// ConsoleApp.RunAsync(args, Foo);<br/>
+    /// ConsoleApp.RunAsync(args, &amp;Foo);<br/>
+    /// </summary>
     public static Task RunAsync(string[] args)
     {
         return Task.CompletedTask;
@@ -264,11 +276,11 @@ internal static partial class ConsoleApp
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int parameterCount, int helpId)
+    static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int requiredParameterCount, int helpId)
     {
         if (args.Length == 0)
         {
-            if (parameterCount == 0) return false;
+            if (requiredParameterCount == 0) return false;
             
             ShowHelp(helpId);
             return true;
@@ -446,11 +458,11 @@ internal static partial class ConsoleApp
         static partial void ShowHelp(int helpId);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int parameterCount, int helpId)
+        static bool TryShowHelpOrVersion(ReadOnlySpan<string> args, int requiredParameterCount, int helpId)
         {
             if (args.Length == 0)
             {
-                if (parameterCount == 0) return false;
+                if (requiredParameterCount == 0) return false;
             
                 ShowHelp(helpId);
                 return true;

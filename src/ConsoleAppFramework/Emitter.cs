@@ -15,6 +15,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
+        var requiredParsableParameterCount = command.Parameters.Count(x => x.IsParsable && x.RequireCheckArgumentParsed);
 
         if (command.HasFilter)
         {
@@ -44,10 +45,21 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken" : "";
         var rawArgs = !emitForBuilder ? "" : "string[] rawArgs, ";
 
+        if (!emitForBuilder)
+        {
+            sb.AppendLine("/// <summary>");
+            var help = CommandHelpBuilder.BuildCommandHelpMessage(commandWithId.Command);
+            foreach (var line in help.Split([Environment.NewLine], StringSplitOptions.None))
+            {
+                sb.AppendLine($"/// {line.Replace("<", "&lt;").Replace(">", "&gt;")}<br/>");
+            }
+            sb.AppendLine("/// </summary>");
+        }
+
         // method signature
         using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({rawArgs}{argsType} args{commandMethodType}{filterCancellationToken})"))
         {
-            sb.AppendLine($"if (TryShowHelpOrVersion(args, {parsableParameterCount}, {commandWithId.Id})) return;");
+            sb.AppendLine($"if (TryShowHelpOrVersion(args, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
             sb.AppendLine();
 
             // prepare argument variables

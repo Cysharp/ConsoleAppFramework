@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -59,17 +60,21 @@ internal class ChangeExitCodeFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
     }
 }
 
-internal class MutexFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+internal class PreventMultipleInstanceFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
 {
     public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
     {
-        // var name = context.MethodInfo.DeclaringType.Name + "." + context.MethodInfo.Name;
-        // using (var mutex = new Mutex(true, name, out var createdNew)) ;
+        // allow another command
+        // prevent: location + command
+        var basePath = Assembly.GetEntryAssembly()?.Location.Replace(Path.DirectorySeparatorChar, '_');
 
-        //if (!createdNew)
-        //{
-        //    throw new Exception($"already running {name} in another process.");
-        //}
+        var mutexKey = $"{basePath}$$${context.CommandName}";
+
+        using var mutex = new Mutex(true, mutexKey, out var createdNew);
+        if (!createdNew)
+        {
+            throw new Exception($"already running command:{context.CommandName} in another process.");
+        }
 
         await Next.InvokeAsync(context, cancellationToken);
     }
