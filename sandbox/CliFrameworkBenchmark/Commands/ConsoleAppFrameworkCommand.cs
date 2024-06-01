@@ -45,10 +45,10 @@ public class ConsoleAppFrameworkCommandWithCancellationToken
     }
 }
 
-internal class NopConsoleAppFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
-{
-    public override Task InvokeAsync(CancellationToken cancellationToken)
-    {
-        return Next.InvokeAsync(cancellationToken);
-    }
-}
+//internal class NopConsoleAppFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+//{
+//    public override Task InvokeAsync(CancellationToken cancellationToken)
+//    {
+//        return Next.InvokeAsync(cancellationToken);
+//    }
+//}

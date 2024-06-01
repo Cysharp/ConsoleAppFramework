@@ -2,7 +2,7 @@ ConsoleAppFramework
 ===
 [![GitHub Actions](https://github.com/Cysharp/ConsoleAppFramework/workflows/Build-Debug/badge.svg)](https://github.com/Cysharp/ConsoleAppFramework/actions) [![Releases](https://img.shields.io/github/release/Cysharp/ConsoleAppFramework.svg)](https://github.com/Cysharp/ConsoleAppFramework/releases)
 
-ConsoleAppFramework v5 is Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator. Leveraging the latest features of .NET 8 and C# 12 ([IncrementalGenerator](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md), [managed function pointer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers#function-pointers-1), [params arrays and default values lambda expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions#input-parameters-of-a-lambda-expression), [`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1), [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration), etc.), this library ensures maximum performance while maintaining flexibility and extensibility.
+ConsoleAppFramework v5 is Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator; achieves exceptionally high performance and minimal binary size. Leveraging the latest features of .NET 8 and C# 12 ([IncrementalGenerator](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md), [managed function pointer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers#function-pointers-1), [params arrays and default values lambda expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions#input-parameters-of-a-lambda-expression), [`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1), [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration), etc.), this library ensures maximum performance while maintaining flexibility and extensibility.
 
 ![image](https://github.com/Cysharp/ConsoleAppFramework/assets/46207/db4bf599-9fe0-4ce4-801f-0003f44d5628)
 > Set `RunStrategy=ColdStart WarmupCount=0` to calculate the cold start benchmark, which is suitable for CLI application.
@@ -118,11 +118,14 @@ ConsoleAppFramework offers a rich set of features as a framework. The Source Gen
 * Setting option aliases and descriptions from code document comment
 * `System.ComponentModel.DataAnnotations` attribute-based Validation
 * Dependency Injection for command registration by type and public methods
+* Microsoft.Extensions(Logging, Configuration, etc...) integration
 * High performance value parsing via `ISpanParsable<T>`
 * Parsing of params arrays
 * Parsing of JSON arguments
 * Help(`-h|--help`) option builder
 * Default show version(`--version`) option
+
+As you can see from the generated output, the help display is also fast. In typical frameworks, the help string is constructed after the help invocation. However, in ConsoleAppFramework, the help is embedded as string constants, achieving the absolute maximum performance that cannot be surpassed!
 
 Getting Started
 --
@@ -330,6 +333,9 @@ app.Run(args);
 Parse and Value Binding
 ---
 
+
+
+
 // TODO:reason and policy of limitation of parsing
 
 `[Argument]`
@@ -340,7 +346,7 @@ Parse and Value Binding
 
 
 
-
+             
 
 
 `enum`

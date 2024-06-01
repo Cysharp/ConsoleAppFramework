@@ -116,11 +116,13 @@ internal sealed class CommandAttribute : Attribute
     }
 }
 
+internal record class ConsoleAppContext(string CommandName, string[] Arguments, object? State);
+
 internal abstract class ConsoleAppFilter(ConsoleAppFilter next)
 {
     protected readonly ConsoleAppFilter Next = next;
 
-    public abstract Task InvokeAsync(CancellationToken cancellationToken);
+    public abstract Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken);
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
@@ -313,12 +315,12 @@ internal static partial class ConsoleApp
 
     static partial void ShowHelp(int helpId);
 
-    static async Task RunWithFilterAsync(ConsoleAppFilter invoker)
+    static async Task RunWithFilterAsync(string commandName, string[] args, ConsoleAppFilter invoker)
     {
         using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
         try
         {
-            await Task.Run(() => invoker.InvokeAsync(posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
+            await Task.Run(() => invoker.InvokeAsync(new ConsoleAppContext(commandName, args, null), posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
         }
         catch (Exception ex)
         {

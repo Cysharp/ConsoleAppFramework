@@ -39,7 +39,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
             sb.AppendLine();
         }
 
-        var filterCancellationToken = command.HasFilter ? ", CancellationToken cancellationToken" : "";
+        var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken" : "";
 
         // method signature
         using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({argsType} args{commandMethodType}{filterCancellationToken})"))
@@ -486,7 +486,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     }
                     else
                     {
-                        var invokeCode = $"RunWithFilterAsync(new Command{command.Id}Invoker(args[{depth}..]{commandArgs}).BuildFilter())";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.CommandFullName}\", args, new Command{command.Id}Invoker(args[{depth}..]{commandArgs}).BuildFilter())";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
@@ -520,10 +520,10 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 }
 
                 sb.AppendLine();
-                using (sb.BeginBlock($"public override Task InvokeAsync(CancellationToken cancellationToken)"))
+                using (sb.BeginBlock($"public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)"))
                 {
                     var cmdArgs = needsCommand ? ", command" : "";
-                    sb.AppendLine($"return RunCommand{command.Id}Async(args{cmdArgs}, cancellationToken);");
+                    sb.AppendLine($"return RunCommand{command.Id}Async(args{cmdArgs}, context, cancellationToken);");
                 }
             }
         }

@@ -23,7 +23,7 @@ public record class Command
 {
     public required bool IsAsync { get; init; } // Task or Task<int>
     public required bool IsVoid { get; init; }  // void or int
-    public string CommandFullName => (CommandPath.Length == 0) ? CommandName : $"{string.Join("/", CommandPath)}/{CommandName}";
+    public string CommandFullName => (CommandPath.Length == 0) ? CommandName : $"{string.Join("/", CommandPath)}/{CommandName}"; // TODO:Join " "
     public bool IsRootCommand => CommandFullName == "";
     public required string[] CommandPath { get; init; }
     public required string CommandName { get; init; }

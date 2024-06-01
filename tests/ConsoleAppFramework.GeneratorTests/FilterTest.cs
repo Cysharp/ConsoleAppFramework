@@ -34,40 +34,40 @@ void Hello()
 internal class NopFilter1(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(1);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter2(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(2);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter3(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(3);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter4(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(4);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 """, args: "", expected: "1234abcde");
@@ -101,60 +101,60 @@ public class MyClass
 internal class NopFilter1(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(1);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter2(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(2);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter3(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(3);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter4(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(4);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter5(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(5);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
 internal class NopFilter6(ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
     {
         Console.Write(6);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 """, args: "hello", expected: "123456abcde");
@@ -181,12 +181,12 @@ builder.Run(args);
 internal class DIFilter(string foo, int bar, ConsoleAppFilter next)
     : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
     {
         Console.Write("invoke:");
         Console.Write(foo);
         Console.Write(bar);
-        return Next.InvokeAsync(cancellationToken);
+        return Next.InvokeAsync(context, cancellationToken);
     }
 }
 
@@ -199,7 +199,7 @@ public class MiniDI : IServiceProvider
         dict[type] = instance;
     }
 
-    public object GetService(Type serviceType)
+    public object? GetService(Type serviceType)
     {
         return dict.TryGetValue(serviceType, out var instance) ? instance : null;
     }
