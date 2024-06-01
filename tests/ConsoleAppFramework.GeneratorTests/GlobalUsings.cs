@@ -1,4 +1,5 @@
 global using Xunit;
+global using Xunit.Abstractions;
 global using FluentAssertions;
 
 // CSharpGeneratorRunner.CompileAndExecute uses stdout hook(replace Console.Out)

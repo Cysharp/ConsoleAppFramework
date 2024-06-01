@@ -299,15 +299,15 @@ If the class implements `IDisposable` or `IAsyncDisposable`, the Dispose or Disp
 
 ### Nested command
 
-You can create a deep command hierarchy by adding commands with paths separated by `/` when registering them. This allows you to add commands at nested levels.
+You can create a deep command hierarchy by adding commands with paths separated by ` ` when registering them. This allows you to add commands at nested levels.
 
 ```csharp
 var app = ConsoleApp.Create();
 
 app.Add("foo", () => { });
-app.Add("foo/bar", () => { });
-app.Add("foo/bar/barbaz", () => { });
-app.Add("foo/baz", () => { });
+app.Add("foo bar", () => { });
+app.Add("foo bar barbaz", () => { });
+app.Add("foo baz", () => { });
 
 // Commands:
 //   foo
@@ -417,7 +417,8 @@ Attribute based parameters validation
 ---
 
 
-
+ConsoleAppContext
+---
 
 
 
