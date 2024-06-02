@@ -1,26 +1,56 @@
-﻿using ConsoleAppFramework;
-using System;
-using System.Collections.Generic;
+﻿
+using ConsoleAppFramework;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GeneratorSandbox;
 
-
-
-
+// ReadMe sample filters
 
 internal class NopFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
 {
-    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
     {
-        return Next.InvokeAsync(context, cancellationToken);
+        try
+        {
+            /* on before */
+            await Next.InvokeAsync(context, cancellationToken); // next
+            /* on after */
+        }
+        catch
+        {
+            /* on error */
+            throw;
+        }
+        finally
+        {
+            /* on finally */
+        }
     }
 }
 
+internal class AuthenticationFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        var requestId = Guid.NewGuid();
+        var userId = await GetUserIdAsync();
+
+        // setup new state to context
+        var authedContext = context with { State = new ApplicationContext(requestId, userId) };
+        await Next.InvokeAsync(authedContext, cancellationToken);
+    }
+
+    // get user-id from DB/auth saas/others
+    async Task<int> GetUserIdAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        return 1999;
+    }
+}
+
+record class ApplicationContext(Guid RequiestId, int UserId);
 
 internal class LogRunningTimeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
 {
@@ -40,7 +70,6 @@ internal class LogRunningTimeFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
         }
     }
 }
-
 
 internal class ChangeExitCodeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
 {
@@ -73,6 +102,17 @@ internal class PreventMultipleSameCommandInvokeFilter(ConsoleAppFilter next) : C
             throw new Exception($"already running command:{context.CommandName} in another process.");
         }
 
+        await Next.InvokeAsync(context, cancellationToken);
+    }
+}
+
+
+internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        // create Microsoft.Extensions.DependencyInjection scope
+        await using var scope = serviceProvider.CreateAsyncScope();
         await Next.InvokeAsync(context, cancellationToken);
     }
 }

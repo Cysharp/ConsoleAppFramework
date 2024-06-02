@@ -10,6 +10,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Include="..\GeneratorSandbox\Filters.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
 		<PackageReference Include="CliFx" Version="2.3.5" />
 		<PackageReference Include="clipr" Version="1.6.1" />

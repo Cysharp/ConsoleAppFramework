@@ -1,66 +1,56 @@
 ﻿using ConsoleAppFramework;
 using GeneratorSandbox;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Channels;
+using ZLogger;
 
-var serviceCollection = new MiniDI();
-serviceCollection.Register(typeof(string), "hoge!");
-serviceCollection.Register(typeof(int), 9999);
-ConsoleApp.ServiceProvider = serviceCollection;
-
+// args = ["--msg", "foobarbaz"];
 
 
-// ConsoleApp.Run(args, (int x, int y) => { });
-////
-//args = ["foo-bar-baz"];
+// Microsoft.Extensions.DependencyInjection
 
-////args = ["foo-bar-baz", "-h"];
+// Package Import: Microsoft.Extensions.Hosting
+var builder = Host.CreateApplicationBuilder(); // don't pass args.
 
-//var builder = ConsoleApp.Create();
+using var host = builder.Build(); // using
+ConsoleApp.ServiceProvider = host.Services; // use host ServiceProvider
 
-////builder.UseFilter<PreventMultipleInstanceFilter>();
+ConsoleApp.Run(args, ([FromServices] ILogger<Program> logger) => logger.LogInformation("Hello World!"));
 
 
 
 
-//builder.Add<MyCommand>();
 
-//builder.
-
-
-public class MyCommand
+// inject logger
+public class MyCommand(ILogger<MyCommand> logger, IOptions<PositionOptions> options)
 {
-
-    /// <summary>
-    /// <para>You can pass second argument that generates new Run overload.</para>
-    /// ConsoleApp.Run(args, (int x, int y) => { });<br/>
-    /// ConsoleApp.Run(args, Foo);<br/>
-    /// ConsoleApp.Run(args, &amp;Foo);<br/>
-    /// </summary>
-    public void Dispose()
+    [Command("")]
+    public void Echo(string msg)
     {
-        throw new NotImplementedException();
-    }
-
-    public void FooBarBaz(int hogeMogeHugahuga)
-    {
-        Console.WriteLine(hogeMogeHugahuga);
-    }
-
-    public override int GetHashCode()
-    {
-        return base.GetHashCode();
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return base.Equals(obj);
-    }
-
-    public override string? ToString()
-    {
-        return base.ToString();
+        logger.ZLogTrace($"Binded Option: {options.Value.Title} {options.Value.Name}");
+        logger.ZLogInformation($"Message is {msg}");
     }
 }
+
+
+
+public class PositionOptions
+{
+    public string Title { get; set; } = "";
+    public string Name { get; set; } = "";
+}
+
+
+
+
+
+
+
 
 internal class DIFilter(string foo, int bar, ConsoleAppFilter next)
     : ConsoleAppFilter(next)

@@ -118,7 +118,7 @@ ConsoleAppFramework offers a rich set of features as a framework. The Source Gen
 * Setting option aliases and descriptions from code document comment
 * `System.ComponentModel.DataAnnotations` attribute-based Validation
 * Dependency Injection for command registration by type and public methods
-* Microsoft.Extensions(Logging, Configuration, etc...) integration
+* `Microsoft.Extensions`(Logging, Configuration, etc...) integration
 * High performance value parsing via `ISpanParsable<T>`
 * Parsing of params arrays
 * Parsing of JSON arguments
@@ -148,7 +148,7 @@ You can execute command like `sampletool --name "foo"`.
 * The return value can be `void`, `int`, `Task`, or `Task<int>`
     * If an `int` is returned, that value will be set to `Environment.ExitCode`
 * By default, option argument names are converted to `--lower-kebab-case`
-    * For example, `XmlReader` becomes `xml-reader`
+    * For example, `jsonValue` becomes `--json-value`
     * Option argument names are case-insensitive, but lower-case matches faster
 
 When passing a method, you can write it as follows:
@@ -299,7 +299,7 @@ If the class implements `IDisposable` or `IAsyncDisposable`, the Dispose or Disp
 
 ### Nested command
 
-You can create a deep command hierarchy by adding commands with paths separated by ` ` when registering them. This allows you to add commands at nested levels.
+You can create a deep command hierarchy by adding commands with paths separated by space(` `) when registering them. This allows you to add commands at nested levels.
 
 ```csharp
 var app = ConsoleApp.Create();
@@ -329,6 +329,10 @@ app.Add<MyCommands>("foo");
 //  foo sum     Sum parameters.
 app.Run(args);
 ```
+
+### Performance of Commands
+
+TODO:NANIKA KAKU
 
 Parse and Value Binding
 ---
@@ -392,6 +396,10 @@ public class Vector3ParserAttribute : Attribute, IArgumentParser<Vector3>
 }
 ```
 
+
+
+
+
 CancellationToken(Gracefully Shutdown) and Timeout
 ---
 
@@ -409,82 +417,372 @@ If the method returns `int` or `Task<int>` or `ValueTask<int> value, ConsoleAppF
 
 
 
-Log
----
-
 
 Attribute based parameters validation
 ---
 
 
-ConsoleAppContext
+
+
+
+Filter(Middleware) Pipline / ConsoleAppContext
 ---
-
-
-
-Filter(Middleware) Pipline
----
-
-// TODO:samples? change exit code, log, etc...
-// TODO: how to share filter
+Filters are provided as a mechanism to hook into the execution before and after. To use filters, define an `internal class` that implements `ConsoleAppFilter`.
 
 ```csharp
-internal class TimestampFilter(ConsoleAppFilter next)
-    : ConsoleAppFilter(next)
+internal class NopFilter(ConsoleAppFilter next) : ConsoleAppFilter(next) // ctor needs `ConsoleAppFilter next` and call base(next)
 {
-    public override Task InvokeAsync(CancellationToken cancellationToken)
+    // implement InvokeAsync as filter body
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
     {
-        Console.WriteLine("filter1");
-        return Next.InvokeAsync(cancellationToken);
-    }
-}
-
-
-internal class LogExecutionTimeFilter(ConsoleAppFilter next)
-    : ConsoleAppFilter(next)
-{
-    public override async Task InvokeAsync(CancellationToken cancellationToken)
-    {
-        var startingTime = Stopwatch.GetTimestamp();
         try
         {
-            await Next.InvokeAsync(cancellationToken);
+            /* on before */
+            await Next.InvokeAsync(context, cancellationToken); // invoke next filter or command body
+            /* on after */
+        }
+        catch
+        {
+            /* on error */
+            throw;
         }
         finally
         {
-            var elapsed = Stopwatch.GetElapsedTime(startingTime);
-            ConsoleApp.Log($"Execution Time: {elapsed}");
+            /* on finally */
         }
     }
 }
 ```
 
-
-
-
-Dependency Injection(Logging, Configuration, etc...)
----
-
-`[FromServices]`
-
-// TODO: minimum single context
+Filters can be attached multiple times to "global", "class", or "method" using `UseFilter<T>` or `[ConsoleAppFilter<T>]`. The order of filters is global → class → method, and the execution order is determined by the definition order from top to bottom.
 
 ```csharp
-public class FilterContext : IServiceProvider
-{
-    public long Timestamp { get; set; }
-    public Guid UserId { get; set; }
+var app = ConsoleApp.Create();
 
-    object IServiceProvider.GetService(Type serviceType)
+// global filters
+app.UseFilter<NopFilter>(); //order 1
+app.UseFilter<NopFilter>(); //order 2
+
+app.Add<MyCommand>();
+app.Run(args);
+
+// per class filters
+[ConsoleAppFilter<NopFilter>] // order 3
+[ConsoleAppFilter<NopFilter>] // order 4
+public class MyCommand
+{
+    // per method filters
+    [ConsoleAppFilter<NopFilter>] // order 5
+    [ConsoleAppFilter<NopFilter>] // order 6
+    public void Echo(string msg) => Console.WriteLine(msg);
+}
+```
+
+Filters allow various processes to be shared. For example, the process of measuring execution time can be written as follows:
+
+```csharp
+internal class LogRunningTimeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
     {
-        if (serviceType == typeof(FilterContext)) return this;
-        throw new InvalidOperationException("Type is invalid:" + serviceType);
+        var startTime = Stopwatch.GetTimestamp();
+        ConsoleApp.Log($"Execute command at {DateTime.UtcNow.ToLocalTime()}"); // LocalTime for human readable time
+        try
+        {
+            await Next.InvokeAsync(context, cancellationToken);
+            ConsoleApp.Log($"Command execute successfully at {DateTime.UtcNow.ToLocalTime()}, Elapsed: " + (Stopwatch.GetElapsedTime(startTime)));
+        }
+        catch
+        {
+            ConsoleApp.Log($"Command execute failed at {DateTime.UtcNow.ToLocalTime()}, Elapsed: " + (Stopwatch.GetElapsedTime(startTime)));
+            throw;
+        }
     }
 }
 ```
 
+In case of an exception, the `ExitCode` is usually `1`, and the stack trace is also displayed. However, by applying an exception handling filter, the behavior can be changed.
+
+```csharp
+internal class ChangeExitCodeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Next.InvokeAsync(context, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            if (ex is OperationCanceledException) return;
+
+            Environment.ExitCode = 9999; // change custom exit code
+            ConsoleApp.LogError(ex.Message); // .ToString() shows stacktrace, .Message can avoid showing stacktrace to user.
+        }
+    }
+}
+```
+
+Filters are executed after the command name routing is completed. If you want to prohibit multiple executions for each command name, you can use `ConsoleAppContext.CommandName` as the key.
+
+```csharp
+internal class PreventMultipleSameCommandInvokeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        var basePath = Assembly.GetEntryAssembly()?.Location.Replace(Path.DirectorySeparatorChar, '_');
+        var mutexKey = $"{basePath}$$${context.CommandName}"; // lock per command-name
+
+        using var mutex = new Mutex(true, mutexKey, out var createdNew);
+        if (!createdNew)
+        {
+            throw new Exception($"already running command:{context.CommandName} in another process.");
+        }
+
+        await Next.InvokeAsync(context, cancellationToken);
+    }
+}
+```
+
+If you want to pass values between filters or to commands, you can use `ConsoleAppContext.State`. For example, if you want to perform authentication processing and pass around the ID, you can write code like the following. Since `ConsoleAppContext` is an immutable record, you need to pass the rewritten context to Next using the `with` syntax.
+
+```csharp
+internal class AuthenticationFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        var requestId = Guid.NewGuid();
+        var userId = await GetUserIdAsync();
+
+        // setup new state to context
+        var authedContext = context with { State = new ApplicationContext(requestId, userId) };
+        await Next.InvokeAsync(authedContext, cancellationToken);
+    }
+
+    // get user-id from DB/auth saas/others
+    async Task<int> GetUserIdAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        return 1999;
+    }
+}
+
+record class ApplicationContext(Guid RequiestId, int UserId);
+```
+
+Commands can accept `ConsoleAppContext` as an argument. This allows using the values processed by filters.
+
+```csharp
+var app = ConsoleApp.Create();
+
+app.UseFilter<AuthenticationFilter>();
+
+app.Add("", (int x, int y, ConsoleAppContext context) =>
+{
+    var appContext = (ApplicationContext)context.State!;
+    var requestId = appContext.RequiestId;
+    var userId = appContext.UserId;
+
+    Console.WriteLine($"Request:{requestId} User:{userId} Sum:{x + y}");
+});
+
+app.Run(args);
+```
+
+`ConsoleAppContext` also has a `ConsoleAppContext.Arguments` property that allows you to obtain the (`string[] args`) passed to Run/RunAsync.
+
+### Sharing Filters Between Projects
+
+`ConsoleAppFilter` is defined as `internal` for each project by the Source Generator, so the filters to be implemented must also be `internal`. Sharing at the csproj or DLL level is not possible, so source code needs to be shared by linking references.
+
+```xml
+<ItemGroup>
+    <Compile Include="..\CommonProject\Filters.cs" />
+</ItemGroup>
+```
+
+If you want to share via NuGet, you need to distribute the source code or distribute it in a format that includes the source code using `.props`.
+
+### Performance of filter
+
+In general frameworks, filters are dynamically added at runtime, resulting in a variable number of filters. Therefore, they need to be allocated using a dynamic array. In ConsoleAppFramework, the number of filters is statically determined at compile time, eliminating the need for any additional allocations such as arrays or lambda expression captures. The allocation amount is equal to the number of filter classes being used plus 1 (for wrapping the command method), resulting in the shortest execution path.
+
+```csharp
+app.UseFilter<NopFilter>();
+app.UseFilter<NopFilter>();
+app.UseFilter<NopFilter>();
+app.UseFilter<NopFilter>();
+app.UseFilter<NopFilter>();
+
+// The above code will generate the following code:
+
+sealed class Command0Invoker(string[] args, Action command) : ConsoleAppFilter(null!)
+{
+    public ConsoleAppFilter BuildFilter()
+    {
+        var filter0 = new NopFilter(this);
+        var filter1 = new NopFilter(filter0);
+        var filter2 = new NopFilter(filter1);
+        var filter3 = new NopFilter(filter2);
+        var filter4 = new NopFilter(filter3);
+        return filter4;
+    }
+
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        return RunCommand0Async(context.Arguments, args, command, context, cancellationToken);
+    }
+}
+```
+
+When an `async Task` completes synchronously, it returns the equivalent of `Task.CompletedTask`, so `ValueTask` is not necessary.
+
+Dependency Injection(Logging, Configuration, etc...)
+---
+The execution processing of `ConsoleAppFramework` fully supports `DI`. When you want to use a logger, read a configuration, or share processing with an ASP.NET project, using `Microsoft.Extensions.DependencyInjection` or other DI libraries can make processing convenient.
+
+Lambda expressions passed to Run, class constructors, methods, and filter constructors can inject services obtained from `IServiceProvider`. Let's look at a minimal example. Setting any `System.IServiceProvider` to `ConsoleApp.ServiceProvider` enables DI throughout the system.
+
+```csharp
+// Microsoft.Extensions.DependencyInjection
+var services = new ServiceCollection();
+services.AddTransient<MyService>();
+
+using var serviceProvider = services.BuildServiceProvider();
+
+// Any DI library can be used as long as it can create an IServiceProvider
+ConsoleApp.ServiceProvider = serviceProvider;
+
+// When passing to a lambda expression/method, using [FromServices] indicates that it is passed via DI, not as a parameter
+ConsoleApp.Run(args, ([FromServices]MyService service, int x, int y) => Console.WriteLine(x + y));
+```
+
+When passing to a lambda expression or method, the `[FromServices]` attribute is used to distinguish it from command parameters. When passing a class, Constructor Injection can be used, resulting in a simpler appearance.
+
+Let's try injecting a logger and enabling output to a file. The libraries used are Microsoft.Extensions.Logging and [Cysharp/ZLogger](https://github.com/Cysharp/ZLogger/) (a high-performance logger built on top of MS.E.Logging).
 
 
+```csharp
+// Package Import: ZLogger
+var services = new ServiceCollection();
+services.AddLogging(x =>
+{
+    x.ClearProviders();
+    x.SetMinimumLevel(LogLevel.Trace);
+    x.AddZLoggerConsole();
+    x.AddZLoggerFile("log.txt");
+});
+
+using var serviceProvider = services.BuildServiceProvider(); // using for logger flush(important!)
+ConsoleApp.ServiceProvider = serviceProvider;
+
+var app = ConsoleApp.Create();
+app.Add<MyCommand>();
+app.Run(args);
+
+// inject logger to constructor
+public class MyCommand(ILogger<MyCommand> logger)
+{
+    [Command("")]
+    public void Echo(string msg)
+    {
+        logger.ZLogInformation($"Message is {msg}");
+    }
+}
+```
+
+`ConsoleApp` has replaceable default logging methods `ConsoleApp.Log` and `ConsoleApp.LogError` used for Help display and exception handling. If using `ILogger<T>`, it's better to replace these as well.
+
+```csharp
+using var serviceProvider = services.BuildServiceProvider(); // using for cleanup(important)
+ConsoleApp.ServiceProvider = serviceProvider;
+
+// setup ConsoleApp system logger
+var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+ConsoleApp.Log = msg => logger.LogInformation(msg);
+ConsoleApp.LogError = msg => logger.LogError(msg);
+```
+
+DI can also be effectively used when reading application configuration from `appsettings.json`. For example, suppose you have the following JSON file.
+
+```json
+{
+  "Position": {
+    "Title": "Editor",
+    "Name": "Joe Smith"
+  },
+  "MyKey": "My appsettings.json Value",
+  "AllowedHosts": "*"
+}
+```
+
+Using `Microsoft.Extensions.Configuration.Json`, reading, binding, and registering with DI can be done as follows.
+
+```csharp
+// Package Import: Microsoft.Extensions.Configuration.Json
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json")
+    .Build();
+
+// Bind to services
+var services = new ServiceCollection();
+services.Configure<PositionOptions>(configuration.GetSection("Position"));
+
+using var serviceProvider = services.BuildServiceProvider();
+ConsoleApp.ServiceProvider = serviceProvider;
+
+var app = ConsoleApp.Create();
+app.Add<MyCommand>();
+app.Run(args);
+
+// inject options
+public class MyCommand(IOptions<PositionOptions> options)
+{
+    [Command("")]
+    public void Echo(string msg)
+    {
+        ConsoleApp.Log($"Binded Option: {options.Value.Title} {options.Value.Name}");
+    }
+}
+
+public class PositionOptions
+{
+    public string Title { get; set; } = "";
+    public string Name { get; set; } = "";
+}
+```
+
+If you have other applications such as ASP.NET in the entire project and want to use common DI and configuration set up using `Microsoft.Extensions.Hosting`, you can share them by setting the `IServiceProvider` of `IHost` after building.
+
+```csharp
+// Package Import: Microsoft.Extensions.Hosting
+var builder = Host.CreateApplicationBuilder(); // don't pass args.
+
+using var host = builder.Build(); // using
+ConsoleApp.ServiceProvider = host.Services; // use host ServiceProvider
+
+ConsoleApp.Run(args, ([FromServices] ILogger<Program> logger) => logger.LogInformation("Hello World!"));
+```
+
+ConsoleAppFramework has its own lifetime management (see the [CancellationToken(Gracefully Shutdown) and Timeout](#cancellationtokengracefully-shutdown-and-timeout) section), so Host's Start/Stop is not necessary. However, be sure to use the Host itself.
+
+As it is, the DI scope is not set, but by using a global filter, you can add a scope for each command execution. `ConsoleAppFilter` can also inject services via constructor injection, so let's get the `IServiceProvider`.
+
+```csharp
+var app = ConsoleApp.Create();
+app.UseFilter<ServiceProviderScopeFilter>();
+
+internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        // create Microsoft.Extensions.DependencyInjection scope
+        await using var scope = serviceProvider.CreateAsyncScope();
+        await Next.InvokeAsync(context, cancellationToken);
+    }
+}
+```
 
 Publish to executable file
 ---
