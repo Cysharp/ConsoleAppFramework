@@ -332,40 +332,151 @@ app.Run(args);
 
 ### Performance of Commands
 
-TODO:NANIKA KAKU
+In `ConsoleAppFramework`, the number and types of registered commands are statically determined at compile time. For example, let's register the following four commands:
+
+```csharp
+app.Add("foo", () => { });
+app.Add("foo bar", (int x, int y) => { });
+app.Add("foo bar barbaz", (DateTime dateTime) => { });
+app.Add("foo baz", async (string foo = "test", CancellationToken cancellationToken = default) => { });
+```
+
+The Source Generator generates four fields and holds them with specific types.
+
+```csharp
+partial struct ConsoleAppBuilder
+{
+    Action command0 = default!;
+    Action<int, int> command1 = default!;
+    Action<global::System.DateTime> command2 = default!;
+    Func<string, global::System.Threading.CancellationToken, Task> command3 = default!;
+
+    partial void AddCore(string commandName, Delegate command)
+    {
+        switch (commandName)
+        {
+            case "foo":
+                this.command0 = Unsafe.As<Action>(command);
+                break;
+            case "foo bar":
+                this.command1 = Unsafe.As<Action<int, int>>(command);
+                break;
+            case "foo bar barbaz":
+                this.command2 = Unsafe.As<Action<global::System.DateTime>>(command);
+                break;
+            case "foo baz":
+                this.command3 = Unsafe.As<Func<string, global::System.Threading.CancellationToken, Task>>(command);
+                break;
+            default:
+                break;
+        }
+    }
+}
+```
+
+This ensures the fastest execution speed without any additional unnecessary allocations such as arrays and without any boxing since it holds static delegate types.
+
+Command routing also generates a switch of nested string constants.
+
+```csharp
+partial void RunCore(string[] args)
+{
+    if (args.Length == 0)
+    {
+        ShowHelp(-1);
+        return;
+    }
+    switch (args[0])
+    {
+        case "foo":
+            if (args.Length == 1)
+            {
+                RunCommand0(args, args.AsSpan(1), command0);
+                return;
+            }
+            switch (args[1])
+            {
+                case "bar":
+                    if (args.Length == 2)
+                    {
+                        RunCommand1(args, args.AsSpan(2), command1);
+                        return;
+                    }
+                    switch (args[2])
+                    {
+                        case "barbaz":
+                            RunCommand2(args, args.AsSpan(3), command2);
+                            break;
+                        default:
+                            RunCommand1(args, args.AsSpan(2), command1);
+                            break;
+                    }
+                    break;
+                case "baz":
+                    RunCommand3(args, args.AsSpan(2), command3);
+                    break;
+                default:
+                    RunCommand0(args, args.AsSpan(1), command0);
+                    break;
+            }
+            break;
+        default:
+            ShowHelp(-1);
+            break;
+    }
+}
+```
+
+The C# compiler performs complex generation for string constant switches, making them extremely fast, and it would be difficult to achieve faster routing than this.
 
 Parse and Value Binding
 ---
+The method parameter names and types determine how to parse and bind values from the command-line arguments. When using lambda expressions, optional values and `params` arrays supported from C# 12 are also supported.
 
+```csharp
+ConsoleApp.Run(args, (
+    [Argument]DateTime dateTime,  // Argument
+    [Argument]Guid guidvalue,     // 
+    int intVar,                   // required
+    bool boolFlag,                // flag
+    MyEnum enumValue,             // enum
+    int[] array,                  // array
+    MyClass obj,                  // object
+    string optional = "abcde",    // optional
+    double? nullableValue = null, // nullable
+    params string[] paramsArray   // params
+    ) => { });
+```    
 
+When using `ConsoleApp.Run`, you can check the syntax of the command line in the tooltip to see how it is generated.
 
+![image](https://github.com/Cysharp/ConsoleAppFramework/assets/46207/af480566-adac-4767-bd5e-af89ab6d71f1)
 
-// TODO:reason and policy of limitation of parsing
+For the rules on converting parameter names to option names, aliases, and how to set documentation, refer to the [Option aliases](#option-aliases-and-help-version) section.
 
-`[Argument]`
+Parameters marked with the `[Argument]` attribute receive values in order without parameter names. This attribute can only be set on sequential parameters from the beginning.
 
-`bool`
+To convert from string arguments to various types, basic primitive types (`string`, `char`, `sbyte`, `byte`, `short`, `int`, `long`, `uint`, `ushort`, `ulong`, `decimal`, `float`, `double`) use `TryParse`. For types that implement `ISpanParsable<T>` (`DateTime`, `DateTimeOffset`, `Guid`, `BigInteger`, `Complex`, `Half`, `Int128`, etc.), [IParsable<TSelf>.TryParse](https://learn.microsoft.com/en-us/dotnet/api/system.iparsable-1.tryparse?view=net-8.0#system-ispanparsable-1-tryparse(system-readonlyspan((system-char))-system-iformatprovider-0@)) or [ISpanParsable<TSelf>.TryParse](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1.tryparse?view=net-8.0#system-ispanparsable-1-tryparse(system-readonlyspan((system-char))-system-iformatprovider-0@)) is used.
 
+For `enum`, it is parsed using `Enum.TryParse(ignoreCase: true)`.
 
+`bool` is treated as a flag and is always optional. It becomes `true` when the parameter name is passed.
 
+### Array
 
+Array parsing has three special patterns.
 
-             
+For a regular `T[]`, if the value starts with `[`, it is parsed using `JsonSerialzier.Deserialize`. Otherwise, it is parsed as comma-separated values. For example, `[1,2,3]` or `1,2,3` are allowed as values. To set an empty array, pass `[]`.
 
+For `params T[]`, all subsequent arguments become the values of the array. For example, if there is an input like `--paramsArray foo bar baz`, it will be bound to a value like `["foo", "bar", "baz"]`.
 
-`enum`
-`nullable?`
-`DateTime`
+### Object
 
-`ISpanParsable<T>`
-#### default
-#### json
-#### params T[]
+If none of the above cases apply, `JsonSerializer.Deserialize<T>` is used to perform binding as JSON. However, `CancellationToken` and `ConsoleAppContext` are treated as special types and excluded from binding. Also, parameters with the `[FromServices]` attribute are not subject to binding.
 
+### Custom Value Converter
 
-#### Custom Value Converter
-
-// TODO:
+To perform custom binding to existing types that do not support `ISpanParsable<T>`, you can create and set up a custom parser. For example, if you want to pass `System.Numerics.Vector3` as a comma-separated string like `1.3,4.12,5.947` and parse it, you can create an `Attribute` with `AttributeTargets.Parameter` that implements `IArgumentParser<T>`'s `static bool TryParse(ReadOnlySpan<char> s, out Vector3 result)` as follows:
 
 ```csharp
 [AttributeUsage(AttributeTargets.Parameter)]
@@ -396,34 +507,76 @@ public class Vector3ParserAttribute : Attribute, IArgumentParser<Vector3>
 }
 ```
 
+By setting this attribute on a parameter, the custom parser will be called when parsing the args.
 
+```csharp
+ConsoleApp.Run(args, ([Vector3Parser] Vector3 position) => Console.WriteLine(position));
+```
 
+### Syntax Parsing Policy and Performance
 
+While there are some standards for command-line arguments, such as UNIX tools and POSIX, there is no absolute specification. The [Command-line syntax overview for System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) provides an explanation of the specifications adopted by System.CommandLine. However, ConsoleAppFramework, while referring to these specifications to some extent, does not necessarily aim to fully comply with them.
+
+For example, specifications that change behavior based on `-x` and `-X` or allow bundling `-f -d -x` as `-fdx` are not easy to understand and also take time to parse. The poor performance of System.CommandLine may be influenced by its adherence to complex grammar. Therefore, ConsoleAppFramework prioritizes performance and clear rules. It uses lower-kebab-case as the basis while allowing case-insensitive matching. It does not support ambiguous grammar that cannot be processed in a single pass or takes time to parse.
+
+[System.CommandLine seems to be aiming for a new direction in .NET 9 and .NET 10](https://github.com/dotnet/command-line-api/issues/2338), but from a performance perspective, it will never surpass ConsoleAppFramework.
 
 CancellationToken(Gracefully Shutdown) and Timeout
 ---
+In ConsoleAppFramework, when you pass a `CancellationToken` as an argument, it can be used to check for interruption commands (SIGINT/SIGTERM/SIGKILL - Ctrl+C) rather than being treated as a parameter. For handling this, ConsoleAppFramework performs special code generation when a `CancellationToken` is included in the parameters.
 
+```csharp
+using var posixSignalHandler = PosixSignalHandler.Register(ConsoleApp.Timeout);
+var arg0 = posixSignalHandler.Token;
 
+await Task.Run(() => command(arg0!)).WaitAsync(posixSignalHandler.TimeoutToken);
+```
 
+If a CancellationToken is not passed, the application is immediately forced to terminate when an interruption command (Ctrl+C) is received. However, if a CancellationToken is present, it internally uses [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration) to hook SIGINT/SIGTERM/SIGKILL and sets the CancellationToken to a canceled state. Additionally, it prevents forced termination to allow for a graceful shutdown.
 
+If the CancellationToken is handled correctly, the application can perform proper termination processing based on the application's handling. However, if the CancellationToken is mishandled, the application may not terminate even when an interruption command is received. To avoid this, a timeout timer starts after the interruption command, and the application is forcibly terminated again after the specified time.
+
+The default timeout is 5 seconds, but it can be changed using `ConsoleApp.Timeout`. For example, setting it to `ConsoleApp.Timeout = Timeout.InfiniteTimeSpan;` disables the forced termination caused by the timeout.
+
+The hooking behavior using `PosixSignalRegistration` is determined by the presence of a `CancellationToken` (or always takes effect if a filter is set). Therefore, even for synchronous methods, it is possible to change the behavior by including a `CancellationToken` as an argument.
 
 Exit Code
 ---
-If the method returns `int` or `Task<int>` or `ValueTask<int> value, ConsoleAppFramework will set the return value to the exit code.
+If the method returns `int` or `Task<int>`, `ConsoleAppFramework` will set the return value to the exit code. Due to the nature of code generation, when writing lambda expressions, you need to explicitly specify either `int` or `Task<int>`.
 
+```csharp
+// return Random ExitCode...
+ConsoleApp.Run(args, int () => Random.Shared.Next());
+```
 
+```csharp
+// return StatusCode
+await ConsoleApp.RunAsync(args, async Task<int> (string url, CancellationToken cancellationToken) =>
+{
+    using var client = new HttpClient();
+    var response = await client.GetAsync(url, cancellationToken);
+    return (int)response.StatusCode;
+});
+```
 
-> **NOTE**: If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code.
-
-
-
+If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code. Also, in that case, output `Exception.ToString` to `ConsoleApp.LogError` (the default is `Console.WriteLine`). If you want to modify this code, please create a custom filter. For more details, refer to the [Filter](#filtermiddleware-pipline--consoleappcontext) section. 
 
 Attribute based parameters validation
 ---
+`ConsoleAppFramework` performs validation when the parameters are marked with attributes for validation from `System.ComponentModel.DataAnnotations` (more precisely, attributes that implement `ValidationAttribute`). The validation occurs after parameter binding and before command execution. If the validation fails, it throws a `ValidationException`.
 
+```csharp
+ConsoleApp.Run(args, ([EmailAddress] string firstArg, [Range(0, 2)] int secondArg) => { });
+```
 
+For example, if you pass arguments like `args = "--first-arg invalid.email --second-arg 10".Split(' ');`, you will see validation failure messages such as:
 
+```txt
+The firstArg field is not a valid e-mail address.
+The field secondArg must be between 0 and 2.
+```
 
+By default, the ExitCode is set to 1 in this case.
 
 Filter(Middleware) Pipline / ConsoleAppContext
 ---
@@ -786,10 +939,15 @@ internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, Cons
 
 Publish to executable file
 ---
+There are multiple ways to run a CLI application in .NET:
 
-* Native AOT
-* dotnet run
-* dotnet publish
+* [dotnet run](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-run)
+* [dotnet build](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build)
+* [dotnet publish](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish)
+
+`run` is convenient when you want to execute the `csproj` directly, such as for starting command tools in CI. `build` and `publish` are quite similar, so it's possible to discuss them in general terms, but it's a bit difficult to talk about the precise differences. For more details, it's a good idea to check out [`build` vs `publish` -- can they be friends? · Issue #26247 · dotnet/sdk](https://github.com/dotnet/sdk/issues/26247).
+
+Also, to run with Native AOT, please refer to the [Native AOT deployment overview](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/). In any case, ConsoleAppFramework thoroughly implements a dependency-free and reflection-free approach, so it shouldn't be an obstacle to execution.
 
 License
 ---

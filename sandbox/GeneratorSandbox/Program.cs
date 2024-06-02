@@ -6,25 +6,47 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
+using System.Numerics;
 using System.Threading.Channels;
 using ZLogger;
 
-// args = ["--msg", "foobarbaz"];
 
+args = "--first-arg invalid.email --second-arg 10".Split(' ');
 
-// Microsoft.Extensions.DependencyInjection
-
-// Package Import: Microsoft.Extensions.Hosting
-var builder = Host.CreateApplicationBuilder(); // don't pass args.
-
-using var host = builder.Build(); // using
-ConsoleApp.ServiceProvider = host.Services; // use host ServiceProvider
-
-ConsoleApp.Run(args, ([FromServices] ILogger<Program> logger) => logger.LogInformation("Hello World!"));
+ConsoleApp.Timeout = Timeout.InfiniteTimeSpan;
 
 
 
 
+ConsoleApp.Run(args, (
+    [Argument] DateTime dateTime, // Argument
+    [Argument] Guid guidvalue,    // 
+    int intVar,                   // required
+    bool boolFlag,                // flag
+    MyEnum enumValue,             // enum
+    int[] array,                  // array
+    MyClass obj,                  // object
+    string optional = "abcde",    // optional
+    double? nullableValue = null, // nullable
+    params string[] paramsArray   // params
+    ) => { });
+
+
+
+
+
+
+
+
+public enum MyEnum
+{
+
+}
+
+public class MyClass
+{
+
+}
 
 // inject logger
 public class MyCommand(ILogger<MyCommand> logger, IOptions<PositionOptions> options)
@@ -49,7 +71,32 @@ public class PositionOptions
 
 
 
+[AttributeUsage(AttributeTargets.Parameter)]
+public class Vector3ParserAttribute : Attribute, IArgumentParser<Vector3>
+{
+    public static bool TryParse(ReadOnlySpan<char> s, out Vector3 result)
+    {
+        Span<Range> ranges = stackalloc Range[3];
+        var splitCount = s.Split(ranges, ',');
+        if (splitCount != 3)
+        {
+            result = default;
+            return false;
+        }
 
+        float x;
+        float y;
+        float z;
+        if (float.TryParse(s[ranges[0]], out x) && float.TryParse(s[ranges[1]], out y) && float.TryParse(s[ranges[2]], out z))
+        {
+            result = new Vector3(x, y, z);
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+}
 
 
 internal class DIFilter(string foo, int bar, ConsoleAppFilter next)
