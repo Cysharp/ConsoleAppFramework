@@ -175,17 +175,17 @@ internal static partial class ConsoleApp
 
     static void ThrowArgumentParseFailed(string argumentName, string value)
     {
-        throw new ArgumentException($"Argument '{argumentName}' parse failed. value: {value}");
+        throw new ArgumentException($"Argument '{argumentName}' failed to parse, provided value: {value}");
     }
 
     static void ThrowRequiredArgumentNotParsed(string name)
     {
-        throw new ArgumentException($"Require argument '{name}' does not parsed.");
+        throw new ArgumentException($"Required argument '{name}' was not specified.");
     }
 
     static void ThrowArgumentNameNotFound(string argumentName)
     {
-        throw new ArgumentException($"Argument '{argumentName}' does not found in command prameters.");
+        throw new ArgumentException($"Argument '{argumentName}' is not recognized.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
