@@ -948,6 +948,8 @@ internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, Cons
 }
 ```
 
+However, since the construction of the filters is performed before execution, automatic injection using scopes is only effective for the command body itself.
+
 Publish to executable file
 ---
 There are multiple ways to run a CLI application in .NET:
@@ -959,6 +961,26 @@ There are multiple ways to run a CLI application in .NET:
 `run` is convenient when you want to execute the `csproj` directly, such as for starting command tools in CI. `build` and `publish` are quite similar, so it's possible to discuss them in general terms, but it's a bit difficult to talk about the precise differences. For more details, it's a good idea to check out [`build` vs `publish` -- can they be friends? · Issue #26247 · dotnet/sdk](https://github.com/dotnet/sdk/issues/26247).
 
 Also, to run with Native AOT, please refer to the [Native AOT deployment overview](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/). In any case, ConsoleAppFramework thoroughly implements a dependency-free and reflection-free approach, so it shouldn't be an obstacle to execution.
+
+v4 -> v5 Migration Guide
+---
+v4 was running on top of `Microsoft.Extensions.Hosting`, so build a Host in the same way and set up a ServiceProvider.
+
+```csharp
+using var host = Host.CreateDefaultBuilder().Build();
+ConsoleApp.ServiceProvider = host.ServiceProvider;
+```
+
+* `var app = ConsoleApp.Create(args); app.Run();` -> `var app = ConsoleApp.Create(); app.Run(args);`
+* `app.AddCommand/AddSubCommand` -> `app.Add(string commandName)`
+* `app.AddRootCommand` -> `app.Add("")`
+* `app.AddCommands<T>` -> `app.Add<T>`
+* `app.AddSubCommands<T>` -> `app.Add<T>(string commandPath)`
+* `app.AddAllCommandType` -> `NotSupported`(use `Add<T>` manually)
+* `[Option(int index)]` -> `[Argument]`
+* `[Option(string shortName, string description)]` -> `Xml Document Comment`
+* `ConsoleAppFilter.Order` -> `NotSupported`(global -> class -> method declrative order)
+* `ConsoleAppOptions.GlobalFilters` -> `app.UseFilter<T>`
 
 License
 ---
