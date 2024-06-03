@@ -948,6 +948,8 @@ internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, Cons
 }
 ```
 
+However, since the construction of the filters is performed before execution, automatic injection using scopes is only effective for the command body itself.
+
 Publish to executable file
 ---
 There are multiple ways to run a CLI application in .NET:
