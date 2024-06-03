@@ -23,7 +23,7 @@ public class Test(ITestOutputHelper output)
     [Fact]
     public void SyncRunShouldFailed()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x").Should().Contain("Argument 'x' parse failed.");
+        verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x").Should().Contain("Argument 'x' failed to parse");
     }
 
     [Fact]
