@@ -962,6 +962,26 @@ There are multiple ways to run a CLI application in .NET:
 
 Also, to run with Native AOT, please refer to the [Native AOT deployment overview](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/). In any case, ConsoleAppFramework thoroughly implements a dependency-free and reflection-free approach, so it shouldn't be an obstacle to execution.
 
+v4 -> v5 Integration Guide
+---
+v4 was running on top of `Microsoft.Extensions.Hosting`, so build a Host in the same way and set up a ServiceProvider.
+
+```csharp
+using var host = Host.CreateDefaultBuilder().Build();
+ConsoleApp.ServiceProvider = host.ServiceProvider;
+```
+
+* `var app = ConsoleApp.Create(args); app.Run();` -> `var app = ConsoleApp.Create(); app.Run(args);`
+* `app.AddCommand/AddSubCommand` -> `app.Add(string commandName)`
+* `app.AddRootCommand` -> `app.Add("")`
+* `app.AddCommands<T>` -> `app.Add<T>`
+* `app.AddSubCommands<T>` -> `app.Add<T>(string commandPath)`
+* `app.AddAllCommandType` -> `NotSupported`(use `Add<T>` manually)
+* `[Option(int index)]` -> `[Argument]`
+* `[Option(string shortName, string description)]` -> `Xml Document Comment`
+* `ConsoleAppFilter.Order` -> `NotSupported`(global -> class -> method declrative order)
+* `ConsoleAppOptions.GlobalFilters` -> `app.UseFilter<T>`
+
 License
 ---
 This library is under the MIT License.
