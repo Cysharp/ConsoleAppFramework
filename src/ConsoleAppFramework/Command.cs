@@ -279,7 +279,7 @@ public record class CommandParameter
             }
             else
             {
-                return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{type.ToFullyQualifiedFormatDisplayString()}>(args[{(increment ? "++i" : "i")}]); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
+                return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{type.ToFullyQualifiedFormatDisplayString()}>(args[{(increment ? "++i" : "i")}], JsonSerializerOptions); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
             }
         }
     }

@@ -1,0 +1,5 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<DefineConstants>USE_EXTERNAL_CONSOLEAPP_ABSTRACTIONS</DefineConstants>
+	</PropertyGroup>
+</Project>

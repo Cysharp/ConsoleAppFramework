@@ -8,6 +8,8 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<NoWarn>1701;1702;CS8321</NoWarn>
 		<IsPackable>false</IsPackable>
+
+		<DefineConstants>USE_EXTERNAL_CONSOLEAPP_ABSTRACTIONS</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -18,16 +20,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\src\ConsoleAppFramework.Abstractions\ConsoleAppFramework.Abstractions.csproj" />
 		<ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj">
 			<OutputItemType>Analyzer</OutputItemType>
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 		</ProjectReference>
+		<ProjectReference Include="..\FilterShareProject\FilterShareProject.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="appsettings.json">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 </Project>

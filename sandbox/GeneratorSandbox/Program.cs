@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
 using System.Numerics;
+using System.Text.Json;
 using System.Threading.Channels;
 using ZLogger;
 
@@ -31,10 +32,13 @@ using ZLogger;
 //    params string[] paramsArray   // params
 //    ) => { });
 
-ConsoleApp.Run(args, (int foo, int bar) => Console.WriteLine($"Sum: {foo + bar}"));
 
+args = ["--mc", "{\"MyProperty\":100}"];
 
-
+ConsoleApp.Run(args, (MyClass mc) =>
+{
+    Console.WriteLine(mc.MyProperty);
+});
 
 public enum MyEnum
 {
@@ -43,7 +47,7 @@ public enum MyEnum
 
 public class MyClass
 {
-
+    public int MyProperty { get; set; }
 }
 
 // inject logger

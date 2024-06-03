@@ -2,9 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
-using System.ComponentModel.Design;
 using System.Reflection;
-using System.Xml.Linq;
 using static ConsoleAppFramework.Emitter;
 
 namespace ConsoleAppFramework;
@@ -90,10 +88,29 @@ using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System.ComponentModel.DataAnnotations;
 
+#if !USE_EXTERNAL_CONSOLEAPP_ABSTRACTIONS
+
 internal interface IArgumentParser<T>
 {
     static abstract bool TryParse(ReadOnlySpan<char> s, out T result);
 }
+
+internal record class ConsoleAppContext(string CommandName, string[] Arguments, object? State);
+
+internal abstract class ConsoleAppFilter(ConsoleAppFilter next)
+{
+    protected readonly ConsoleAppFilter Next = next;
+
+    public abstract Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken);
+}
+
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+internal sealed class ConsoleAppFilterAttribute<T> : Attribute
+    where T : ConsoleAppFilter
+{
+}
+
+#endif
 
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
 internal sealed class FromServicesAttribute : Attribute
@@ -116,25 +133,11 @@ internal sealed class CommandAttribute : Attribute
     }
 }
 
-internal record class ConsoleAppContext(string CommandName, string[] Arguments, object? State);
-
-internal abstract class ConsoleAppFilter(ConsoleAppFilter next)
-{
-    protected readonly ConsoleAppFilter Next = next;
-
-    public abstract Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken);
-}
-
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
-internal sealed class ConsoleAppFilterAttribute<T> : Attribute
-    where T : ConsoleAppFilter
-{
-}
-
 internal static partial class ConsoleApp
 {
     public static IServiceProvider? ServiceProvider { get; set; }
     public static TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
+    public static System.Text.Json.JsonSerializerOptions? JsonSerializerOptions { get; set; }
 
     static Action<string>? logAction;
     public static Action<string> Log
@@ -218,7 +221,7 @@ internal static partial class ConsoleApp
         {
             try
             {
-                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s)!;
+                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s, JsonSerializerOptions)!;
                 return true;
             }
             catch

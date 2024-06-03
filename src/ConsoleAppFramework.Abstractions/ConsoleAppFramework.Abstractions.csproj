@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<!-- NuGet -->
+		<PackageId>ConsoleAppFramework.Abstractions</PackageId>
+		<Description>ConsoleAppFramework external abstractions library.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="ConsoleAppFramework.Abstractions.props" Pack="true" PackagePath="build" />
+		<None Include="../../Icon.png" Pack="true" PackagePath="/" />
+	</ItemGroup>
+
+</Project>
