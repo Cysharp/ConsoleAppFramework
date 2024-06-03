@@ -2,6 +2,7 @@
 using System;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Text;
 
@@ -168,9 +169,10 @@ public record class CommandParameter
     public required string Description { get; init; }
     public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams || IsFlag);
 
+    // increment = false when passed from [Argument]
     public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes, bool increment)
     {
-        var index = increment ? "++i" : "i";
+        var incrementIndex = increment ? "!TryIncrementIndex(ref i, args.Length) || " : "";
         return Core(Type, false);
 
         string Core(ITypeSymbol type, bool nullable)
@@ -190,13 +192,22 @@ public record class CommandParameter
 
             if (CustomParserType != null)
             {
-                return $"if (!{CustomParserType.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                return $"if ({incrementIndex}!{CustomParserType.ToFullyQualifiedFormatDisplayString()}.TryParse(args[i], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
             }
 
             switch (type.SpecialType)
             {
                 case SpecialType.System_String:
-                    return $"arg{argCount} = args[{index}];"; // no parse
+                    // no parse
+                    if (increment)
+                    {
+                        return $"if (!TryIncrementIndex(ref i, args.Length)) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }} else {{ arg{argCount} = args[i]; }}";
+                    }
+                    else
+                    {
+                        return $"arg{argCount} = args[i];";
+                    }
+                    
                 case SpecialType.System_Boolean:
                     return $"arg{argCount} = true;"; // bool is true flag
                 case SpecialType.System_Char:
@@ -218,7 +229,7 @@ public record class CommandParameter
                     // Enum
                     if (type.TypeKind == TypeKind.Enum)
                     {
-                        return $"if (!Enum.TryParse<{type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[{index}], true, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                        return $"if ({incrementIndex}!Enum.TryParse<{type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(args[i], true, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
                     }
 
                     // ParamsArray
@@ -236,7 +247,7 @@ public record class CommandParameter
                         {
                             if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
                             {
-                                return $"if (!TrySplitParse(args[{index}], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                                return $"if ({incrementIndex}!TrySplitParse(args[i], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
                             }
                         }
                         break;
@@ -260,15 +271,15 @@ public record class CommandParameter
 
             if (tryParseKnownPrimitive)
             {
-                return $"if (!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                return $"if ({incrementIndex}!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[i], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
             }
             else if (tryParseIParsable)
             {
-                return $"if (!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[{index}], null, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
+                return $"if ({incrementIndex}!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(args[i], null, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}{elseExpr}";
             }
             else
             {
-                return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{type.ToFullyQualifiedFormatDisplayString()}>(args[{index}]); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
+                return $"try {{ arg{argCount} = System.Text.Json.JsonSerializer.Deserialize<{type.ToFullyQualifiedFormatDisplayString()}>(args[{(increment ? "++i" : "i")}]); }} catch {{ ThrowArgumentParseFailed(\"{argumentName}\", args[i]); }}";
             }
         }
     }

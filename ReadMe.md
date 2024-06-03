@@ -42,26 +42,26 @@ internal static partial class ConsoleApp
                 {
                     case "--foo":
                     {
-                        if (!int.TryParse(args[++i], out arg0)) { ThrowArgumentParseFailed("foo", args[i]); }
+                        if (!TryIncrementIndex(ref i, args.Length) || !int.TryParse(args[i], out arg0)) { ThrowArgumentParseFailed("foo", args[i]); }
                         arg0Parsed = true;
                         break;
                     }
                     case "--bar":
                     {
-                        if (!int.TryParse(args[++i], out arg1)) { ThrowArgumentParseFailed("bar", args[i]); }
+                        if (!TryIncrementIndex(ref i, args.Length) || !int.TryParse(args[i], out arg1)) { ThrowArgumentParseFailed("bar", args[i]); }
                         arg1Parsed = true;
                         break;
                     }
                     default:
                         if (string.Equals(name, "--foo", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (!int.TryParse(args[++i], out arg0)) { ThrowArgumentParseFailed("foo", args[i]); }
+                            if (!TryIncrementIndex(ref i, args.Length) || !int.TryParse(args[i], out arg0)) { ThrowArgumentParseFailed("foo", args[i]); }
                             arg0Parsed = true;
                             break;
                         }
                         if (string.Equals(name, "--bar", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (!int.TryParse(args[++i], out arg1)) { ThrowArgumentParseFailed("bar", args[i]); }
+                            if (!TryIncrementIndex(ref i, args.Length) || !int.TryParse(args[i], out arg1)) { ThrowArgumentParseFailed("bar", args[i]); }
                             arg1Parsed = true;
                             break;
                         }
@@ -86,6 +86,17 @@ internal static partial class ConsoleApp
                 LogError(ex.ToString());
             }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static bool TryIncrementIndex(ref int index, int length)
+    {
+        if (index < length)
+        {
+            index++;
+            return true;
+        }
+        return false;
     }
 
     static partial void ShowHelp(int helpId)

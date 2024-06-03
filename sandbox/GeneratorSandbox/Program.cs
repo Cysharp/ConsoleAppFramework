@@ -11,29 +11,27 @@ using System.Threading.Channels;
 using ZLogger;
 
 
-args = "--first-arg invalid.email --second-arg 10".Split(' ');
+//args = "--first-arg invalid.email --second-arg 10".Split(' ');
 
-ConsoleApp.Timeout = Timeout.InfiniteTimeSpan;
-
-
-
-
-ConsoleApp.Run(args, (
-    [Argument] DateTime dateTime, // Argument
-    [Argument] Guid guidvalue,    // 
-    int intVar,                   // required
-    bool boolFlag,                // flag
-    MyEnum enumValue,             // enum
-    int[] array,                  // array
-    MyClass obj,                  // object
-    string optional = "abcde",    // optional
-    double? nullableValue = null, // nullable
-    params string[] paramsArray   // params
-    ) => { });
+//ConsoleApp.Timeout = Timeout.InfiniteTimeSpan;
 
 
 
 
+//ConsoleApp.Run(args, (
+//    [Argument] DateTime dateTime, // Argument
+//    [Argument] Guid guidvalue,    // 
+//    int intVar,                   // required
+//    bool boolFlag,                // flag
+//    MyEnum enumValue,             // enum
+//    int[] array,                  // array
+//    MyClass obj,                  // object
+//    string optional = "abcde",    // optional
+//    double? nullableValue = null, // nullable
+//    params string[] paramsArray   // params
+//    ) => { });
+
+ConsoleApp.Run(args, (int foo, int bar) => Console.WriteLine($"Sum: {foo + bar}"));
 
 
 

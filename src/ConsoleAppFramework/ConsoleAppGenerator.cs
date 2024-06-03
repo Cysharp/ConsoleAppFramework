@@ -188,6 +188,17 @@ internal static partial class ConsoleApp
         throw new ArgumentException($"Argument '{argumentName}' does not found in command prameters.");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static bool TryIncrementIndex(ref int index, int length)
+    {
+        if ((index + 1) < length)
+        {
+            index += 1;
+            return true;
+        }
+        return false;
+    }
+
     static bool TryParseParamsArray<T>(ReadOnlySpan<string> args, ref T[] result, ref int i)
        where T : IParsable<T>
     {

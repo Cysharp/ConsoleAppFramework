@@ -150,6 +150,20 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         stdout.Should().Be(expected);
     }
 
+    public string Error(string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
+    {
+        output.WriteLine(codeExpr);
+
+        var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
+        foreach (var item in diagnostics)
+        {
+            output.WriteLine(item.ToString());
+        }
+        OutputGeneratedCode(compilation);
+
+        return stdout;
+    }
+
     string GetLocationText(Diagnostic diagnostic)
     {
         var location = diagnostic.Location;
