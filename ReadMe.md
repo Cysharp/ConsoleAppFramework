@@ -962,7 +962,7 @@ There are multiple ways to run a CLI application in .NET:
 
 Also, to run with Native AOT, please refer to the [Native AOT deployment overview](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/). In any case, ConsoleAppFramework thoroughly implements a dependency-free and reflection-free approach, so it shouldn't be an obstacle to execution.
 
-v4 -> v5 Integration Guide
+v4 -> v5 Migration Guide
 ---
 v4 was running on top of `Microsoft.Extensions.Hosting`, so build a Host in the same way and set up a ServiceProvider.
 
