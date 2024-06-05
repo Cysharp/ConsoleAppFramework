@@ -986,6 +986,7 @@ ConsoleApp.ServiceProvider = host.ServiceProvider;
 * `[Option(string shortName, string description)]` -> `Xml Document Comment`
 * `ConsoleAppFilter.Order` -> `NotSupported`(global -> class -> method declrative order)
 * `ConsoleAppOptions.GlobalFilters` -> `app.UseFilter<T>`
+* `ConsoleAppBase` -> inject `ConsoleAppContext`, `CancellationToken`
 
 License
 ---
