@@ -89,4 +89,27 @@ namespace Takoyaki
 }
 """, "--foo 10 --bar aiueo --ft Grape --flag --half 1.3 --itt 99 --obj {\"Foo\":1999}", "10aiueoGrapeTrue1.3991999");
     }
+
+    [Fact]
+    public void ValidateClass()
+    {
+        var expected = """
+The field value must be between 0 and 1.
+
+
+""";
+
+        verifier.Execute("""
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+}
+
+""", "show --aaa foo --value 100", expected);
+
+    }
 }

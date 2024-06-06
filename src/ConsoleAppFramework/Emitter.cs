@@ -212,7 +212,14 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                 {
                     sb.AppendLine();
                     sb.AppendLine("var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(\"\", null, null);");
-                    sb.AppendLine("var parameters = command.Method.GetParameters();");
+                    if (command.CommandMethodInfo == null)
+                    {
+                        sb.AppendLine("var parameters = command.Method.GetParameters();");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"var parameters = typeof({command.CommandMethodInfo.TypeFullName}).GetMethod(\"{command.CommandMethodInfo.MethodName}\").GetParameters();");
+                    }
                     sb.AppendLine("System.Text.StringBuilder? errorMessages = null;");
                     for (int i = 0; i < command.Parameters.Length; i++)
                     {
