@@ -77,7 +77,7 @@ internal static partial class ConsoleApp
         catch (Exception ex)
         {
             Environment.ExitCode = 1;
-            if (ex is ValidationException)
+            if (ex is ValidationException or ArgumentParseFailedException)
             {
                 LogError(ex.Message);
             }

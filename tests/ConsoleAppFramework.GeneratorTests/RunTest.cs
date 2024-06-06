@@ -27,6 +27,15 @@ public class Test(ITestOutputHelper output)
     }
 
     [Fact]
+    public void MissingArgument()
+    {
+        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").Should().Contain("Argument 'y' is not recognized.");
+
+        Environment.ExitCode.Should().Be(1);
+        Environment.ExitCode = 0;
+    }
+
+    [Fact]
     public void ValidateOne()
     {
         var expected = """

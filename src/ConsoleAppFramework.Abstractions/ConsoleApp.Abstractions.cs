@@ -19,3 +19,7 @@ public sealed class ConsoleAppFilterAttribute<T> : Attribute
     where T : ConsoleAppFilter
 {
 }
+
+public sealed class ArgumentParseFailedException(string message) : Exception(message)
+{
+}

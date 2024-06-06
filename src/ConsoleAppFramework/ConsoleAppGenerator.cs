@@ -110,6 +110,10 @@ internal sealed class ConsoleAppFilterAttribute<T> : Attribute
 {
 }
 
+internal sealed class ArgumentParseFailedException(string message) : Exception(message)
+{
+}
+
 #endif
 
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
@@ -179,17 +183,17 @@ internal static partial class ConsoleApp
 
     static void ThrowArgumentParseFailed(string argumentName, string value)
     {
-        throw new ArgumentException($"Argument '{argumentName}' failed to parse, provided value: {value}");
+        throw new ArgumentParseFailedException($"Argument '{argumentName}' failed to parse, provided value: {value}");
     }
 
     static void ThrowRequiredArgumentNotParsed(string name)
     {
-        throw new ArgumentException($"Required argument '{name}' was not specified.");
+        throw new ArgumentParseFailedException($"Required argument '{name}' was not specified.");
     }
 
     static void ThrowArgumentNameNotFound(string argumentName)
     {
-        throw new ArgumentException($"Argument '{argumentName}' is not recognized.");
+        throw new ArgumentParseFailedException($"Argument '{argumentName}' is not recognized.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -364,7 +368,7 @@ internal static partial class ConsoleApp
             }
 
             Environment.ExitCode = 1;
-            if (ex is ValidationException)
+            if (ex is ValidationException or ArgumentParseFailedException)
             {
                 LogError(ex.Message);
             }

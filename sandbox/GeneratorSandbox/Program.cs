@@ -4,7 +4,7 @@ using ConsoleAppFramework;
 
 
 
-args = ["show", "--aaa", "a", "--value", "10.2"];
+args = ["show", "--aaa", "a", "value", "10.2"];
 
 var app = ConsoleApp.Create();
 app.Add<Test>();
@@ -14,3 +14,4 @@ public class Test
 {
     public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
 }
+

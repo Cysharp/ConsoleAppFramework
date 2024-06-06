@@ -313,7 +313,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
 
                     sb.AppendLine("Environment.ExitCode = 1;");
 
-                    using (sb.BeginBlock("if (ex is ValidationException)"))
+                    using (sb.BeginBlock("if (ex is ValidationException or ArgumentParseFailedException)"))
                     {
                         sb.AppendLine("LogError(ex.Message);");
                     }
