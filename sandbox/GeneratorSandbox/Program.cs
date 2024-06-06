@@ -2,6 +2,8 @@
 using System.Diagnostics.CodeAnalysis;
 using ConsoleAppFramework;
 
+
+
 args = ["show", "--aaa", "a", "--value", "10.2"];
 
 var app = ConsoleApp.Create();

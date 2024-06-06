@@ -243,7 +243,7 @@ To add aliases to parameters, list the aliases separated by `|` before the comma
 
 Unfortunately, due to current C# specifications, lambda expressions and [local functions do not support document comments](https://github.com/dotnet/csharplang/issues/2110), so a class is required.
 
-In addition to `-h|--help`, there is another special built-in option: `--version`. This displays the `AssemblyInformationalVersion` or `AssemblyVersion`.
+In addition to `-h|--help`, there is another special built-in option: `--version`. In default, it displays the `AssemblyInformationalVersion` or `AssemblyVersion`. You can configure version string by `ConsoleApp.Version`, for example `ConsoleApp.Version = "2001.9.3f14-preview2";`.
 
 Command
 ---

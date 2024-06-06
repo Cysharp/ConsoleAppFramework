@@ -138,6 +138,7 @@ internal static partial class ConsoleApp
     public static IServiceProvider? ServiceProvider { get; set; }
     public static TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
     public static System.Text.Json.JsonSerializerOptions? JsonSerializerOptions { get; set; }
+    public static string? Version { get; set; }
 
     static Action<string>? logAction;
     public static Action<string> Log
@@ -321,6 +322,12 @@ internal static partial class ConsoleApp
 
     static void ShowVersion()
     {
+        if (Version != null)
+        {
+            Log(Version);
+            return;
+        }
+
         var asm = Assembly.GetEntryAssembly();
         var version = "1.0.0";
         var infoVersion = asm!.GetCustomAttribute<AssemblyInformationalVersionAttribute>();

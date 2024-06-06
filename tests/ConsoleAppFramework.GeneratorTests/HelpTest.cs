@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit.Abstractions;
@@ -10,6 +11,31 @@ namespace ConsoleAppFramework.GeneratorTests;
 public class HelpTest(ITestOutputHelper output)
 {
     VerifyHelper verifier = new VerifyHelper(output, "CAF");
+
+    [Fact]
+    public void Version()
+    {
+        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+
+        verifier.Execute(code: $$"""
+ConsoleApp.Run(args, (int x, int y) => { });
+""",
+    args: "--version",
+    expected: $$"""
+{{version}}
+
+""");
+        // custom
+        verifier.Execute(code: $$"""
+ConsoleApp.Version = "9999.9999999abcdefg";
+ConsoleApp.Run(args, (int x, int y) => { });
+""",
+   args: "--version",
+   expected: """
+9999.9999999abcdefg
+
+""");
+    }
 
     [Fact]
     public void Run()
