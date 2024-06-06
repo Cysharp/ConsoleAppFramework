@@ -88,6 +88,39 @@ global using ConsoleAppFramework;
             Console.SetOut(originalOut);
         }
     }
+
+    public static void CheckIncrementalGenerator(params string[] sources)
+    {
+        var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp12); // 12
+        var driver = CSharpGeneratorDriver.Create(
+            [new ConsoleAppGenerator().AsSourceGenerator()],
+            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true))
+            .WithUpdatedParseOptions(parseOptions);
+
+        var generatorResults = sources
+            .Select(source =>
+            {
+                var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions));
+                driver = driver.RunGenerators(compilation);
+                return driver.GetRunResult().Results[0];
+            })
+            .ToArray();
+
+        var reasons = generatorResults
+            .Select(x => x.TrackedSteps
+                .Where(x => x.Key.StartsWith("ConsoleApp"))
+                .Select(x => new
+                {
+                    x.Key,
+                    Reasons = string.Join(", ", x.Value.SelectMany(x => x.Outputs).Select(x => x.Reason).ToArray())
+                })
+                .ToArray())
+            .ToArray();
+
+
+
+
+    }
 }
 
 public class VerifyHelper(ITestOutputHelper output, string idPrefix)

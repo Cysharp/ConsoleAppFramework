@@ -1,11 +1,87 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Text;
 using static ConsoleAppFramework.Emitter;
 
 namespace ConsoleAppFramework;
+
+
+public static class StringWriterPool
+{
+    static readonly ConcurrentQueue<StringWriter> pool = new();
+
+    public static StringWriter Rent()
+    {
+        if (!pool.TryDequeue(out var writer))
+        {
+            writer = new StringWriter();
+        }
+        return writer;
+    }
+
+    public static void Return(StringWriter writer)
+    {
+        writer.GetStringBuilder().Clear();
+        pool.Enqueue(writer);
+    }
+}
+
+
+public class SyntaxNodeTextEqualityComparer : IEqualityComparer<SyntaxNode>
+{
+
+
+    public bool Equals(SyntaxNode x, SyntaxNode y)
+    {
+
+
+
+        throw new NotImplementedException();
+    }
+
+    public int GetHashCode(SyntaxNode obj)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+
+public class RunNode(InvocationExpressionSyntax node, SemanticModel model) : IEquatable<RunNode>
+{
+    public InvocationExpressionSyntax Node => node;
+    public SemanticModel SemanticModel => model;
+
+    public bool Equals(RunNode other)
+    {
+        //var eq = this.Node.Equals(other.Node);
+
+        var left = StringWriterPool.Rent();
+
+        var txt = other.Node.GetText();
+
+        // other.Node.WriteTo
+
+        // new StringBuilder().Equals();
+        // StringWriter sw = new StringWriter();
+
+        other.Node.WriteTo(sw);
+        var txt = other.Node.Expression.GetText();
+
+
+        return true;
+        // return eq;
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = node.GetHashCode();
+        return hash;
+    }
+}
 
 [Generator(LanguageNames.CSharp)]
 public partial class ConsoleAppGenerator : IIncrementalGenerator
@@ -15,28 +91,30 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(EmitConsoleAppTemplateSource);
 
         // ConsoleApp.Run
-        var runSource = context.SyntaxProvider.CreateSyntaxProvider((node, ct) =>
-        {
-            if (node.IsKind(SyntaxKind.InvocationExpression))
+        var runSource = context.SyntaxProvider
+            .CreateSyntaxProvider((node, ct) =>
             {
-                var invocationExpression = (node as InvocationExpressionSyntax);
-                if (invocationExpression == null) return false;
-
-                var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
-                if ((expr?.Expression as IdentifierNameSyntax)?.Identifier.Text == "ConsoleApp")
+                if (node.IsKind(SyntaxKind.InvocationExpression))
                 {
-                    var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Run" or "RunAsync")
+                    var invocationExpression = (node as InvocationExpressionSyntax);
+                    if (invocationExpression == null) return false;
+
+                    var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
+                    if ((expr?.Expression as IdentifierNameSyntax)?.Identifier.Text == "ConsoleApp")
                     {
-                        return true;
+                        var methodName = expr?.Name.Identifier.Text;
+                        if (methodName is "Run" or "RunAsync")
+                        {
+                            return true;
+                        }
                     }
+
+                    return false;
                 }
 
                 return false;
-            }
-
-            return false;
-        }, (context, ct) => ((InvocationExpressionSyntax)context.Node, context.SemanticModel));
+            }, (context, ct) => new RunNode((InvocationExpressionSyntax)context.Node, context.SemanticModel))
+            .WithTrackingName("ConsoleApp.Run.CreateSyntaxProvider");
 
         context.RegisterSourceOutput(runSource, EmitConsoleAppRun);
 
@@ -64,13 +142,17 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 (InvocationExpressionSyntax)context.Node,
                 ((context.Node as InvocationExpressionSyntax)!.Expression as MemberAccessExpressionSyntax)!.Name.Identifier.Text,
                 context.SemanticModel))
+            .WithTrackingName("ConsoleApp.Builder.CreateSyntaxProvider")
             .Where(x =>
             {
                 var model = x.SemanticModel.GetTypeInfo((x.Item1.Expression as MemberAccessExpressionSyntax)!.Expression);
                 return model.Type?.Name == "ConsoleAppBuilder";
-            });
+            })
+            .WithTrackingName("ConsoleApp.Builder.Where")
+            .Collect()
+            .WithTrackingName("ConsoleApp.Builder.Collect");
 
-        context.RegisterSourceOutput(builderSource.Collect(), EmitConsoleAppBuilder);
+        context.RegisterSourceOutput(builderSource, EmitConsoleAppBuilder);
     }
 
     public const string ConsoleAppBaseCode = """
@@ -553,10 +635,10 @@ using System.ComponentModel.DataAnnotations;
 
 """;
 
-    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, (InvocationExpressionSyntax, SemanticModel) generatorSyntaxContext)
+    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, RunNode runNode)
     {
-        var node = generatorSyntaxContext.Item1;
-        var model = generatorSyntaxContext.Item2;
+        var node = runNode.Node;
+        var model = runNode.SemanticModel;
 
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
