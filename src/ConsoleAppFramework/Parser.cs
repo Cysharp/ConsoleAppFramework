@@ -6,7 +6,7 @@ namespace ConsoleAppFramework;
 
 internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
 {
-    public Command? ParseAndValidate() // for ConsoleApp.Run
+    public Command? ParseAndValidateForRun() // for ConsoleApp.Run, lambda or method or &method
     {
         var args = node.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = args, 1 = lambda

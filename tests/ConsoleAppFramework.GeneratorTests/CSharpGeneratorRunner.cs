@@ -89,7 +89,7 @@ global using ConsoleAppFramework;
         }
     }
 
-    public static void CheckIncrementalGenerator(params string[] sources)
+    public static (string Key, string Reasons)[][] GetIncrementalGeneratorTrackedStepsReasons(string keyPrefixFilter, params string[] sources)
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp12); // 12
         var driver = CSharpGeneratorDriver.Create(
@@ -108,18 +108,16 @@ global using ConsoleAppFramework;
 
         var reasons = generatorResults
             .Select(x => x.TrackedSteps
-                .Where(x => x.Key.StartsWith("ConsoleApp"))
-                .Select(x => new
-                {
+                .Where(x => x.Key.StartsWith(keyPrefixFilter))
+                .Select(x =>
+                (
                     x.Key,
-                    Reasons = string.Join(", ", x.Value.SelectMany(x => x.Outputs).Select(x => x.Reason).ToArray())
-                })
+                    Reasons: string.Join(", ", x.Value.SelectMany(x => x.Outputs).Select(x => x.Reason).ToArray())
+                ))
                 .ToArray())
             .ToArray();
 
-
-
-
+        return reasons;
     }
 }
 

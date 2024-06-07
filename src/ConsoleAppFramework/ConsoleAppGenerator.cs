@@ -1,87 +1,12 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Text;
-using static ConsoleAppFramework.Emitter;
 
 namespace ConsoleAppFramework;
 
 
-public static class StringWriterPool
-{
-    static readonly ConcurrentQueue<StringWriter> pool = new();
-
-    public static StringWriter Rent()
-    {
-        if (!pool.TryDequeue(out var writer))
-        {
-            writer = new StringWriter();
-        }
-        return writer;
-    }
-
-    public static void Return(StringWriter writer)
-    {
-        writer.GetStringBuilder().Clear();
-        pool.Enqueue(writer);
-    }
-}
-
-
-public class SyntaxNodeTextEqualityComparer : IEqualityComparer<SyntaxNode>
-{
-
-
-    public bool Equals(SyntaxNode x, SyntaxNode y)
-    {
-
-
-
-        throw new NotImplementedException();
-    }
-
-    public int GetHashCode(SyntaxNode obj)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-
-public class RunNode(InvocationExpressionSyntax node, SemanticModel model) : IEquatable<RunNode>
-{
-    public InvocationExpressionSyntax Node => node;
-    public SemanticModel SemanticModel => model;
-
-    public bool Equals(RunNode other)
-    {
-        //var eq = this.Node.Equals(other.Node);
-
-        var left = StringWriterPool.Rent();
-
-        var txt = other.Node.GetText();
-
-        // other.Node.WriteTo
-
-        // new StringBuilder().Equals();
-        // StringWriter sw = new StringWriter();
-
-        other.Node.WriteTo(sw);
-        var txt = other.Node.Expression.GetText();
-
-
-        return true;
-        // return eq;
-    }
-
-    public override int GetHashCode()
-    {
-        var hash = node.GetHashCode();
-        return hash;
-    }
-}
 
 [Generator(LanguageNames.CSharp)]
 public partial class ConsoleAppGenerator : IIncrementalGenerator
@@ -643,7 +568,7 @@ using System.ComponentModel.DataAnnotations;
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
         var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
-        var command = parser.ParseAndValidate();
+        var command = parser.ParseAndValidateForRun();
         if (command == null)
         {
             return;
@@ -794,7 +719,7 @@ using System.ComponentModel.DataAnnotations;
         var commandIds = commands
             .Select((x, i) =>
             {
-                return new CommandWithId(
+                return new Emitter.CommandWithId(
                     FieldType: x!.BuildDelegateSignature(out _), // for builder, always generate Action/Func so ok to ignore out var.
                     Command: x!,
                     Id: i
@@ -820,5 +745,102 @@ using System.ComponentModel.DataAnnotations;
             emitter.EmitHelp(help, commandIds!);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
+    }
+
+    class RunNode(InvocationExpressionSyntax node, SemanticModel model) : IEquatable<RunNode>
+    {
+        public InvocationExpressionSyntax Node => node;
+        public SemanticModel SemanticModel => model;
+
+        public bool Equals(RunNode other)
+        {
+            if (!SyntaxNodeTextEqualityComparer.Default.Equals(node.Expression, other.Node.Expression)) return false;
+
+            var args1 = node.ArgumentList.Arguments;
+            var args2 = other.Node.ArgumentList.Arguments;
+
+            if (args1.Count != args2.Count) return false;
+            if (args1.Count != 2) return false;
+
+            if (args1[1].Kind() != args2[1].Kind())
+            {
+                return false;
+            }
+
+            var expression = args1[1].Expression;
+            var lambda1 = expression as ParenthesizedLambdaExpressionSyntax;
+            if (lambda1 != null)
+            {
+                // check async, returntype, parameters
+
+                var lambda2 = (ParenthesizedLambdaExpressionSyntax)args2[1].Expression;
+
+                if (!lambda1.AsyncKeyword.IsKind(lambda2.AsyncKeyword.Kind())) return false;
+
+                if (!SyntaxNodeTextEqualityComparer.Default.Equals(lambda1.ReturnType!, lambda2.ReturnType!))
+                {
+                    return false;
+                }
+
+                return SyntaxNodeTextEqualityComparer.Default.Equals(lambda1.ParameterList, lambda2.ParameterList);
+            }
+            else
+            {
+                ImmutableArray<ISymbol> methodSymbols1;
+                ImmutableArray<ISymbol> methodSymbols2;
+                if (expression.IsKind(SyntaxKind.AddressOfExpression))
+                {
+                    var operand1 = (expression as PrefixUnaryExpressionSyntax)!.Operand;
+                    var operand2 = (args2[1].Expression as PrefixUnaryExpressionSyntax)!.Operand;
+                    if (operand1 == null || operand2 == null) return false;
+
+                    methodSymbols1 = model.GetMemberGroup(operand1);
+                    methodSymbols2 = other.SemanticModel.GetMemberGroup(operand2);
+                }
+                else
+                {
+                    methodSymbols1 = model.GetMemberGroup(expression);
+                    methodSymbols2 = other.SemanticModel.GetMemberGroup(args2[1].Expression);
+                }
+
+                if (methodSymbols1.Length > 0 && methodSymbols1[0] is IMethodSymbol methodSymbol1)
+                {
+                    if (methodSymbols2.Length > 0 && methodSymbols2[0] is IMethodSymbol methodSymbol2)
+                    {
+                        var syntax1 = FunctionSyntax.From(methodSymbol1.DeclaringSyntaxReferences[0].GetSyntax());
+                        var syntax2 = FunctionSyntax.From(methodSymbol2.DeclaringSyntaxReferences[0].GetSyntax());
+                        if (syntax1 == null || syntax2 == null) return false;
+
+                        // document comment
+                        if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.GetDocumentationCommentTriviaSyntax()!, syntax2.GetDocumentationCommentTriviaSyntax()!))
+                        {
+                            return false;
+                        }
+
+                        // return type
+                        if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.ReturnType, syntax2.ReturnType))
+                        {
+                            return false;
+                        }
+
+                        // attributes
+                        if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.AttributeLists, syntax2.AttributeLists))
+                        {
+                            return false;
+                        }
+
+                        // parameters
+                        return SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.ParameterList, syntax2.ParameterList);
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return SyntaxNodeTextEqualityComparer.Default.GetHashCode(node);
+        }
     }
 }
