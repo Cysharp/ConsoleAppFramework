@@ -3,10 +3,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
-
-
 
 [Generator(LanguageNames.CSharp)]
 public partial class ConsoleAppGenerator : IIncrementalGenerator
@@ -38,7 +37,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 }
 
                 return false;
-            }, (context, ct) => new RunNode((InvocationExpressionSyntax)context.Node, context.SemanticModel))
+            }, (context, ct) => new RunContext((InvocationExpressionSyntax)context.Node, context.SemanticModel))
             .WithTrackingName("ConsoleApp.Run.CreateSyntaxProvider");
 
         context.RegisterSourceOutput(runSource, EmitConsoleAppRun);
@@ -63,14 +62,14 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 }
 
                 return false;
-            }, (context, ct) => (
+            }, (context, ct) => new BuilderContext(
                 (InvocationExpressionSyntax)context.Node,
                 ((context.Node as InvocationExpressionSyntax)!.Expression as MemberAccessExpressionSyntax)!.Name.Identifier.Text,
                 context.SemanticModel))
             .WithTrackingName("ConsoleApp.Builder.CreateSyntaxProvider")
             .Where(x =>
             {
-                var model = x.SemanticModel.GetTypeInfo((x.Item1.Expression as MemberAccessExpressionSyntax)!.Expression);
+                var model = x.Model.GetTypeInfo((x.Node.Expression as MemberAccessExpressionSyntax)!.Expression);
                 return model.Type?.Name == "ConsoleAppBuilder";
             })
             .WithTrackingName("ConsoleApp.Builder.Where")
@@ -560,7 +559,7 @@ using System.ComponentModel.DataAnnotations;
 
 """;
 
-    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, RunNode runNode)
+    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, RunContext runNode)
     {
         var node = runNode.Node;
         var model = runNode.SemanticModel;
@@ -601,7 +600,7 @@ using System.ComponentModel.DataAnnotations;
         sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString());
     }
 
-    static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, ImmutableArray<(InvocationExpressionSyntax Node, string Name, SemanticModel Model)> generatorSyntaxContexts)
+    static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, ImmutableArray<BuilderContext> generatorSyntaxContexts)
     {
         if (generatorSyntaxContexts.Length == 0) return;
 
@@ -747,12 +746,12 @@ using System.ComponentModel.DataAnnotations;
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
     }
 
-    class RunNode(InvocationExpressionSyntax node, SemanticModel model) : IEquatable<RunNode>
+    readonly struct RunContext(InvocationExpressionSyntax node, SemanticModel model) : IEquatable<RunContext>
     {
         public InvocationExpressionSyntax Node => node;
         public SemanticModel SemanticModel => model;
 
-        public bool Equals(RunNode other)
+        public bool Equals(RunContext other)
         {
             if (!SyntaxNodeTextEqualityComparer.Default.Equals(node.Expression, other.Node.Expression)) return false;
 
@@ -843,4 +842,24 @@ using System.ComponentModel.DataAnnotations;
             return SyntaxNodeTextEqualityComparer.Default.GetHashCode(node);
         }
     }
+
+    readonly struct BuilderContext(InvocationExpressionSyntax node, string name, SemanticModel model) : IEquatable<BuilderContext>
+    {
+        public InvocationExpressionSyntax Node => node;
+        public string Name => name;
+        public SemanticModel Model => model;
+
+        public bool Equals(BuilderContext other)
+        {
+            // TODO:
+            return node == other.Node;
+        }
+
+        public override int GetHashCode()
+        {
+            // TODO:
+            return base.GetHashCode();
+        }
+    }
+
 }
