@@ -38,7 +38,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                 return false;
             }, (context, ct) => new RunContext((InvocationExpressionSyntax)context.Node, context.SemanticModel))
-            .WithTrackingName("ConsoleApp.Run.CreateSyntaxProvider");
+            .WithTrackingName("ConsoleApp.Run.CreateSyntaxProvider"); // annotate for IncrementalGeneratorTest
 
         context.RegisterSourceOutput(runSource, EmitConsoleAppRun);
 
@@ -584,7 +584,7 @@ using System.ComponentModel.DataAnnotations;
         sb.AppendLine(GeneratedCodeHeader);
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             var withId = new Emitter.CommandWithId(null, command, -1);
             emitter.EmitRun(sb, withId, isRunAsync);
         }
@@ -594,7 +594,7 @@ using System.ComponentModel.DataAnnotations;
         help.AppendLine(GeneratedCodeHeader);
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             emitter.EmitHelp(help, command);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString());
@@ -604,9 +604,9 @@ using System.ComponentModel.DataAnnotations;
     {
         if (generatorSyntaxContexts.Length == 0) return;
 
-        var model = generatorSyntaxContexts[0].Model;
+        // var model = generatorSyntaxContexts[0].Model;
 
-        var wellKnownTypes = new WellKnownTypes(model.Compilation);
+        // var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
         // validation, invoke in loop is not allowed.
         foreach (var item in generatorSyntaxContexts)
@@ -638,7 +638,7 @@ using System.ComponentModel.DataAnnotations;
             {
                 var genericName = (x.Node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
                 var genericType = genericName!.TypeArgumentList.Arguments[0];
-                var type = model.GetTypeInfo(genericType).Type;
+                var type = x.Model.GetTypeInfo(genericType).Type;
                 if (type == null) return null!;
 
                 var filter = FilterInfo.Create(type);
@@ -663,6 +663,7 @@ using System.ComponentModel.DataAnnotations;
         var commands1 = methodGroup["Add"]
             .Select(x =>
             {
+                var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
                 var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc, globalFilters);
                 var command = parser.ParseAndValidateForBuilderDelegateRegistration();
 
@@ -680,6 +681,7 @@ using System.ComponentModel.DataAnnotations;
         var commands2 = methodGroup["Add<T>"]
             .SelectMany(x =>
             {
+                var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
                 var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
                 var commands = parser.ParseAndValidateForBuilderClassRegistration();
 
@@ -728,7 +730,7 @@ using System.ComponentModel.DataAnnotations;
 
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             emitter.EmitBuilder(sb, commandIds, hasRun, hasRunAsync);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString());
@@ -740,7 +742,7 @@ using System.ComponentModel.DataAnnotations;
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         using (help.BeginBlock("internal partial struct ConsoleAppBuilder"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             emitter.EmitHelp(help, commandIds!);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
@@ -755,6 +757,18 @@ using System.ComponentModel.DataAnnotations;
         {
             if (!SyntaxNodeTextEqualityComparer.Default.Equals(node.Expression, other.Node.Expression)) return false;
 
+            return DelegateEquals(node, model, (other.Node, other.SemanticModel));
+        }
+
+        public override int GetHashCode()
+        {
+            // maybe this does not called so don't care impl.
+            return SyntaxNodeTextEqualityComparer.Default.GetHashCode(node);
+        }
+
+        // use for both Run and Builder.Add
+        public static bool DelegateEquals(InvocationExpressionSyntax node, SemanticModel model, (InvocationExpressionSyntax Node, SemanticModel SemanticModel) other)
+        {
             var args1 = node.ArgumentList.Arguments;
             var args2 = other.Node.ArgumentList.Arguments;
 
@@ -836,11 +850,6 @@ using System.ComponentModel.DataAnnotations;
 
             return false;
         }
-
-        public override int GetHashCode()
-        {
-            return SyntaxNodeTextEqualityComparer.Default.GetHashCode(node);
-        }
     }
 
     readonly struct BuilderContext(InvocationExpressionSyntax node, string name, SemanticModel model) : IEquatable<BuilderContext>
@@ -851,15 +860,61 @@ using System.ComponentModel.DataAnnotations;
 
         public bool Equals(BuilderContext other)
         {
-            // TODO:
-            return node == other.Node;
+            if (this.Name != other.Name) return false;
+
+            var typeInfo = Model.GetTypeInfo((Node.Expression as MemberAccessExpressionSyntax)!.Expression);
+            if (typeInfo.Type?.Name != "ConsoleAppBuilder")
+            {
+                return false;
+            }
+
+            switch (Name)
+            {
+                case "Add": // Add or Add<T>
+                    if ((Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false)
+                    {
+                        return EqualsAddClass(other);
+                    }
+                    else
+                    {
+                        return RunContext.DelegateEquals(node, model, (other.Node, other.Model));
+                    }
+                case "UseFilter":
+                    return EqualsUseFilter(other);
+                case "Run":
+                case "RunAsync":
+                    return true; // only check name
+                default:
+                    break;
+            }
+
+            return false;
+        }
+
+        bool EqualsAddClass(BuilderContext other)
+        {
+            return true; // TODO:final
+        }
+
+        bool EqualsUseFilter(BuilderContext other)
+        {
+            var l = GetType(Node, model);
+            var r = GetType(other.Node, other.Model);
+
+            return l.EqualsNamespaceAndName(r);
+
+            static ITypeSymbol? GetType(InvocationExpressionSyntax expression, SemanticModel model)
+            {
+                var genericName = (expression.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
+                var genericType = genericName!.TypeArgumentList.Arguments[0];
+                return model.GetTypeInfo(genericType).Type;
+            }
         }
 
         public override int GetHashCode()
         {
-            // TODO:
-            return base.GetHashCode();
+            // maybe this does not called so don't care impl.
+            return SyntaxNodeTextEqualityComparer.Default.GetHashCode(node);
         }
     }
-
 }

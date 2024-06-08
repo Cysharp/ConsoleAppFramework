@@ -343,6 +343,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return new CommandParameter
                 {
                     Name = NameConverter.ToKebabCase(x.Identifier.Text),
+                    WellKnownTypes = wellKnownTypes,
                     OriginalParameterName = x.Identifier.Text,
                     IsNullableReference = isNullableReference,
                     IsConsoleAppContext = isConsoleAppContext,
@@ -498,6 +499,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return new CommandParameter
                 {
                     Name = NameConverter.ToKebabCase(x.Name),
+                    WellKnownTypes = wellKnownTypes,
                     OriginalParameterName = x.Name,
                     IsNullableReference = isNullableReference,
                     IsConsoleAppContext = isConsoleAppContext,

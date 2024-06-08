@@ -29,6 +29,24 @@ internal static class RoslynExtensions
         }
     }
 
+    public static bool EqualsNamespaceAndName(this ITypeSymbol? left, ITypeSymbol? right)
+    {
+        if (left == null && right == null) return true;
+        if (left == null || right == null) return false;
+
+        var l = left.ContainingNamespace;
+        var r = right.ContainingNamespace;
+        while (l != null && r != null)
+        {
+            if (l.Name != r.Name) return false;
+
+            l = l.ContainingNamespace;
+            r = r.ContainingNamespace;
+        }
+
+        return (left.Name == right.Name);
+    }
+
     public static DocumentationCommentTriviaSyntax? GetDocumentationCommentTriviaSyntax(this SyntaxNode node)
     {
         // Hack note:

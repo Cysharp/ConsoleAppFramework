@@ -24,7 +24,7 @@ public record class Command
 {
     public required bool IsAsync { get; init; } // Task or Task<int>
     public required bool IsVoid { get; init; }  // void or int
-    
+
     public bool IsRootCommand => Name == "";
     public required string Name { get; init; }
 
@@ -150,6 +150,7 @@ public record class CommandParameter
 {
     public required ITypeSymbol Type { get; init; }
     public required Location Location { get; init; }
+    public required WellKnownTypes WellKnownTypes { get; init; }
     public required bool IsNullableReference { get; init; }
     public required bool IsParams { get; init; }
     public required string Name { get; init; }
@@ -170,7 +171,7 @@ public record class CommandParameter
     public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams || IsFlag);
 
     // increment = false when passed from [Argument]
-    public string BuildParseMethod(int argCount, string argumentName, WellKnownTypes wellKnownTypes, bool increment)
+    public string BuildParseMethod(int argCount, string argumentName, bool increment)
     {
         var incrementIndex = increment ? "!TryIncrementIndex(ref i, args.Length) || " : "";
         return Core(Type, false);
@@ -207,7 +208,7 @@ public record class CommandParameter
                     {
                         return $"arg{argCount} = args[i];";
                     }
-                    
+
                 case SpecialType.System_Boolean:
                     return $"arg{argCount} = true;"; // bool is true flag
                 case SpecialType.System_Char:
@@ -242,7 +243,7 @@ public record class CommandParameter
                     if (type.TypeKind == TypeKind.Array)
                     {
                         var elementType = (type as IArrayTypeSymbol)!.ElementType;
-                        var parsable = wellKnownTypes.ISpanParsable;
+                        var parsable = WellKnownTypes.ISpanParsable;
                         if (parsable != null) // has parsable
                         {
                             if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
@@ -254,12 +255,12 @@ public record class CommandParameter
                     }
 
                     // System.DateTimeOffset, System.Guid,  System.Version
-                    tryParseKnownPrimitive = wellKnownTypes.HasTryParse(type);
+                    tryParseKnownPrimitive = WellKnownTypes.HasTryParse(type);
 
                     if (!tryParseKnownPrimitive)
                     {
                         // ISpanParsable<T> (BigInteger, Complex, Half, Int128, etc...)
-                        var parsable = wellKnownTypes.ISpanParsable;
+                        var parsable = WellKnownTypes.ISpanParsable;
                         if (parsable != null) // has parsable
                         {
                             tryParseIParsable = type.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable));

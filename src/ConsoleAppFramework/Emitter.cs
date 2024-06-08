@@ -3,7 +3,7 @@ using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
-internal class Emitter(WellKnownTypes wellKnownTypes)
+internal class Emitter
 {
     public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName = null)
     {
@@ -124,7 +124,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                             sb.AppendLine($"if (i == {parameter.ArgumentIndex})");
                             using (sb.BeginBlock())
                             {
-                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
+                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: false)}");
                                 if (parameter.RequireCheckArgumentParsed)
                                 {
                                     sb.AppendLine($"arg{i}Parsed = true;");
@@ -154,7 +154,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                             }
                             using (sb.BeginBlock())
                             {
-                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
                                 if (parameter.RequireCheckArgumentParsed)
                                 {
                                     sb.AppendLine($"arg{i}Parsed = true;");
@@ -180,7 +180,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                                 }
                                 using (sb.BeginBlock())
                                 {
-                                    sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                                    sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
                                     if (parameter.RequireCheckArgumentParsed)
                                     {
                                         sb.AppendLine($"arg{i}Parsed = true;");
