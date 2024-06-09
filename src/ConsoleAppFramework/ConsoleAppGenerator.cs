@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
@@ -604,10 +605,6 @@ using System.ComponentModel.DataAnnotations;
     {
         if (generatorSyntaxContexts.Length == 0) return;
 
-        // var model = generatorSyntaxContexts[0].Model;
-
-        // var wellKnownTypes = new WellKnownTypes(model.Compilation);
-
         // validation, invoke in loop is not allowed.
         foreach (var item in generatorSyntaxContexts)
         {
@@ -893,6 +890,54 @@ using System.ComponentModel.DataAnnotations;
 
         bool EqualsAddClass(BuilderContext other)
         {
+            // Add<T>
+            var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
+            var genericType = genericName!.TypeArgumentList.Arguments[0];
+
+            // Add<T>(string commandPath)
+            string? commandPath = null;
+            var args = node.ArgumentList.Arguments;
+            if (node.ArgumentList.Arguments.Count == 1)
+            {
+                var commandName = args[0];
+                if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
+                {
+                    //context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, commandName.GetLocation());
+                    //return [];
+                    return false;
+                }
+
+                commandPath = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            }
+
+            // T
+            var type = model.GetTypeInfo(genericType).Type!;
+
+
+            // Type:Attributes
+            // Type:Interface
+
+            // Public Constructor
+
+            // Public Methods
+
+            var publicMethods = type.GetMembers()
+              .Where(x => x.DeclaredAccessibility == Accessibility.Public)
+              .OfType<IMethodSymbol>()
+              .Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic)
+              .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Ordinary)
+              .Where(x => !(x.Name is "Dispose" or "DisposeAsync" or "GetHashCode" or "Equals" or "ToString"))
+              .ToArray();
+
+
+
+
+
+
+
+
+
+
             return true; // TODO:final
         }
 
