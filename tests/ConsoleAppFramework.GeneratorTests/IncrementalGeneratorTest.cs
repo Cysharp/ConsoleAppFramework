@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,6 +10,18 @@ namespace ConsoleAppFramework.GeneratorTests;
 
 public class IncrementalGeneratorTest
 {
+    void VerifySourceOutputReasonIsCached((string Key, string Reasons)[] reasons)
+    {
+        var reason = reasons.FirstOrDefault(x => x.Key == "SourceOutput").Reasons;
+        reason.Should().Be("Cached");
+    }
+
+    void VerifySourceOutputReasonIsNotCached((string Key, string Reasons)[] reasons)
+    {
+        var reason = reasons.FirstOrDefault(x => x.Key == "SourceOutput").Reasons;
+        reason.Should().NotBe("Cached");
+    }
+
     [Fact]
     public void RunLambda()
     {
@@ -34,11 +47,13 @@ ConsoleApp.Run(args, int (int x, int y) => 99); // change signature
 Console.WriteLine("foo"); // unrelated line
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run", step1, step2, step3);
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
         reasons[0][0].Reasons.Should().Be("New");
         reasons[1][0].Reasons.Should().Be("Unchanged");
         reasons[2][0].Reasons.Should().Be("Modified");
+
+        VerifySourceOutputReasonIsCached(reasons[1]);
     }
 
     [Fact]
@@ -98,11 +113,13 @@ public class Tako
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run", step1, step2, step3);
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
         reasons[0][0].Reasons.Should().Be("New");
         reasons[1][0].Reasons.Should().Be("Unchanged");
         reasons[2][0].Reasons.Should().Be("Modified");
+
+        VerifySourceOutputReasonIsCached(reasons[1]);
     }
 
     [Fact]
@@ -151,11 +168,13 @@ static void DoHello(int x, int y) // change signature
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run", step1, step2, step3);
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
         reasons[0][0].Reasons.Should().Be("New");
         reasons[1][0].Reasons.Should().Be("Unchanged");
         reasons[2][0].Reasons.Should().Be("Modified");
+
+        VerifySourceOutputReasonIsCached(reasons[1]);
     }
 
     [Fact]
@@ -325,12 +344,12 @@ namespace Foo.Bar
 }
 """;
 
-        var step5 = """
-var l = new List<int>();
-l.Add(10);
-""";
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder", step1, step2, step3, step4);
+        VerifySourceOutputReasonIsNotCached(reasons[0]);
+        VerifySourceOutputReasonIsCached(reasons[1]);
+        VerifySourceOutputReasonIsNotCached(reasons[2]);
+        VerifySourceOutputReasonIsNotCached(reasons[3]);
     }
 
     [Fact]
@@ -351,7 +370,287 @@ app.Add("", () => { });
 app.Run(args);
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder", step1, step2);
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
+
+        VerifySourceOutputReasonIsNotCached(reasons[0]);
+        VerifySourceOutputReasonIsCached(reasons[1]);
+    }
+
+    [Fact]
+    public void BuilderClassChange()
+    {
+        var step1 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var step2 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}"); // new parameter
+}
+""";
+
+        var step3 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value} aiueo"); // body change
+
+    void PrivateMethod()
+    {
     }
 }
+""";
 
+        var step4 = """
+var app = ConsoleApp.Create();
+
+var l = new List<int>(); // noise
+l.Add(10);
+
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value} aiueo");
+
+    void PrivateMethod()
+    {
+    }
+}
+""";
+
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
+
+        VerifySourceOutputReasonIsNotCached(reasons[0]);
+        VerifySourceOutputReasonIsNotCached(reasons[1]);
+        VerifySourceOutputReasonIsCached(reasons[2]);
+        VerifySourceOutputReasonIsCached(reasons[3]);
+    }
+
+    [Fact]
+    public void BuilderClassInterface()
+    {
+        var step1 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var step2 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test : IDisposable
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+
+    public void Dispose() { }
+}
+""";
+
+        var step3 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test : IDisposable, IAsyncDisposable
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+
+    public void Dispose() { }
+    public ValueTask DisposeAsync() { return default; }
+}
+""";
+
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3);
+
+        VerifySourceOutputReasonIsNotCached(reasons[0]);
+        VerifySourceOutputReasonIsNotCached(reasons[1]);
+        VerifySourceOutputReasonIsNotCached(reasons[2]);
+    }
+
+    [Fact]
+    public void ConstructorChange()
+    {
+        var step1 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var step2 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public Test(IDisposable d)
+    {
+    }
+
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var step3 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public Test(IAsyncDisposable d)
+    {
+    }
+
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        // same as step3
+        var step4 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public Test(IAsyncDisposable d)
+    {
+    }
+
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
+
+        VerifySourceOutputReasonIsNotCached(reasons[0]);
+        VerifySourceOutputReasonIsNotCached(reasons[1]);
+        VerifySourceOutputReasonIsNotCached(reasons[2]);
+        VerifySourceOutputReasonIsCached(reasons[3]);
+    }
+
+    [Fact]
+    public void PrimaryConstructorChange()
+    {
+        var step1 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test
+{
+    public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var step2 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test(IDisposable d)
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var step3 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test(IAsyncDisposable d)
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+}
+""";
+        var step4 = """
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class Test(IAsyncDisposable d)
+{
+    public void Show(string aaa, [Range(0, 1)] double value, int x2) => ConsoleApp.Log($"{value}");
+}
+""";
+
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
+
+        VerifySourceOutputReasonIsNotCached(reasons[0]);
+        VerifySourceOutputReasonIsNotCached(reasons[1]);
+        VerifySourceOutputReasonIsNotCached(reasons[2]);
+        VerifySourceOutputReasonIsCached(reasons[3]);
+    }
+
+    [Fact]
+    public void InvalidDefinition()
+    {
+        var step1 = """
+using ConsoleAppFramework;
+
+var app = ConsoleApp.Create();
+
+app.Add("foo", () => { });
+app.Add("fooa", () => { });
+
+
+
+app.Add("Y", () => { });
+
+app.Run(args);
+
+""";
+
+        // add foo before Y
+        var step2 = """
+using ConsoleAppFramework;
+
+var app = ConsoleApp.Create();
+
+app.Add("foo", () => { });
+app.Add("fooa", () => { });
+
+
+app.Add("foo", () => { });
+
+app.Add("Y", () => { });
+
+app.Run(args);
+
+""";
+
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
+
+    }
+}

@@ -67,6 +67,22 @@ internal static class RoslynExtensions
         }
     }
 
+    public static ParameterListSyntax? GetParameterListOfConstructor(this SyntaxNode node)
+    {
+        if (node is ConstructorDeclarationSyntax ctor)
+        {
+            return ctor.ParameterList;
+        }
+        else if (node is ClassDeclarationSyntax primartyCtor)
+        {
+            return primartyCtor.ParameterList;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
     public static DocumentationCommentTriviaSyntax? GetDocumentationCommentTriviaSyntax(this SyntaxNode node)
     {
         // Hack note:

@@ -108,12 +108,26 @@ global using ConsoleAppFramework;
 
         var reasons = generatorResults
             .Select(x => x.TrackedSteps
-                .Where(x => x.Key.StartsWith(keyPrefixFilter))
+                .Where(x => x.Key.StartsWith(keyPrefixFilter) || x.Key == "SourceOutput")
                 .Select(x =>
-                (
-                    x.Key,
-                    Reasons: string.Join(", ", x.Value.SelectMany(x => x.Outputs).Select(x => x.Reason).ToArray())
-                ))
+                {
+                    if (x.Key == "SourceOutput")
+                    {
+                        var values = x.Value.Where(x => x.Inputs[0].Source.Name?.StartsWith(keyPrefixFilter) ?? false);
+                        return (
+                            x.Key,
+                            Reasons: string.Join(", ", values.SelectMany(x => x.Outputs).Select(x => x.Reason).ToArray())
+                        );
+                    }
+                    else
+                    {
+                        return (
+                            Key: x.Key.Substring(keyPrefixFilter.Length),
+                            Reasons: string.Join(", ", x.Value.SelectMany(x => x.Outputs).Select(x => x.Reason).ToArray())
+                        );
+                    }
+                })
+                .OrderBy(x => x.Key)
                 .ToArray())
             .ToArray();
 

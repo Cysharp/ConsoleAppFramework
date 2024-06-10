@@ -10,7 +10,7 @@ public class SyntaxNodeTextEqualityComparer : IEqualityComparer<SyntaxNode>
     {
     }
 
-    public bool Equals(SyntaxNode x, SyntaxNode y)
+    public bool Equals(SyntaxNode? x, SyntaxNode? y)
     {
         if (x == null & y == null) return true;
         if (x == null || y == null) return false;

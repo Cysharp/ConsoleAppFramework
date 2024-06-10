@@ -3,8 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -39,7 +37,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                 return false;
             }, (context, ct) => new RunContext((InvocationExpressionSyntax)context.Node, context.SemanticModel))
-            .WithTrackingName("ConsoleApp.Run.CreateSyntaxProvider"); // annotate for IncrementalGeneratorTest
+            .WithTrackingName("ConsoleApp.Run.0_CreateSyntaxProvider"); // annotate for IncrementalGeneratorTest
 
         context.RegisterSourceOutput(runSource, EmitConsoleAppRun);
 
@@ -47,6 +45,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         var builderSource = context.SyntaxProvider
             .CreateSyntaxProvider((node, ct) =>
             {
+                ct.ThrowIfCancellationRequested();
                 if (node.IsKind(SyntaxKind.InvocationExpression))
                 {
                     var invocationExpression = (node as InvocationExpressionSyntax);
@@ -66,16 +65,18 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             }, (context, ct) => new BuilderContext(
                 (InvocationExpressionSyntax)context.Node,
                 ((context.Node as InvocationExpressionSyntax)!.Expression as MemberAccessExpressionSyntax)!.Name.Identifier.Text,
-                context.SemanticModel))
-            .WithTrackingName("ConsoleApp.Builder.CreateSyntaxProvider")
+                context.SemanticModel,
+                ct))
+            .WithTrackingName("ConsoleApp.Builder.0_CreateSyntaxProvider")
             .Where(x =>
             {
-                var model = x.Model.GetTypeInfo((x.Node.Expression as MemberAccessExpressionSyntax)!.Expression);
+                var model = x.Model.GetTypeInfo((x.Node.Expression as MemberAccessExpressionSyntax)!.Expression, x.CancellationToken);
                 return model.Type?.Name == "ConsoleAppBuilder";
             })
-            .WithTrackingName("ConsoleApp.Builder.Where")
+            .WithTrackingName("ConsoleApp.Builder.1_Where")
             .Collect()
-            .WithTrackingName("ConsoleApp.Builder.Collect");
+            .WithComparer(CollectBuilderContextComparer.Default)
+            .WithTrackingName("ConsoleApp.Builder.2_Collect");
 
         context.RegisterSourceOutput(builderSource, EmitConsoleAppBuilder);
     }
@@ -783,7 +784,8 @@ using System.ComponentModel.DataAnnotations;
             {
                 // check async, returntype, parameters
 
-                var lambda2 = (ParenthesizedLambdaExpressionSyntax)args2[1].Expression;
+                var lambda2 = args2[1].Expression as ParenthesizedLambdaExpressionSyntax;
+                if (lambda2 == null) return false;
 
                 if (!lambda1.AsyncKeyword.IsKind(lambda2.AsyncKeyword.Kind())) return false;
 
@@ -800,8 +802,8 @@ using System.ComponentModel.DataAnnotations;
                 ImmutableArray<ISymbol> methodSymbols2;
                 if (expression.IsKind(SyntaxKind.AddressOfExpression))
                 {
-                    var operand1 = (expression as PrefixUnaryExpressionSyntax)!.Operand;
-                    var operand2 = (args2[1].Expression as PrefixUnaryExpressionSyntax)!.Operand;
+                    var operand1 = (expression as PrefixUnaryExpressionSyntax)?.Operand;
+                    var operand2 = (args2[1].Expression as PrefixUnaryExpressionSyntax)?.Operand;
                     if (operand1 == null || operand2 == null) return false;
 
                     methodSymbols1 = model.GetMemberGroup(operand1);
@@ -854,35 +856,62 @@ using System.ComponentModel.DataAnnotations;
         }
     }
 
-    readonly struct BuilderContext(InvocationExpressionSyntax node, string name, SemanticModel model) : IEquatable<BuilderContext>
+    public class CollectBuilderContextComparer : IEqualityComparer<ImmutableArray<BuilderContext>>
     {
-        public InvocationExpressionSyntax Node => node;
-        public string Name => name;
-        public SemanticModel Model => model;
+        public static CollectBuilderContextComparer Default = new CollectBuilderContextComparer();
 
-        public bool Equals(BuilderContext other)
+        bool IEqualityComparer<ImmutableArray<BuilderContext>>.Equals(ImmutableArray<BuilderContext> x, ImmutableArray<BuilderContext> y)
         {
-            if (this.Name != other.Name) return false;
+            if (x.Length != y.Length) return false;
 
-            var typeInfo = Model.GetTypeInfo((Node.Expression as MemberAccessExpressionSyntax)!.Expression);
+            for (int i = 0; i < x.Length; i++)
+            {
+                if (!Equals(x[i], y[i])) return false;
+            }
+
+            return true;
+        }
+
+        int IEqualityComparer<ImmutableArray<BuilderContext>>.GetHashCode(ImmutableArray<BuilderContext> obj)
+        {
+            return 0;
+        }
+
+
+        static bool Equals(BuilderContext self, BuilderContext other)
+        {
+            if (self.Name != other.Name) return false;
+
+            var typeInfo = self.Model.GetTypeInfo((self.Node.Expression as MemberAccessExpressionSyntax)!.Expression, self.CancellationToken);
             if (typeInfo.Type?.Name != "ConsoleAppBuilder")
             {
                 return false;
             }
 
-            switch (Name)
+            var typeInfo2 = other.Model.GetTypeInfo((other.Node.Expression as MemberAccessExpressionSyntax)!.Expression, other.CancellationToken);
+            if (typeInfo2.Type?.Name != "ConsoleAppBuilder")
+            {
+                return false;
+            }
+
+            switch (self.Name)
             {
                 case "Add": // Add or Add<T>
-                    if ((Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false)
+                    if ((self.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false)
                     {
-                        return EqualsAddClass(other);
+                        return EqualsAddClass(self, other);
                     }
                     else
                     {
-                        return RunContext.DelegateEquals(node, model, (other.Node, other.Model));
+                        var first = GetFirstStringConstant(self.Node);
+                        var second = GetFirstStringConstant(other.Node);
+                        if (first == null || second == null) return false;
+                        if (first != second) return false;
+
+                        return RunContext.DelegateEquals(self.Node, self.Model, (other.Node, other.Model));
                     }
                 case "UseFilter":
-                    return EqualsUseFilter(other);
+                    return EqualsUseFilter(self, other);
                 case "Run":
                 case "RunAsync":
                     return true; // only check name
@@ -893,10 +922,27 @@ using System.ComponentModel.DataAnnotations;
             return false;
         }
 
-        bool EqualsAddClass(BuilderContext other)
+        static string? GetFirstStringConstant(InvocationExpressionSyntax invocationExpression)
         {
-            var typeAndPath1 = GetTypeSymbolAndPath(node, model);
-            var typeAndPath2 = GetTypeSymbolAndPath(other.Node, other.Model);
+            if (invocationExpression.ArgumentList.Arguments.Count != 2) return null;
+            var commandName = invocationExpression.ArgumentList.Arguments[0];
+
+            if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
+            {
+                return null;
+            }
+
+            var name = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            return name;
+        }
+
+        static bool EqualsAddClass(BuilderContext self, BuilderContext other)
+        {
+            var node = self.Node;
+            var model = self.Model;
+
+            var typeAndPath1 = GetTypeSymbolAndPath(node, model, self.CancellationToken);
+            var typeAndPath2 = GetTypeSymbolAndPath(other.Node, other.Model, other.CancellationToken);
 
             if (typeAndPath1 == null || typeAndPath2 == null) return false;
 
@@ -905,19 +951,44 @@ using System.ComponentModel.DataAnnotations;
 
             if (path1 != path2) return false;
 
-            // TODO:
+            if (type1.DeclaringSyntaxReferences.Length == 0) return false;
+            if (type2.DeclaringSyntaxReferences.Length == 0) return false;
 
-            // Type:Attributes
-            // Type:Interface
+            var syntax1 = type1.DeclaringSyntaxReferences[0].GetSyntax() as TypeDeclarationSyntax;
+            var syntax2 = type2.DeclaringSyntaxReferences[0].GetSyntax() as TypeDeclarationSyntax;
+
+            if (syntax1 == null || syntax2 == null) return false;
+
+            // interface
+            if (!type1.AllInterfaces.Select(x => x.Name).SequenceEqual(type2.AllInterfaces.Select(x => x.Name)))
+            {
+                return false;
+            }
 
             // Public Constructor
+            var ctor1 = type1.GetMembers().FirstOrDefault(x => (x as IMethodSymbol)?.MethodKind == Microsoft.CodeAnalysis.MethodKind.Constructor);
+            var ctor2 = type2.GetMembers().FirstOrDefault(x => (x as IMethodSymbol)?.MethodKind == Microsoft.CodeAnalysis.MethodKind.Constructor);
+            var ctorParameter1 = ctor1?.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetParameterListOfConstructor();
+            var ctorParameter2 = ctor2?.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetParameterListOfConstructor();
+
+            if (!SyntaxNodeTextEqualityComparer.Default.Equals(ctorParameter1, ctorParameter2))
+            {
+                return false;
+            }
+
+            // attributes
+            if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.AttributeLists!, syntax2.AttributeLists!))
+            {
+                return false;
+            }
 
             // Public Methods
             var methods1 = GetMethodSymbols(type1);
             var methods2 = GetMethodSymbols(type2);
-            return methods1.ZipEquals(methods2, RunContext.MethodSymbolEquals);
+            var methodEquals = methods1.ZipEquals(methods2, RunContext.MethodSymbolEquals);
+            return methodEquals;
 
-            static (ITypeSymbol, string?)? GetTypeSymbolAndPath(InvocationExpressionSyntax node, SemanticModel model)
+            static (ITypeSymbol, string?)? GetTypeSymbolAndPath(InvocationExpressionSyntax node, SemanticModel model, CancellationToken cancellationToken)
             {
                 // Add<T>
                 var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
@@ -938,14 +1009,13 @@ using System.ComponentModel.DataAnnotations;
                 }
 
                 // T
-                var type = model.GetTypeInfo(genericType).Type!;
+                var type = model.GetTypeInfo(genericType, cancellationToken).Type!;
                 return (type, commandPath);
             }
 
             static IEnumerable<IMethodSymbol> GetMethodSymbols(ITypeSymbol type)
             {
                 return type.GetMembers()
-                  .Where(x => x.DeclaredAccessibility == Accessibility.Public)
                   .OfType<IMethodSymbol>()
                   .Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic)
                   .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Ordinary)
@@ -953,25 +1023,35 @@ using System.ComponentModel.DataAnnotations;
             }
         }
 
-        bool EqualsUseFilter(BuilderContext other)
+        static bool EqualsUseFilter(BuilderContext self, BuilderContext other)
         {
-            var l = GetType(Node, model);
-            var r = GetType(other.Node, other.Model);
+            var node = self.Node;
+            var model = self.Model;
+
+            var l = GetType(node, model, self.CancellationToken);
+            var r = GetType(other.Node, other.Model, other.CancellationToken);
 
             return l.EqualsNamespaceAndName(r);
 
-            static ITypeSymbol? GetType(InvocationExpressionSyntax expression, SemanticModel model)
+            static ITypeSymbol? GetType(InvocationExpressionSyntax expression, SemanticModel model, CancellationToken cancellationToken)
             {
                 var genericName = (expression.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
                 var genericType = genericName!.TypeArgumentList.Arguments[0];
-                return model.GetTypeInfo(genericType).Type;
+                return model.GetTypeInfo(genericType, cancellationToken).Type;
             }
         }
+    }
 
-        public override int GetHashCode()
+    readonly struct BuilderContext(InvocationExpressionSyntax node, string name, SemanticModel model, CancellationToken cancellationToken) : IEquatable<BuilderContext>
+    {
+        public InvocationExpressionSyntax Node => node;
+        public string Name => name;
+        public SemanticModel Model => model;
+        public CancellationToken CancellationToken => cancellationToken;
+
+        public bool Equals(BuilderContext other)
         {
-            // maybe this does not called so don't care impl.
-            return SyntaxNodeTextEqualityComparer.Default.GetHashCode(node);
+            return Node == other.Node;
         }
     }
 }

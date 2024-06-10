@@ -49,7 +49,7 @@ internal class Emitter
         {
             sb.AppendLine("/// <summary>");
             var help = CommandHelpBuilder.BuildCommandHelpMessage(commandWithId.Command);
-            foreach (var line in help.Split([Environment.NewLine], StringSplitOptions.None))
+            foreach (var line in help.Split(["\n"], StringSplitOptions.None))
             {
                 sb.AppendLine($"/// {line.Replace("<", "&lt;").Replace(">", "&gt;")}<br/>");
             }
