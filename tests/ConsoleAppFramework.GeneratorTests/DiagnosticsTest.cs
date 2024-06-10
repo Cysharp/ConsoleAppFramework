@@ -1,4 +1,6 @@
-﻿using Xunit.Abstractions;
+﻿#if TEST
+
+using Xunit.Abstractions;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
@@ -435,3 +437,5 @@ public interface IFoo
 """, "app.Add<IFoo>()");
     }
 }
+
+#endif

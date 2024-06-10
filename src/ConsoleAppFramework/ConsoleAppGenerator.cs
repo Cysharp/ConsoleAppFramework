@@ -668,7 +668,8 @@ using System.ComponentModel.DataAnnotations;
                 // validation command name duplicate
                 if (command != null && !names.Add(command.Name))
                 {
-                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.ArgumentList.Arguments[0].GetLocation(), command!.Name);
+                    var location = x.Node.ArgumentList.Arguments[0].GetLocation();
+                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, location, command!.Name);
                     return null;
                 }
 

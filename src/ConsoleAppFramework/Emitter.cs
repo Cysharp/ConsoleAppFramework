@@ -49,10 +49,12 @@ internal class Emitter
         {
             sb.AppendLine("/// <summary>");
             var help = CommandHelpBuilder.BuildCommandHelpMessage(commandWithId.Command);
-            foreach (var line in help.Split(["\n"], StringSplitOptions.None))
+#pragma warning disable RS1035
+            foreach (var line in help.Split([Environment.NewLine], StringSplitOptions.None))
             {
                 sb.AppendLine($"/// {line.Replace("<", "&lt;").Replace(">", "&gt;")}<br/>");
             }
+#pragma warning restore RS1035
             sb.AppendLine("/// </summary>");
         }
 

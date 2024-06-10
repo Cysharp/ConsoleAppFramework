@@ -8,6 +8,10 @@ internal static class DiagnosticDescriptors
 
     public static void ReportDiagnostic(this SourceProductionContext context, DiagnosticDescriptor diagnosticDescriptor, Location location, params object?[]? messageArgs)
     {
+#if !TEST
+        // must use location.Clone(), incremental cached code + diagnostic craches visual studio however use Clone() can avoid it.
+        location = location.Clone();
+#endif
         var diagnostic = Diagnostic.Create(diagnosticDescriptor, location, messageArgs);
         context.ReportDiagnostic(diagnostic);
     }

@@ -19,8 +19,13 @@
 		<!-- NuGet -->
 		<PackageId>ConsoleAppFramework</PackageId>
 		<Description>Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator.</Description>
+		<Configurations>Debug;Release;Test</Configurations>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|AnyCPU'">
+	  <DefineConstants>$(DefineConstants);TEST</DefineConstants>
+	</PropertyGroup>
+	
 	<ItemGroup>
 		<!-- Roslyn for .NET 8 / C# 12 -->
 		<!-- https://learn.microsoft.com/en-us/visualstudio/extensibility/roslyn-version-support -->

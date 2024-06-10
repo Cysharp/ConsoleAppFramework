@@ -83,6 +83,12 @@ internal static class RoslynExtensions
         }
     }
 
+    public static Location Clone(this Location location)
+    {
+        // without inner SyntaxTree
+        return Location.Create(location.SourceTree?.FilePath ?? "", location.SourceSpan, location.GetLineSpan().Span);
+    }
+
     public static DocumentationCommentTriviaSyntax? GetDocumentationCommentTriviaSyntax(this SyntaxNode node)
     {
         // Hack note:
