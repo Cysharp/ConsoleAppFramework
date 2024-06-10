@@ -47,6 +47,26 @@ internal static class RoslynExtensions
         return (left.Name == right.Name);
     }
 
+    public static bool ZipEquals<T>(this IEnumerable<T> left, IEnumerable<T> right, Func<T, T, bool> predicate)
+        where T : IMethodSymbol
+    {
+        using var e1 = left.GetEnumerator();
+        using var e2 = right.GetEnumerator();
+        while (true)
+        {
+            var b1 = e1.MoveNext();
+            var b2 = e2.MoveNext();
+
+            if (b1 != b2) return false;   // different sequence length, ng
+            if (b1 == false) return true; // both false, ok
+
+            if (!predicate(e1.Current, e2.Current))
+            {
+                return false;
+            }
+        }
+    }
+
     public static DocumentationCommentTriviaSyntax? GetDocumentationCommentTriviaSyntax(this SyntaxNode node)
     {
         // Hack note:

@@ -817,35 +817,40 @@ using System.ComponentModel.DataAnnotations;
                 {
                     if (methodSymbols2.Length > 0 && methodSymbols2[0] is IMethodSymbol methodSymbol2)
                     {
-                        var syntax1 = FunctionSyntax.From(methodSymbol1.DeclaringSyntaxReferences[0].GetSyntax());
-                        var syntax2 = FunctionSyntax.From(methodSymbol2.DeclaringSyntaxReferences[0].GetSyntax());
-                        if (syntax1 == null || syntax2 == null) return false;
-
-                        // document comment
-                        if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.GetDocumentationCommentTriviaSyntax()!, syntax2.GetDocumentationCommentTriviaSyntax()!))
-                        {
-                            return false;
-                        }
-
-                        // return type
-                        if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.ReturnType, syntax2.ReturnType))
-                        {
-                            return false;
-                        }
-
-                        // attributes
-                        if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.AttributeLists, syntax2.AttributeLists))
-                        {
-                            return false;
-                        }
-
-                        // parameters
-                        return SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.ParameterList, syntax2.ParameterList);
+                        return MethodSymbolEquals(methodSymbol1, methodSymbol2);
                     }
                 }
             }
 
             return false;
+        }
+
+        public static bool MethodSymbolEquals(IMethodSymbol methodSymbol1, IMethodSymbol methodSymbol2)
+        {
+            var syntax1 = FunctionSyntax.From(methodSymbol1.DeclaringSyntaxReferences[0].GetSyntax());
+            var syntax2 = FunctionSyntax.From(methodSymbol2.DeclaringSyntaxReferences[0].GetSyntax());
+            if (syntax1 == null || syntax2 == null) return false;
+
+            // document comment
+            if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.GetDocumentationCommentTriviaSyntax()!, syntax2.GetDocumentationCommentTriviaSyntax()!))
+            {
+                return false;
+            }
+
+            // return type
+            if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.ReturnType, syntax2.ReturnType))
+            {
+                return false;
+            }
+
+            // attributes
+            if (!SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.AttributeLists, syntax2.AttributeLists))
+            {
+                return false;
+            }
+
+            // parameters
+            return SyntaxNodeTextEqualityComparer.Default.Equals(syntax1.ParameterList, syntax2.ParameterList);
         }
     }
 
@@ -890,29 +895,17 @@ using System.ComponentModel.DataAnnotations;
 
         bool EqualsAddClass(BuilderContext other)
         {
-            // Add<T>
-            var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
-            var genericType = genericName!.TypeArgumentList.Arguments[0];
+            var typeAndPath1 = GetTypeSymbolAndPath(node, model);
+            var typeAndPath2 = GetTypeSymbolAndPath(other.Node, other.Model);
 
-            // Add<T>(string commandPath)
-            string? commandPath = null;
-            var args = node.ArgumentList.Arguments;
-            if (node.ArgumentList.Arguments.Count == 1)
-            {
-                var commandName = args[0];
-                if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
-                {
-                    //context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, commandName.GetLocation());
-                    //return [];
-                    return false;
-                }
+            if (typeAndPath1 == null || typeAndPath2 == null) return false;
 
-                commandPath = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
-            }
+            var (type1, path1) = typeAndPath1.Value;
+            var (type2, path2) = typeAndPath2.Value;
 
-            // T
-            var type = model.GetTypeInfo(genericType).Type!;
+            if (path1 != path2) return false;
 
+            // TODO:
 
             // Type:Attributes
             // Type:Interface
@@ -920,25 +913,44 @@ using System.ComponentModel.DataAnnotations;
             // Public Constructor
 
             // Public Methods
+            var methods1 = GetMethodSymbols(type1);
+            var methods2 = GetMethodSymbols(type2);
+            return methods1.ZipEquals(methods2, RunContext.MethodSymbolEquals);
 
-            var publicMethods = type.GetMembers()
-              .Where(x => x.DeclaredAccessibility == Accessibility.Public)
-              .OfType<IMethodSymbol>()
-              .Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic)
-              .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Ordinary)
-              .Where(x => !(x.Name is "Dispose" or "DisposeAsync" or "GetHashCode" or "Equals" or "ToString"))
-              .ToArray();
+            static (ITypeSymbol, string?)? GetTypeSymbolAndPath(InvocationExpressionSyntax node, SemanticModel model)
+            {
+                // Add<T>
+                var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
+                var genericType = genericName!.TypeArgumentList.Arguments[0];
 
+                // Add<T>(string commandPath)
+                string? commandPath = null;
+                var args = node.ArgumentList.Arguments;
+                if (node.ArgumentList.Arguments.Count == 1)
+                {
+                    var commandName = args[0];
+                    if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
+                    {
+                        return null;
+                    }
 
+                    commandPath = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+                }
 
+                // T
+                var type = model.GetTypeInfo(genericType).Type!;
+                return (type, commandPath);
+            }
 
-
-
-
-
-
-
-            return true; // TODO:final
+            static IEnumerable<IMethodSymbol> GetMethodSymbols(ITypeSymbol type)
+            {
+                return type.GetMembers()
+                  .Where(x => x.DeclaredAccessibility == Accessibility.Public)
+                  .OfType<IMethodSymbol>()
+                  .Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic)
+                  .Where(x => x.MethodKind == Microsoft.CodeAnalysis.MethodKind.Ordinary)
+                  .Where(x => !(x.Name is "Dispose" or "DisposeAsync" or "GetHashCode" or "Equals" or "ToString"));
+            }
         }
 
         bool EqualsUseFilter(BuilderContext other)
