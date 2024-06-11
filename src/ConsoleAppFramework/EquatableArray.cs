@@ -53,6 +53,6 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
 
     public bool Equals(EquatableArray<T> other)
     {
-        return AsSpan().SequenceEqual(array.AsSpan());
+        return AsSpan().SequenceEqual(other.AsSpan());
     }
 }
