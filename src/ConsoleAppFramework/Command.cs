@@ -144,8 +144,8 @@ public record class Command
 public record class CommandParameter
 {
     public required EquatableTypeSymbol Type { get; init; }
-    public required Location Location { get; init; }
-    public required WellKnownTypes WellKnownTypes { get; init; }
+    public required IgnoreEquality<Location> Location { get; init; }
+    public required IgnoreEquality<WellKnownTypes> WellKnownTypes { get; init; }
     public required bool IsNullableReference { get; init; }
     public required bool IsParams { get; init; }
     public required string Name { get; init; }
@@ -238,7 +238,7 @@ public record class CommandParameter
                     if (type.TypeKind == TypeKind.Array)
                     {
                         var elementType = (type as IArrayTypeSymbol)!.ElementType;
-                        var parsable = WellKnownTypes.ISpanParsable;
+                        var parsable = WellKnownTypes.Value.ISpanParsable;
                         if (parsable != null) // has parsable
                         {
                             if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
@@ -250,12 +250,12 @@ public record class CommandParameter
                     }
 
                     // System.DateTimeOffset, System.Guid,  System.Version
-                    tryParseKnownPrimitive = WellKnownTypes.HasTryParse(type);
+                    tryParseKnownPrimitive = WellKnownTypes.Value.HasTryParse(type);
 
                     if (!tryParseKnownPrimitive)
                     {
                         // ISpanParsable<T> (BigInteger, Complex, Half, Int128, etc...)
-                        var parsable = WellKnownTypes.ISpanParsable;
+                        var parsable = WellKnownTypes.Value.ISpanParsable;
                         if (parsable != null) // has parsable
                         {
                             tryParseIParsable = type.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable));
@@ -310,13 +310,6 @@ public record class CommandParameter
 
         if (!castValue) return DefaultValue.ToString();
         return $"({Type.ToFullyQualifiedFormatDisplayString()}){DefaultValue}";
-    }
-
-    public string? GetEnumSymbolName(object value)
-    {
-        var symbol = Type.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(x => x.ConstantValue == value);
-        if (symbol == null) return "";
-        return symbol.Name;
     }
 
     public string ToTypeDisplayString()

@@ -36,7 +36,17 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 }
 
                 return false;
-            }, (context, ct) => new RunContext((InvocationExpressionSyntax)context.Node, context.SemanticModel))
+            }, (context, ct) =>
+            {
+                var reporter = new DiagnosticReporter();
+                var node = (InvocationExpressionSyntax)context.Node;
+                var wellknownTypes = new WellKnownTypes(context.SemanticModel.Compilation);
+                var parser = new Parser(reporter, node, context.SemanticModel, wellknownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
+                var isRunAsync = (node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync";
+
+                var command = parser.ParseAndValidateForRun();
+                return new CommandContext(command, isRunAsync, reporter, node);
+            })
             .WithTrackingName("ConsoleApp.Run.0_CreateSyntaxProvider"); // annotate for IncrementalGeneratorTest
 
         context.RegisterSourceOutput(runSource, EmitConsoleAppRun);
@@ -561,28 +571,21 @@ using System.ComponentModel.DataAnnotations;
 
 """;
 
-    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, RunContext runNode)
+    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommandContext commandContext)
     {
-        var node = runNode.Node;
-        var model = runNode.SemanticModel;
-
-        var wellKnownTypes = new WellKnownTypes(model.Compilation);
-
-        var reporter = new DiagnosticReporter();
-        var parser = new Parser(reporter, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
-        var command = parser.ParseAndValidateForRun();
-        if (command == null)
+        if (commandContext.DiagnosticReporter.HasDiagnostics)
         {
-            reporter.ReportToContext(sourceProductionContext);
+            commandContext.DiagnosticReporter.ReportToContext(sourceProductionContext);
             return;
         }
+        var command = commandContext.Command;
+        if (command == null) return;
+
         if (command.HasFilter)
         {
-            sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.CommandHasFilter, node.GetLocation());
+            sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.CommandHasFilter, commandContext.Node.GetLocation());
             return;
         }
-
-        var isRunAsync = ((node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync");
 
         var sb = new SourceBuilder(0);
         sb.AppendLine(GeneratedCodeHeader);
@@ -590,7 +593,7 @@ using System.ComponentModel.DataAnnotations;
         {
             var emitter = new Emitter();
             var withId = new Emitter.CommandWithId(null, command, -1);
-            emitter.EmitRun(sb, withId, isRunAsync);
+            emitter.EmitRun(sb, withId, command.IsAsync);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString());
 
@@ -756,19 +759,20 @@ using System.ComponentModel.DataAnnotations;
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
     }
 
-    class CommandContext(Command command, bool isAsync, DiagnosticReporter diagnosticReporter) : IEquatable<CommandContext>
+    class CommandContext(Command? command, bool isAsync, DiagnosticReporter diagnosticReporter, InvocationExpressionSyntax node) : IEquatable<CommandContext>
     {
-        public Command Command => command;
+        public Command? Command => command;
         public DiagnosticReporter DiagnosticReporter => diagnosticReporter;
+        public InvocationExpressionSyntax Node => node;
         public bool IsAsync => isAsync;
 
         public bool Equals(CommandContext other)
         {
             // has diagnostics, always go to modified(don't cache)
             if (diagnosticReporter.HasDiagnostics || other.DiagnosticReporter.HasDiagnostics) return false;
+            if (command == null || other.Command == null) return false; // maybe has diagnostics
 
             if (isAsync != other.IsAsync) return false;
-
             return command.Equals(other.Command);
         }
     }

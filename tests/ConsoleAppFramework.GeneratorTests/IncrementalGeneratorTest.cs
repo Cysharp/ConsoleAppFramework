@@ -54,6 +54,7 @@ Console.WriteLine("foo"); // unrelated line
         reasons[2][0].Reasons.Should().Be("Modified");
 
         VerifySourceOutputReasonIsCached(reasons[1]);
+        VerifySourceOutputReasonIsNotCached(reasons[2]);
     }
 
     [Fact]
