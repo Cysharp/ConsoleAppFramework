@@ -568,10 +568,12 @@ using System.ComponentModel.DataAnnotations;
 
         var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
-        var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
+        var reporter = new DiagnosticReporter();
+        var parser = new Parser(reporter, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
         var command = parser.ParseAndValidateForRun();
         if (command == null)
         {
+            reporter.ReportToContext(sourceProductionContext);
             return;
         }
         if (command.HasFilter)
@@ -657,12 +659,13 @@ using System.ComponentModel.DataAnnotations;
             return;
         }
 
+        var reporter = new DiagnosticReporter();
         var names = new HashSet<string>();
         var commands1 = methodGroup["Add"]
             .Select(x =>
             {
                 var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc, globalFilters);
+                var parser = new Parser(reporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc, globalFilters);
                 var command = parser.ParseAndValidateForBuilderDelegateRegistration();
 
                 // validation command name duplicate
@@ -681,7 +684,7 @@ using System.ComponentModel.DataAnnotations;
             .SelectMany(x =>
             {
                 var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                var parser = new Parser(reporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
                 var commands = parser.ParseAndValidateForBuilderClassRegistration();
 
                 // validation command name duplicate
@@ -698,6 +701,12 @@ using System.ComponentModel.DataAnnotations;
             });
 
         var commands = commands1.Concat(commands2).ToArray();
+
+        if (reporter.HasDiagnostics)
+        {
+            reporter.ReportToContext(sourceProductionContext);
+            return;
+        }
 
         // don't emit if exists failure(already reported error)
         if (commands.Any(x => x == null))

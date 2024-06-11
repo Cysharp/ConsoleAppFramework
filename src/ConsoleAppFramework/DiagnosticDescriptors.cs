@@ -2,14 +2,40 @@
 
 namespace ConsoleAppFramework;
 
+internal sealed class DiagnosticReporter
+{
+    List<Diagnostic>? diagnostics;
+
+    public bool HasDiagnostics => diagnostics != null && diagnostics.Count != 0;
+
+    public void ReportDiagnostic(DiagnosticDescriptor diagnosticDescriptor, Location location, params object?[]? messageArgs)
+    {
+        var diagnostic = Diagnostic.Create(diagnosticDescriptor, location, messageArgs);
+        if (diagnostics == null)
+        {
+            diagnostics = new();
+        }
+        diagnostics.Add(diagnostic);
+    }
+
+    public void ReportToContext(SourceProductionContext context)
+    {
+        if (diagnostics != null)
+        {
+            foreach (var item in diagnostics)
+            {
+                context.ReportDiagnostic(item);
+            }
+        }
+    }
+}
+
 internal static class DiagnosticDescriptors
 {
     const string Category = "GenerateConsoleAppFramework";
 
     public static void ReportDiagnostic(this SourceProductionContext context, DiagnosticDescriptor diagnosticDescriptor, Location location, params object?[]? messageArgs)
     {
-        // must use location.Clone(), incremental cached code + diagnostic craches visual studio however use Clone() can avoid it.
-        location = location.Clone();
         var diagnostic = Diagnostic.Create(diagnosticDescriptor, location, messageArgs);
         context.ReportDiagnostic(diagnostic);
     }
