@@ -11,7 +11,7 @@
 
 		<DefineConstants>USE_EXTERNAL_CONSOLEAPP_ABSTRACTIONS</DefineConstants>
 
-		<Configurations>Debug;Release;Test</Configurations>
+		<Configurations>Debug;Release</Configurations>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -8,7 +8,7 @@
 		<!-- NuGet -->
 		<PackageId>ConsoleAppFramework.Abstractions</PackageId>
 		<Description>ConsoleAppFramework external abstractions library.</Description>
-		<Configurations>Debug;Release;Test</Configurations>
+		<Configurations>Debug;Release</Configurations>
 	</PropertyGroup>
 
 	<ItemGroup>

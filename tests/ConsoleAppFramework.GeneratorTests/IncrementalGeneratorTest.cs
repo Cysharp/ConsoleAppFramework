@@ -653,4 +653,27 @@ app.Run(args);
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
 
     }
+
+    [Fact]
+    public void IncrDual()
+    {
+        var step1 = """
+using ConsoleAppFramework;
+
+var app = ConsoleApp.Create();
+app.Add("aaa", () =>{ });
+app.Run(args);
+""";
+
+        var step2 = """
+using ConsoleAppFramework;
+
+var app = ConsoleApp.Create();
+app.Add("aaa", () =>{ });
+app.Add("aaa", () =>{ });
+app.Run(args);
+""";
+
+        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
+    }
 }

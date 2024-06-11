@@ -28,7 +28,7 @@ global using ConsoleAppFramework;
 
         var compilation = CSharpCompilation.Create("generatortest",
             references: references,
-            syntaxTrees: [CSharpSyntaxTree.ParseText(globalUsings)],
+            syntaxTrees: [CSharpSyntaxTree.ParseText(globalUsings, path: "GlobalUsings.cs")],
             options: new CSharpCompilationOptions(OutputKind.ConsoleApplication)); // .exe
 
         baseCompilation = compilation;
@@ -166,7 +166,8 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
         diagnostics.Length.Should().Be(1);
         diagnostics[0].Id.Should().Be(idPrefix + id.ToString("000"));
-        var text = GetLocationText(diagnostics[0]);
+
+        var text = GetLocationText(diagnostics[0], compilation.SyntaxTrees);
         text.Should().Be(diagnosticsCodeSpan);
     }
 
@@ -176,7 +177,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         OutputGeneratedCode(compilation);
-        return diagnostics.Select(x => (x.Id, GetLocationText(x))).ToArray();
+        return diagnostics.Select(x => (x.Id, GetLocationText(x, compilation.SyntaxTrees))).ToArray();
     }
 
     // Execute and check stdout result
@@ -209,14 +210,19 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         return stdout;
     }
 
-    string GetLocationText(Diagnostic diagnostic)
+    string GetLocationText(Diagnostic diagnostic, IEnumerable<SyntaxTree> syntaxTrees)
     {
         var location = diagnostic.Location;
+
         var textSpan = location.SourceSpan;
         var sourceTree = location.SourceTree;
         if (sourceTree == null)
         {
-            return "";
+            var lineSpan = location.GetLineSpan();
+            if (lineSpan.Path == null) return "";
+
+            sourceTree = syntaxTrees.FirstOrDefault(x => x.FilePath == lineSpan.Path);
+            if (sourceTree == null) return "";
         }
 
         var text = sourceTree.GetText().GetSubText(textSpan).ToString();
