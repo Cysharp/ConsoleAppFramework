@@ -1,9 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using System;
-using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-using System.Reflection.Metadata;
 using System.Text;
 
 namespace ConsoleAppFramework;
@@ -28,12 +23,12 @@ public record class Command
     public bool IsRootCommand => Name == "";
     public required string Name { get; init; }
 
-    public required CommandParameter[] Parameters { get; init; }
+    public required EquatableArray<CommandParameter> Parameters { get; init; }
     public required string Description { get; init; }
     public required MethodKind MethodKind { get; init; }
     public required DelegateBuildType DelegateBuildType { get; init; }
     public CommandMethodInfo? CommandMethodInfo { get; set; } // can set...!
-    public required FilterInfo[] Filters { get; init; }
+    public required EquatableArray<FilterInfo> Filters { get; init; }
     public bool HasFilter => Filters.Length != 0;
 
     public string? BuildDelegateSignature(out string? delegateType)
@@ -148,7 +143,7 @@ public record class Command
 
 public record class CommandParameter
 {
-    public required ITypeSymbol Type { get; init; }
+    public required EquatableTypeSymbol Type { get; init; }
     public required Location Location { get; init; }
     public required WellKnownTypes WellKnownTypes { get; init; }
     public required bool IsNullableReference { get; init; }
@@ -157,7 +152,7 @@ public record class CommandParameter
     public required string OriginalParameterName { get; init; }
     public required bool HasDefaultValue { get; init; }
     public object? DefaultValue { get; init; }
-    public required ITypeSymbol? CustomParserType { get; init; }
+    public required EquatableTypeSymbol? CustomParserType { get; init; }
     public required bool IsFromServices { get; init; }
     public required bool IsConsoleAppContext { get; init; }
     public required bool IsCancellationToken { get; init; }
@@ -166,7 +161,7 @@ public record class CommandParameter
     public required bool HasValidation { get; init; }
     public required int ArgumentIndex { get; init; } // -1 is not Argument, other than marked as [Argument]
     public bool IsArgument => ArgumentIndex != -1;
-    public required string[] Aliases { get; init; }
+    public required EquatableArray<string> Aliases { get; init; }
     public required string Description { get; init; }
     public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams || IsFlag);
 
@@ -174,7 +169,7 @@ public record class CommandParameter
     public string BuildParseMethod(int argCount, string argumentName, bool increment)
     {
         var incrementIndex = increment ? "!TryIncrementIndex(ref i, args.Length) || " : "";
-        return Core(Type, false);
+        return Core(Type.TypeSymbol, false);
 
         string Core(ITypeSymbol type, bool nullable)
         {
@@ -360,7 +355,7 @@ public record class CommandMethodInfo
 {
     public required string TypeFullName { get; init; }
     public required string MethodName { get; init; }
-    public required ITypeSymbol[] ConstructorParameterTypes { get; init; }
+    public required EquatableArray<EquatableTypeSymbol> ConstructorParameterTypes { get; init; }
     public required bool IsIDisposable { get; init; }
     public required bool IsIAsyncDisposable { get; init; }
 
@@ -379,7 +374,7 @@ public record class CommandMethodInfo
 public record class FilterInfo
 {
     public required string TypeFullName { get; init; }
-    public required ITypeSymbol[] ConstructorParameterTypes { get; init; }
+    public required EquatableArray<EquatableTypeSymbol> ConstructorParameterTypes { get; init; }
 
     FilterInfo()
     {
@@ -401,7 +396,7 @@ public record class FilterInfo
         var filter = new FilterInfo
         {
             TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
-            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => x.Type).ToArray()
+            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbol(x.Type)).ToArray()
         };
 
         return filter;

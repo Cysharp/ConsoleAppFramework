@@ -133,7 +133,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
             IsIDisposable = hasIDisposable,
             IsIAsyncDisposable = hasIAsyncDisposable,
-            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => x.Type).ToArray(),
+            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbol(x.Type)).ToArray(),
             MethodName = "", // without methodname
         };
 
@@ -348,11 +348,11 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                     IsNullableReference = isNullableReference,
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = hasParams,
-                    Type = type.Type!,
+                    Type = new EquatableTypeSymbol(type.Type!),
                     Location = x.GetLocation(),
                     HasDefaultValue = hasDefault,
                     DefaultValue = defaultValue,
-                    CustomParserType = customParserType,
+                    CustomParserType = customParserType == null ? null : new EquatableTypeSymbol(customParserType),
                     HasValidation = hasValidation,
                     IsCancellationToken = isCancellationToken,
                     IsFromServices = isFromServices,
@@ -505,7 +505,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = x.IsParams,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
-                    Type = x.Type,
+                    Type = new EquatableTypeSymbol(x.Type),
                     HasDefaultValue = x.HasExplicitDefaultValue,
                     DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
                     CustomParserType = null,

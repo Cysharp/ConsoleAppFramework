@@ -756,6 +756,23 @@ using System.ComponentModel.DataAnnotations;
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
     }
 
+    class CommandContext(Command command, bool isAsync, DiagnosticReporter diagnosticReporter) : IEquatable<CommandContext>
+    {
+        public Command Command => command;
+        public DiagnosticReporter DiagnosticReporter => diagnosticReporter;
+        public bool IsAsync => isAsync;
+
+        public bool Equals(CommandContext other)
+        {
+            // has diagnostics, always go to modified(don't cache)
+            if (diagnosticReporter.HasDiagnostics || other.DiagnosticReporter.HasDiagnostics) return false;
+
+            if (isAsync != other.IsAsync) return false;
+
+            return command.Equals(other.Command);
+        }
+    }
+
     readonly struct RunContext(InvocationExpressionSyntax node, SemanticModel model) : IEquatable<RunContext>
     {
         public InvocationExpressionSyntax Node => node;

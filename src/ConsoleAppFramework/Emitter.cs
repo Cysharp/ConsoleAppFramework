@@ -109,7 +109,7 @@ internal class Emitter
                     sb.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
                 }
             }
-            sb.AppendLineIfExists(command.Parameters);
+            sb.AppendLineIfExists(command.Parameters.AsSpan());
 
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
