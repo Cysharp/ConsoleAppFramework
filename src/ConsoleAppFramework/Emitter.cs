@@ -29,7 +29,7 @@ internal class Emitter
         methodName = methodName ?? (isRunAsync ? "RunAsync" : "Run");
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
-        var commandMethodType = command.BuildDelegateSignature(out var delegateType);
+        var commandMethodType = command.BuildDelegateSignature(commandWithId.BuildCustomDelegateTypeName(), out var delegateType);
         if (commandMethodType != null)
         {
             commandMethodType = $", {commandMethodType} command";
@@ -539,7 +539,7 @@ internal class Emitter
 
         void EmitFilterInvoker(CommandWithId command)
         {
-            var commandType = command.Command.BuildDelegateSignature(out _);
+            var commandType = command.Command.BuildDelegateSignature(command.BuildCustomDelegateTypeName(), out _);
             var needsCommand = commandType != null;
             if (needsCommand) commandType = $", {commandType} command";
 
@@ -605,5 +605,17 @@ internal class Emitter
         }
     }
 
-    internal record CommandWithId(string? FieldType, Command Command, int Id);
+    internal record CommandWithId(string? FieldType, Command Command, int Id)
+    {
+        public static string BuildCustomDelegateTypeName(int id)
+        {
+            if (id < 0) return "DelegateCommand";
+            return $"DelegateCommand{id}";
+        }
+
+        public string BuildCustomDelegateTypeName()
+        {
+            return BuildCustomDelegateTypeName(Id);
+        }
+    }
 }

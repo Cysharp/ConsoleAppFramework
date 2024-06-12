@@ -41,7 +41,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 var reporter = new DiagnosticReporter();
                 var node = (InvocationExpressionSyntax)context.Node;
                 var wellknownTypes = new WellKnownTypes(context.SemanticModel.Compilation);
-                var parser = new Parser(reporter, node, context.SemanticModel, wellknownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
+                var parser = new Parser(reporter, node, context.SemanticModel, wellknownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, []);
                 var isRunAsync = (node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync";
 
                 var command = parser.ParseAndValidateForRun();
@@ -624,20 +624,32 @@ using System.ComponentModel.DataAnnotations;
         var sb = new SourceBuilder(0);
         sb.AppendLine(GeneratedCodeHeader);
 
+        var delegateSignatures = new List<string>();
+
         // with id number
         var commandIds = collectBuilderContext.Commands
             .Select((x, i) =>
             {
-                return new Emitter.CommandWithId(
-                    FieldType: x!.BuildDelegateSignature(out _), // for builder, always generate Action/Func so ok to ignore out var.
+                var command = new Emitter.CommandWithId(
+                    FieldType: x!.BuildDelegateSignature(Emitter.CommandWithId.BuildCustomDelegateTypeName(i), out var delegateDef),
                     Command: x!,
                     Id: i
                 );
+                if (delegateDef != null)
+                {
+                    delegateSignatures.Add(delegateDef);
+                }
+                return command;
             })
             .ToArray();
 
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
+            foreach (var d in delegateSignatures)
+            {
+                sb.AppendLine(d);
+            }
+
             var emitter = new Emitter();
             emitter.EmitBuilder(sb, commandIds, hasRun, hasRunAsync);
         }
@@ -748,7 +760,7 @@ using System.ComponentModel.DataAnnotations;
                 .Select(x =>
                 {
                     var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-                    var parser = new Parser(DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc, globalFilters);
+                    var parser = new Parser(DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, globalFilters);
                     var command = parser.ParseAndValidateForBuilderDelegateRegistration();
 
                     // validation command name duplicate

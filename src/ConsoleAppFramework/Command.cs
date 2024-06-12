@@ -10,8 +10,7 @@ public enum MethodKind
 
 public enum DelegateBuildType
 {
-    MakeDelegateWhenHasDefaultValue,
-    OnlyActionFunc,
+    MakeCustomDelegateWhenHasDefaultValueOrTooLarge,
     None
 }
 
@@ -31,25 +30,30 @@ public record class Command
     public required EquatableArray<FilterInfo> Filters { get; init; }
     public bool HasFilter => Filters.Length != 0;
 
-    public string? BuildDelegateSignature(out string? delegateType)
+    // return is delegateType(Name).
+    public string? BuildDelegateSignature(string customDelegateTypeName, out string? customDelegateDefinition)
     {
-        if (DelegateBuildType == DelegateBuildType.MakeDelegateWhenHasDefaultValue)
-        {
-            if (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue || x.IsParams))
-            {
-                delegateType = BuildDelegateType("RunCommand");
-                return "RunCommand";
-            }
-        }
-
-        delegateType = null;
+        customDelegateDefinition = null;
 
         if (DelegateBuildType == DelegateBuildType.None)
         {
             return null;
         }
 
-        if (MethodKind == MethodKind.FunctionPointer) return BuildFunctionPointerDelegateSignature();
+        if (MethodKind == MethodKind.FunctionPointer)
+        {
+            customDelegateDefinition = null;
+            return BuildFunctionPointerDelegateSignature();
+        }
+
+        if (DelegateBuildType == DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge)
+        {
+            if (Parameters.Length > 16 || (MethodKind == MethodKind.Lambda && Parameters.Any(x => x.HasDefaultValue || x.IsParams)))
+            {
+                customDelegateDefinition = BuildDelegateTypeDefinition(customDelegateTypeName);
+                return customDelegateTypeName;
+            }
+        }
 
         if (IsAsync)
         {
@@ -126,7 +130,7 @@ public record class Command
         return $"delegate* managed<{parameters}{comma}{retType}>";
     }
 
-    public string BuildDelegateType(string delegateName)
+    public string BuildDelegateTypeDefinition(string delegateName)
     {
         var retType = (IsAsync, IsVoid) switch
         {

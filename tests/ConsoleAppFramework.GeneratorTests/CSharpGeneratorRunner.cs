@@ -29,7 +29,7 @@ global using ConsoleAppFramework;
         var compilation = CSharpCompilation.Create("generatortest",
             references: references,
             syntaxTrees: [CSharpSyntaxTree.ParseText(globalUsings, path: "GlobalUsings.cs")],
-            options: new CSharpCompilationOptions(OutputKind.ConsoleApplication)); // .exe
+            options: new CSharpCompilationOptions(OutputKind.ConsoleApplication, allowUnsafe: true)); // .exe
 
         baseCompilation = compilation;
     }
