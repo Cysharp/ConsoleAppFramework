@@ -6,10 +6,12 @@ app.Add("aaa", () =>
 {
 });
 
-app.Add("aaa", async Task<int> () =>
+
+
+
+app.Add("aabcdefg", int (int x, string y) =>
 {
-    await Task.Yield();
-    return default!; 
+    return default!;
 });
 
 app.Run(args);
