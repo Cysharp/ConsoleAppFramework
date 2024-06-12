@@ -1,17 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
-using ConsoleAppFramework;
-
-
-
-args = ["show", "--aaa", "a", "value", "10.2"];
+﻿using ConsoleAppFramework;
 
 var app = ConsoleApp.Create();
-app.Add<Test>();
-app.Run(args);
 
-public class Test
+app.Add("aaa", () =>
 {
-    public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
-}
+});
 
+
+
+
+app.Add("aabcdefg", int (int x, string y) =>
+{
+    return default!;
+});
+
+app.Run(args);

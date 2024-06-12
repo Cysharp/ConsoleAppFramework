@@ -54,7 +54,7 @@ internal class SourceBuilder(int level)
         builder.AppendLine();
     }
 
-    public void AppendLineIfExists<T>(T[] values)
+    public void AppendLineIfExists<T>(ReadOnlySpan<T> values)
     {
         if (values.Length != 0)
         {

@@ -435,3 +435,4 @@ public interface IFoo
 """, "app.Add<IFoo>()");
     }
 }
+

@@ -3,7 +3,7 @@ using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
-internal class Emitter(WellKnownTypes wellKnownTypes)
+internal class Emitter
 {
     public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName = null)
     {
@@ -49,10 +49,12 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
         {
             sb.AppendLine("/// <summary>");
             var help = CommandHelpBuilder.BuildCommandHelpMessage(commandWithId.Command);
+#pragma warning disable RS1035
             foreach (var line in help.Split([Environment.NewLine], StringSplitOptions.None))
             {
                 sb.AppendLine($"/// {line.Replace("<", "&lt;").Replace(">", "&gt;")}<br/>");
             }
+#pragma warning restore RS1035
             sb.AppendLine("/// </summary>");
         }
 
@@ -107,7 +109,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                     sb.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
                 }
             }
-            sb.AppendLineIfExists(command.Parameters);
+            sb.AppendLineIfExists(command.Parameters.AsSpan());
 
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
@@ -124,7 +126,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                             sb.AppendLine($"if (i == {parameter.ArgumentIndex})");
                             using (sb.BeginBlock())
                             {
-                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: false)}");
+                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: false)}");
                                 if (parameter.RequireCheckArgumentParsed)
                                 {
                                     sb.AppendLine($"arg{i}Parsed = true;");
@@ -154,7 +156,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                             }
                             using (sb.BeginBlock())
                             {
-                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
                                 if (parameter.RequireCheckArgumentParsed)
                                 {
                                     sb.AppendLine($"arg{i}Parsed = true;");
@@ -180,7 +182,7 @@ internal class Emitter(WellKnownTypes wellKnownTypes)
                                 }
                                 using (sb.BeginBlock())
                                 {
-                                    sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, wellKnownTypes, increment: true)}");
+                                    sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
                                     if (parameter.RequireCheckArgumentParsed)
                                     {
                                         sb.AppendLine($"arg{i}Parsed = true;");

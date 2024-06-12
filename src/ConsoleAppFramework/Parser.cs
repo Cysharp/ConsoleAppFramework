@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConsoleAppFramework;
 
-internal class Parser(SourceProductionContext context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
+internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
 {
-    public Command? ParseAndValidate() // for ConsoleApp.Run
+    public Command? ParseAndValidateForRun() // for ConsoleApp.Run, lambda or method or &method
     {
         var args = node.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = args, 1 = lambda
@@ -133,7 +133,7 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
             TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
             IsIDisposable = hasIDisposable,
             IsIAsyncDisposable = hasIAsyncDisposable,
-            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => x.Type).ToArray(),
+            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbol(x.Type)).ToArray(),
             MethodName = "", // without methodname
         };
 
@@ -343,15 +343,16 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return new CommandParameter
                 {
                     Name = NameConverter.ToKebabCase(x.Identifier.Text),
+                    WellKnownTypes = wellKnownTypes,
                     OriginalParameterName = x.Identifier.Text,
                     IsNullableReference = isNullableReference,
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = hasParams,
-                    Type = type.Type!,
+                    Type = new EquatableTypeSymbol(type.Type!),
                     Location = x.GetLocation(),
                     HasDefaultValue = hasDefault,
                     DefaultValue = defaultValue,
-                    CustomParserType = customParserType,
+                    CustomParserType = customParserType == null ? null : new EquatableTypeSymbol(customParserType),
                     HasValidation = hasValidation,
                     IsCancellationToken = isCancellationToken,
                     IsFromServices = isFromServices,
@@ -498,12 +499,13 @@ internal class Parser(SourceProductionContext context, InvocationExpressionSynta
                 return new CommandParameter
                 {
                     Name = NameConverter.ToKebabCase(x.Name),
+                    WellKnownTypes = wellKnownTypes,
                     OriginalParameterName = x.Name,
                     IsNullableReference = isNullableReference,
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = x.IsParams,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
-                    Type = x.Type,
+                    Type = new EquatableTypeSymbol(x.Type),
                     HasDefaultValue = x.HasExplicitDefaultValue,
                     DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
                     CustomParserType = null,

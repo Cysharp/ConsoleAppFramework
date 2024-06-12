@@ -2,6 +2,34 @@
 
 namespace ConsoleAppFramework;
 
+internal sealed class DiagnosticReporter
+{
+    List<Diagnostic>? diagnostics;
+
+    public bool HasDiagnostics => diagnostics != null && diagnostics.Count != 0;
+
+    public void ReportDiagnostic(DiagnosticDescriptor diagnosticDescriptor, Location location, params object?[]? messageArgs)
+    {
+        var diagnostic = Diagnostic.Create(diagnosticDescriptor, location, messageArgs);
+        if (diagnostics == null)
+        {
+            diagnostics = new();
+        }
+        diagnostics.Add(diagnostic);
+    }
+
+    public void ReportToContext(SourceProductionContext context)
+    {
+        if (diagnostics != null)
+        {
+            foreach (var item in diagnostics)
+            {
+                context.ReportDiagnostic(item);
+            }
+        }
+    }
+}
+
 internal static class DiagnosticDescriptors
 {
     const string Category = "GenerateConsoleAppFramework";

@@ -28,9 +28,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.Generat
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NativeAot", "sandbox\NativeAot\NativeAot.csproj", "{EC1A3299-6597-4AD2-92DE-EDF309875A97}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppFramework.Abstractions", "src\ConsoleAppFramework.Abstractions\ConsoleAppFramework.Abstractions.csproj", "{855B0D28-DC69-470B-B3D9-481EE52737AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework.Abstractions", "src\ConsoleAppFramework.Abstractions\ConsoleAppFramework.Abstractions.csproj", "{855B0D28-DC69-470B-B3D9-481EE52737AA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilterShareProject", "sandbox\FilterShareProject\FilterShareProject.csproj", "{2A1E8ED1-CEB9-47CB-8497-A0C4F5A8F025}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FilterShareProject", "sandbox\FilterShareProject\FilterShareProject.csproj", "{2A1E8ED1-CEB9-47CB-8497-A0C4F5A8F025}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

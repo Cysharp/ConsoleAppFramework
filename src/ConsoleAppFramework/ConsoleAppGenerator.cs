@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Reflection;
-using static ConsoleAppFramework.Emitter;
 
 namespace ConsoleAppFramework;
 
@@ -15,28 +14,40 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(EmitConsoleAppTemplateSource);
 
         // ConsoleApp.Run
-        var runSource = context.SyntaxProvider.CreateSyntaxProvider((node, ct) =>
-        {
-            if (node.IsKind(SyntaxKind.InvocationExpression))
+        var runSource = context.SyntaxProvider
+            .CreateSyntaxProvider((node, ct) =>
             {
-                var invocationExpression = (node as InvocationExpressionSyntax);
-                if (invocationExpression == null) return false;
-
-                var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
-                if ((expr?.Expression as IdentifierNameSyntax)?.Identifier.Text == "ConsoleApp")
+                if (node.IsKind(SyntaxKind.InvocationExpression))
                 {
-                    var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Run" or "RunAsync")
+                    var invocationExpression = (node as InvocationExpressionSyntax);
+                    if (invocationExpression == null) return false;
+
+                    var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
+                    if ((expr?.Expression as IdentifierNameSyntax)?.Identifier.Text == "ConsoleApp")
                     {
-                        return true;
+                        var methodName = expr?.Name.Identifier.Text;
+                        if (methodName is "Run" or "RunAsync")
+                        {
+                            return true;
+                        }
                     }
+
+                    return false;
                 }
 
                 return false;
-            }
+            }, (context, ct) =>
+            {
+                var reporter = new DiagnosticReporter();
+                var node = (InvocationExpressionSyntax)context.Node;
+                var wellknownTypes = new WellKnownTypes(context.SemanticModel.Compilation);
+                var parser = new Parser(reporter, node, context.SemanticModel, wellknownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
+                var isRunAsync = (node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync";
 
-            return false;
-        }, (context, ct) => ((InvocationExpressionSyntax)context.Node, context.SemanticModel));
+                var command = parser.ParseAndValidateForRun();
+                return new CommanContext(command, isRunAsync, reporter, node);
+            })
+            .WithTrackingName("ConsoleApp.Run.0_CreateSyntaxProvider"); // annotate for IncrementalGeneratorTest
 
         context.RegisterSourceOutput(runSource, EmitConsoleAppRun);
 
@@ -44,6 +55,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         var builderSource = context.SyntaxProvider
             .CreateSyntaxProvider((node, ct) =>
             {
+                ct.ThrowIfCancellationRequested();
                 if (node.IsKind(SyntaxKind.InvocationExpression))
                 {
                     var invocationExpression = (node as InvocationExpressionSyntax);
@@ -60,17 +72,23 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 }
 
                 return false;
-            }, (context, ct) => (
+            }, (context, ct) => new BuilderContext( // no equality check
                 (InvocationExpressionSyntax)context.Node,
                 ((context.Node as InvocationExpressionSyntax)!.Expression as MemberAccessExpressionSyntax)!.Name.Identifier.Text,
-                context.SemanticModel))
+                context.SemanticModel,
+                ct))
+            .WithTrackingName("ConsoleApp.Builder.0_CreateSyntaxProvider")
             .Where(x =>
             {
-                var model = x.SemanticModel.GetTypeInfo((x.Item1.Expression as MemberAccessExpressionSyntax)!.Expression);
+                var model = x.Model.GetTypeInfo((x.Node.Expression as MemberAccessExpressionSyntax)!.Expression, x.CancellationToken);
                 return model.Type?.Name == "ConsoleAppBuilder";
-            });
+            })
+            .WithTrackingName("ConsoleApp.Builder.1_Where")
+            .Collect()
+            .Select((x, ct) => new CollectBuilderContext(x, ct))
+            .WithTrackingName("ConsoleApp.Builder.2_Collect");
 
-        context.RegisterSourceOutput(builderSource.Collect(), EmitConsoleAppBuilder);
+        context.RegisterSourceOutput(builderSource, EmitConsoleAppBuilder);
     }
 
     public const string ConsoleAppBaseCode = """
@@ -553,34 +571,29 @@ using System.ComponentModel.DataAnnotations;
 
 """;
 
-    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, (InvocationExpressionSyntax, SemanticModel) generatorSyntaxContext)
+    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommanContext commandContext)
     {
-        var node = generatorSyntaxContext.Item1;
-        var model = generatorSyntaxContext.Item2;
-
-        var wellKnownTypes = new WellKnownTypes(model.Compilation);
-
-        var parser = new Parser(sourceProductionContext, node, model, wellKnownTypes, DelegateBuildType.MakeDelegateWhenHasDefaultValue, []);
-        var command = parser.ParseAndValidate();
-        if (command == null)
+        if (commandContext.DiagnosticReporter.HasDiagnostics)
         {
+            commandContext.DiagnosticReporter.ReportToContext(sourceProductionContext);
             return;
         }
+        var command = commandContext.Command;
+        if (command == null) return;
+
         if (command.HasFilter)
         {
-            sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.CommandHasFilter, node.GetLocation());
+            sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.CommandHasFilter, commandContext.Node.GetLocation());
             return;
         }
-
-        var isRunAsync = ((node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync");
 
         var sb = new SourceBuilder(0);
         sb.AppendLine(GeneratedCodeHeader);
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             var withId = new Emitter.CommandWithId(null, command, -1);
-            emitter.EmitRun(sb, withId, isRunAsync);
+            emitter.EmitRun(sb, withId, command.IsAsync);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString());
 
@@ -588,120 +601,23 @@ using System.ComponentModel.DataAnnotations;
         help.AppendLine(GeneratedCodeHeader);
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             emitter.EmitHelp(help, command);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString());
     }
 
-    static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, ImmutableArray<(InvocationExpressionSyntax Node, string Name, SemanticModel Model)> generatorSyntaxContexts)
+    static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, CollectBuilderContext collectBuilderContext)
     {
-        if (generatorSyntaxContexts.Length == 0) return;
+        var reporter = collectBuilderContext.DiagnosticReporter;
+        var hasRun = collectBuilderContext.HasRun;
+        var hasRunAsync = collectBuilderContext.HasRunAsync;
 
-        var model = generatorSyntaxContexts[0].Model;
-
-        var wellKnownTypes = new WellKnownTypes(model.Compilation);
-
-        // validation, invoke in loop is not allowed.
-        foreach (var item in generatorSyntaxContexts)
+        if (reporter.HasDiagnostics)
         {
-            if (item.Name is "Run" or "RunAsync") continue;
-            foreach (var n in item.Node.Ancestors())
-            {
-                if (n.Kind() is SyntaxKind.WhileStatement or SyntaxKind.DoStatement or SyntaxKind.ForStatement or SyntaxKind.ForEachStatement)
-                {
-                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.AddInLoopIsNotAllowed, item.Node.GetLocation());
-                    return;
-                }
-            }
-        }
-
-        var methodGroup = generatorSyntaxContexts.ToLookup(x =>
-        {
-            if (x.Name == "Add" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
-            {
-                return "Add<T>";
-            }
-
-            return x.Name;
-        });
-
-        var globalFilters = methodGroup["UseFilter"]
-            .OrderBy(x => x.Node.GetLocation().SourceSpan) // sort by line number
-            .Select(x =>
-            {
-                var genericName = (x.Node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
-                var genericType = genericName!.TypeArgumentList.Arguments[0];
-                var type = model.GetTypeInfo(genericType).Type;
-                if (type == null) return null!;
-
-                var filter = FilterInfo.Create(type);
-
-                if (filter == null)
-                {
-                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, genericType.GetLocation());
-                    return null!;
-                }
-
-                return filter!;
-            })
-            .ToArray();
-
-        // don't emit if exists failure(already reported error)
-        if (globalFilters.Any(x => x == null))
-        {
+            reporter.ReportToContext(sourceProductionContext);
             return;
         }
-
-        var names = new HashSet<string>();
-        var commands1 = methodGroup["Add"]
-            .Select(x =>
-            {
-                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc, globalFilters);
-                var command = parser.ParseAndValidateForBuilderDelegateRegistration();
-
-                // validation command name duplicate
-                if (command != null && !names.Add(command.Name))
-                {
-                    sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.ArgumentList.Arguments[0].GetLocation(), command!.Name);
-                    return null;
-                }
-
-                return command;
-            })
-            .ToArray(); // evaluate first.
-
-        var commands2 = methodGroup["Add<T>"]
-            .SelectMany(x =>
-            {
-                var parser = new Parser(sourceProductionContext, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
-                var commands = parser.ParseAndValidateForBuilderClassRegistration();
-
-                // validation command name duplicate
-                foreach (var command in commands)
-                {
-                    if (command != null && !names.Add(command.Name))
-                    {
-                        sourceProductionContext.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.Name);
-                        return [null];
-                    }
-                }
-
-                return commands;
-            });
-
-        var commands = commands1.Concat(commands2).ToArray();
-
-        // don't emit if exists failure(already reported error)
-        if (commands.Any(x => x == null))
-        {
-            return;
-        }
-
-        if (commands.Length == 0) return;
-
-        var hasRun = methodGroup["Run"].Any();
-        var hasRunAsync = methodGroup["RunAsync"].Any();
 
         if (!hasRun && !hasRunAsync) return;
 
@@ -709,10 +625,10 @@ using System.ComponentModel.DataAnnotations;
         sb.AppendLine(GeneratedCodeHeader);
 
         // with id number
-        var commandIds = commands
+        var commandIds = collectBuilderContext.Commands
             .Select((x, i) =>
             {
-                return new CommandWithId(
+                return new Emitter.CommandWithId(
                     FieldType: x!.BuildDelegateSignature(out _), // for builder, always generate Action/Func so ok to ignore out var.
                     Command: x!,
                     Id: i
@@ -722,7 +638,7 @@ using System.ComponentModel.DataAnnotations;
 
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             emitter.EmitBuilder(sb, commandIds, hasRun, hasRunAsync);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString());
@@ -734,9 +650,171 @@ using System.ComponentModel.DataAnnotations;
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         using (help.BeginBlock("internal partial struct ConsoleAppBuilder"))
         {
-            var emitter = new Emitter(wellKnownTypes);
+            var emitter = new Emitter();
             emitter.EmitHelp(help, commandIds!);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
+    }
+
+    class CommanContext(Command? command, bool isAsync, DiagnosticReporter diagnosticReporter, InvocationExpressionSyntax node) : IEquatable<CommanContext>
+    {
+        public Command? Command => command;
+        public DiagnosticReporter DiagnosticReporter => diagnosticReporter;
+        public InvocationExpressionSyntax Node => node;
+        public bool IsAsync => isAsync;
+
+        public bool Equals(CommanContext other)
+        {
+            // has diagnostics, always go to modified(don't cache)
+            if (diagnosticReporter.HasDiagnostics || other.DiagnosticReporter.HasDiagnostics) return false;
+            if (command == null || other.Command == null) return false; // maybe has diagnostics
+
+            if (isAsync != other.IsAsync) return false;
+            return command.Equals(other.Command);
+        }
+    }
+
+    class CollectBuilderContext : IEquatable<CollectBuilderContext>
+    {
+        public Command[] Commands { get; } = [];
+        public DiagnosticReporter DiagnosticReporter { get; }
+        public CancellationToken CancellationToken { get; }
+        public bool HasRun { get; }
+        public bool HasRunAsync { get; }
+
+        public CollectBuilderContext(ImmutableArray<BuilderContext> contexts, CancellationToken cancellationToken)
+        {
+            this.DiagnosticReporter = new DiagnosticReporter();
+            this.CancellationToken = cancellationToken;
+
+            if (contexts.Length == 0)
+            {
+                return;
+            }
+
+            // validation, invoke in loop is not allowed.
+            foreach (var item in contexts)
+            {
+                if (item.Name is "Run" or "RunAsync") continue;
+                foreach (var n in item.Node.Ancestors())
+                {
+                    if (n.Kind() is SyntaxKind.WhileStatement or SyntaxKind.DoStatement or SyntaxKind.ForStatement or SyntaxKind.ForEachStatement)
+                    {
+                        DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.AddInLoopIsNotAllowed, item.Node.GetLocation());
+                        return;
+                    }
+                }
+            }
+
+            var methodGroup = contexts.ToLookup(x =>
+            {
+                if (x.Name == "Add" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
+                {
+                    return "Add<T>";
+                }
+
+                return x.Name;
+            });
+
+            var globalFilters = methodGroup["UseFilter"]
+                .OrderBy(x => x.Node.GetLocation().SourceSpan) // sort by line number
+                .Select(x =>
+                {
+                    var genericName = (x.Node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
+                    var genericType = genericName!.TypeArgumentList.Arguments[0];
+                    var type = x.Model.GetTypeInfo(genericType).Type;
+                    if (type == null) return null!;
+
+                    var filter = FilterInfo.Create(type);
+
+                    if (filter == null)
+                    {
+                        DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, genericType.GetLocation());
+                        return null!;
+                    }
+
+                    return filter!;
+                })
+                .ToArray();
+
+            // don't emit if exists failure
+            if (DiagnosticReporter.HasDiagnostics)
+            {
+                return;
+            }
+
+            var names = new HashSet<string>();
+            var commands1 = methodGroup["Add"]
+                .Select(x =>
+                {
+                    var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
+                    var parser = new Parser(DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.OnlyActionFunc, globalFilters);
+                    var command = parser.ParseAndValidateForBuilderDelegateRegistration();
+
+                    // validation command name duplicate
+                    if (command != null && !names.Add(command.Name))
+                    {
+                        var location = x.Node.ArgumentList.Arguments[0].GetLocation();
+                        DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, location, command!.Name);
+                        return null;
+                    }
+
+                    return command;
+                })
+                .ToArray(); // evaluate first.
+
+            var commands2 = methodGroup["Add<T>"]
+                .SelectMany(x =>
+                {
+                    var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
+                    var parser = new Parser(DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                    var commands = parser.ParseAndValidateForBuilderClassRegistration();
+
+                    // validation command name duplicate
+                    foreach (var command in commands)
+                    {
+                        if (command != null && !names.Add(command.Name))
+                        {
+                            DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.Name);
+                            return [null];
+                        }
+                    }
+
+                    return commands;
+                });
+
+            if (DiagnosticReporter.HasDiagnostics)
+            {
+                return;
+            }
+
+            // set properties
+            this.Commands = commands1.Concat(commands2!).ToArray()!; // not null if no diagnostics
+            this.HasRun = methodGroup["Run"].Any();
+            this.HasRunAsync = methodGroup["RunAsync"].Any();
+        }
+
+        public bool Equals(CollectBuilderContext other)
+        {
+            if (DiagnosticReporter.HasDiagnostics || other.DiagnosticReporter.HasDiagnostics) return false;
+            if (HasRun != other.HasRun) return false;
+            if (HasRunAsync != other.HasRunAsync) return false;
+
+            return Commands.AsSpan().SequenceEqual(other.Commands);
+        }
+    }
+
+    // intermediate structure(no equatable)
+    readonly struct BuilderContext(InvocationExpressionSyntax node, string name, SemanticModel model, CancellationToken cancellationToken) : IEquatable<BuilderContext>
+    {
+        public InvocationExpressionSyntax Node => node;
+        public string Name => name;
+        public SemanticModel Model => model;
+        public CancellationToken CancellationToken => cancellationToken;
+
+        public bool Equals(BuilderContext other)
+        {
+            return Node == other.Node; // no means.
+        }
     }
 }
