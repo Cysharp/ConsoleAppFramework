@@ -19,6 +19,18 @@ ConsoleApp.Run(args, (int foo, int bar) => Console.WriteLine($"Sum: {foo + bar}"
 Unlike typical Source Generators that use attributes as keys for generation, ConsoleAppFramework analyzes the provided lambda expressions or method references and generates the actual code body of the Run method.
 
 ```csharp
+internal static partial class ConsoleApp
+{
+    // Generate the Run method itself with arguments and body to match the lambda expression
+    public static void Run(string[] args, Action<int, int> command)
+    {
+        // code body
+    }
+}
+```
+
+<details><summary>Full generated source code</summary>
+```csharp
 namespace ConsoleAppFramework;
 
 internal static partial class ConsoleApp
@@ -111,6 +123,7 @@ Options:
     }
 }
 ```
+</details>
 
 As you can see, the code is straightforward and simple, making it easy to imagine the execution cost of the framework portion. That's right, it's zero. This technique was influenced by Rust's macros. Rust has [Attribute-like macros and Function-like macros](https://doc.rust-lang.org/book/ch19-06-macros.html), and ConsoleAppFramework's generation can be considered as Function-like macros.
 
