@@ -30,6 +30,7 @@ internal static partial class ConsoleApp
 ```
 
 <details><summary>Full generated source code</summary>
+
 ```csharp
 namespace ConsoleAppFramework;
 
