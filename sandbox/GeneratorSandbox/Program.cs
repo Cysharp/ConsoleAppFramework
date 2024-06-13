@@ -31,7 +31,8 @@ public partial class Test
         bool a16,
         bool a17,
         bool a18,
-        bool a19
+        bool a19,
+        string foo = null
     )
     {
         Console.Write("ok");

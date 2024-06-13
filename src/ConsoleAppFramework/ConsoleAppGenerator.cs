@@ -556,6 +556,7 @@ internal static partial class ConsoleApp
 #pragma warning disable CS9074 // The 'scoped' modifier of parameter doesn't match overridden or implemented member
 #pragma warning disable CA1050 // Declare types in namespaces.
 #pragma warning disable CS1998
+#pragma warning disable CS8625
         
 namespace ConsoleAppFramework;
         
