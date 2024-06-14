@@ -908,7 +908,7 @@ var configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
-// Bind to services
+// Bind to services( Package Import: Microsoft.Extensions.Options.ConfigurationExtensions )
 var services = new ServiceCollection();
 services.Configure<PositionOptions>(configuration.GetSection("Position"));
 
