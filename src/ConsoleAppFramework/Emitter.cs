@@ -447,8 +447,18 @@ internal class Emitter
         {
             var leafCommand = groupedCommands[""].FirstOrDefault();
             IDisposable? ifBlcok = null;
+            if (leafCommand is not null)
+            {
+                // Add or-ing of aliases 
+                foreach (var alias in leafCommand.Command.Aliases)
+                {
+                    sb.AppendLine($"case \"{alias}\":");
+                }
+            }
             if (!(groupedCommands.Count == 1 && leafCommand != null))
             {
+
+
                 ifBlcok = sb.BeginBlock($"if (args.Length == {depth})");
             }
             EmitLeafCommand(leafCommand);

@@ -241,6 +241,29 @@ public class MyClass()
 
         verifier.Execute(code, "nomunomu", "yeah");
     }
+
+    [Fact]
+    public void CommandAttrAlias()
+    {
+        var code = """
+var builder = ConsoleApp.Create();
+builder.Add<MyClass>();
+builder.Run(args);
+
+public class MyClass()
+{
+    [Command("nomunomu")]
+    [Command("nomunomu2")]
+    public void Do()
+    {
+        Console.Write("yeah");
+    }
+}
+""";
+
+        verifier.Execute(code, "nomunomu", "yeah");
+        verifier.Execute(code, "nomunomu2", "yeah");
+    }
 }
 
 

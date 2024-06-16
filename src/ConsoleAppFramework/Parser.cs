@@ -141,8 +141,9 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             .Select(x =>
             {
                 string commandName;
-                var commandAttribute = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "CommandAttribute");
-                if (commandAttribute != null)
+                var commandAttributes = x.GetAttributes().Where(x => x.AttributeClass?.Name == "CommandAttribute");
+                var firstCommandAttribute = commandAttributes.FirstOrDefault();
+                if (firstCommandAttribute != null)
                 {
                     commandName = (x.GetAttributes()[0].ConstructorArguments[0].Value as string)!;
                 }
@@ -153,6 +154,11 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
 
                 var command = ParseFromMethodSymbol(x, false, (commandPath == null) ? commandName : $"{commandPath.Trim()} {commandName}", typeFilters);
                 if (command == null) return null;
+
+                if (commandAttributes.Count() > 1)
+                {
+                    command.Aliases = commandAttributes.Skip(1).Select((ca, i) => (x.GetAttributes()[1 + i].ConstructorArguments[0].Value as string)!).ToArray();
+                }
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
                 return command;
@@ -367,6 +373,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         var cmd = new Command
         {
             Name = commandName,
+            Aliases = [],
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,
@@ -522,6 +529,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         var cmd = new Command
         {
             Name = commandName,
+            Aliases = [],
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,
