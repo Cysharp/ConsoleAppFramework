@@ -355,4 +355,103 @@ Options:
         verifier.Execute(code, args: "hello-world --help", expected: expectedCommandHelp);
         verifier.Execute(code, args: "hello-our-world --help", expected: expectedCommandHelp);
     }
+
+    [Fact]
+    public void CommandAliasWithRoot()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<MyClass>();
+app.Run(args);
+
+public class MyClass
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    [Command("")]
+    [Command("hello-world")]
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+""";
+
+
+        verifier.Execute(code, args: "--help", expected: """
+Usage: [command] [-h|--help] [--version]
+
+Commands:
+  hello-world    hello my world.
+
+""");
+
+
+        var expectedCommandHelp = """
+Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
+
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+""";
+        verifier.Execute(code, args: "hello-world --help", expected: expectedCommandHelp);
+    }
+
+    [Fact]
+    public void CommandAliasClassAttribute()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<MyClass>();
+app.Run(args);
+
+[Command("hello-world")]
+public class MyClass
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    [Command("hello-our-world")]
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+""";
+
+
+        verifier.Execute(code, args: "--help", expected: """
+Usage: [command] [-h|--help] [--version]
+
+Commands:
+  hello-world, hello-our-world    hello my world.
+
+""");
+
+
+        var expectedCommandHelp = """
+Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
+
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+""";
+        verifier.Execute(code, args: "hello-world --help", expected: expectedCommandHelp);
+        verifier.Execute(code, args: "hello-our-world --help", expected: expectedCommandHelp);
+    }
 }

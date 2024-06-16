@@ -144,7 +144,7 @@ internal sealed class ArgumentAttribute : Attribute
 {
 }
 
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 internal sealed class CommandAttribute : Attribute
 {
     public string Command { get; }

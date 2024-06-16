@@ -104,6 +104,15 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             return [];
         }
 
+        List<string> aliases = [];
+        if (type.TypeKind.HasFlag(TypeKind.Class))
+        {
+            foreach (var item in type.GetAttributes().Where(x => x.AttributeClass?.Name == "CommandAttribute"))
+            {
+                aliases.Add((item.ConstructorArguments[0].Value as string)!);
+            }
+        }
+
         var hasIDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IDisposable));
         var hasIAsyncDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IAsyncDisposable));
 
@@ -143,7 +152,11 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                 string commandName;
                 var commandAttributes = x.GetAttributes().Where(x => x.AttributeClass?.Name == "CommandAttribute");
                 var firstCommandAttribute = commandAttributes.FirstOrDefault();
-                if (firstCommandAttribute != null)
+                if (aliases.Count > 0)
+                {
+                    commandName = aliases[0];
+                }
+                else if (firstCommandAttribute != null)
                 {
                     commandName = (x.GetAttributes()[0].ConstructorArguments[0].Value as string)!;
                 }
@@ -155,10 +168,12 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                 var command = ParseFromMethodSymbol(x, false, (commandPath == null) ? commandName : $"{commandPath.Trim()} {commandName}", typeFilters);
                 if (command == null) return null;
 
-                if (commandAttributes.Count() > 1)
+                if (commandAttributes.Count() > 0)
                 {
-                    command.Aliases = commandAttributes.Skip(1).Select((ca, i) => (x.GetAttributes()[1 + i].ConstructorArguments[0].Value as string)!).ToArray();
+                    aliases.AddRange(commandAttributes.Select((ca, i) => (x.GetAttributes()[i].ConstructorArguments[0].Value as string)!));
                 }
+
+                command.Aliases = aliases.Select(a => NameConverter.ToKebabCase(a)).Distinct().Where(s => !s.Equals(commandName)).ToArray();
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
                 return command;
