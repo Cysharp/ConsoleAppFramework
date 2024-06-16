@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Linq;
 using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
@@ -447,7 +448,7 @@ internal class Emitter
         {
             var leafCommand = groupedCommands[""].FirstOrDefault();
             IDisposable? ifBlcok = null;
-            if (leafCommand is not null)
+            if (leafCommand is not null && !leafCommand.Command.Name.Equals(""))
             {
                 // Add or-ing of aliases 
                 foreach (var alias in leafCommand.Command.Aliases)
@@ -457,8 +458,6 @@ internal class Emitter
             }
             if (!(groupedCommands.Count == 1 && leafCommand != null))
             {
-
-
                 ifBlcok = sb.BeginBlock($"if (args.Length == {depth})");
             }
             EmitLeafCommand(leafCommand);
@@ -472,9 +471,15 @@ internal class Emitter
                 return;
             }
 
+            IEnumerable<IGrouping<string, CommandWithId>> aliases = [];
+            if (leafCommand?.Command.Aliases.Length > 0)
+            {
+                aliases = leafCommand.Command.Aliases.SelectMany(lc => commandIds.GroupBy(a => lc));
+            }
+
             using (sb.BeginBlock($"switch (args[{depth}])"))
             {
-                foreach (var commands in groupedCommands.Where(x => x.Key != ""))
+                foreach (var commands in groupedCommands.Where(x => x.Key != "").Concat(aliases))
                 {
                     using (sb.BeginIndent($"case \"{commands.Key}\":"))
                     {

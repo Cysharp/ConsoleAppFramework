@@ -104,12 +104,12 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             return [];
         }
 
-        List<string> aliases = [];
+        List<string> rootAliases = [];
         if (type.TypeKind.HasFlag(TypeKind.Class))
         {
             foreach (var item in type.GetAttributes().Where(x => x.AttributeClass?.Name == "CommandAttribute"))
             {
-                aliases.Add((item.ConstructorArguments[0].Value as string)!);
+                rootAliases.Add((item.ConstructorArguments[0].Value as string)!);
             }
         }
 
@@ -152,11 +152,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                 string commandName;
                 var commandAttributes = x.GetAttributes().Where(x => x.AttributeClass?.Name == "CommandAttribute");
                 var firstCommandAttribute = commandAttributes.FirstOrDefault();
-                if (aliases.Count > 0)
-                {
-                    commandName = aliases[0];
-                }
-                else if (firstCommandAttribute != null)
+                if (firstCommandAttribute != null)
                 {
                     commandName = (x.GetAttributes()[0].ConstructorArguments[0].Value as string)!;
                 }
@@ -168,12 +164,20 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                 var command = ParseFromMethodSymbol(x, false, (commandPath == null) ? commandName : $"{commandPath.Trim()} {commandName}", typeFilters);
                 if (command == null) return null;
 
+                List<string> methodAliases = [];
                 if (commandAttributes.Count() > 0)
                 {
-                    aliases.AddRange(commandAttributes.Select((ca, i) => (x.GetAttributes()[i].ConstructorArguments[0].Value as string)!));
+                    methodAliases.AddRange(commandAttributes.Select((ca, i) => (x.GetAttributes()[i].ConstructorArguments[0].Value as string)!));
                 }
 
-                command.Aliases = aliases.Select(a => NameConverter.ToKebabCase(a)).Distinct().Where(s => !s.Equals(commandName)).ToArray();
+                if (command.IsRootCommand)
+                {
+                    command.Aliases = methodAliases.Concat(rootAliases).Select(a => NameConverter.ToKebabCase(a)).Distinct().Where(s => !s.Equals(commandName)).ToArray();
+                }
+                else
+                {
+                    command.Aliases = methodAliases.Select(a => NameConverter.ToKebabCase(a)).Distinct().Where(s => !s.Equals(commandName)).ToArray();
+                }
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
                 return command;

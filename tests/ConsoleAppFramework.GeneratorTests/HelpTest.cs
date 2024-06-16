@@ -322,7 +322,7 @@ public class MyClass
     /// <param name="boo">-b, my boo is not boo.</param>
     /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
     [Command("hello-world")]
-    [Command("hello-our-world")]
+    [Command("hw")]
     public void HelloWorld([Argument]int boo, string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
@@ -335,7 +335,7 @@ public class MyClass
 Usage: [command] [-h|--help] [--version]
 
 Commands:
-  hello-world, hello-our-world    hello my world.
+  hello-world, hw    hello my world.
 
 """);
 
@@ -353,7 +353,7 @@ Options:
 
 """;
         verifier.Execute(code, args: "hello-world --help", expected: expectedCommandHelp);
-        verifier.Execute(code, args: "hello-our-world --help", expected: expectedCommandHelp);
+        verifier.Execute(code, args: "hw --help", expected: expectedCommandHelp);
     }
 
     [Fact]
@@ -373,24 +373,39 @@ public class MyClass
     /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
     [Command("")]
     [Command("hello-world")]
+    [Command("hello-world2")]
+    [Command("hello-world3")]
     public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+
+    [Command("hello-our-world")]
+    public void HelloOurWorld([Argument]int boo, string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
     }
 }
 """;
 
+        var expectedCommandHelp = """
+Usage: [command] [arguments...] [options...] [-h|--help] [--version]
 
-        verifier.Execute(code, args: "--help", expected: """
-Usage: [command] [-h|--help] [--version]
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
 
 Commands:
-  hello-world    hello my world.
+  hello-our-world
 
-""");
+""";
 
-        var expectedCommandHelp = """
-Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
+        var expectedSubCommand = """
+Usage: [arguments...] [options...] [-h|--help] [--version]
 
 hello my world.
 
@@ -401,8 +416,10 @@ Options:
   -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
 
 """;
-        verifier.Execute(code, args: "hello-world --help", expected: expectedCommandHelp);
-        verifier.Execute(code, args: "", expected: expectedCommandHelp);
+
+        verifier.Execute(code, args: "--help", expected: expectedCommandHelp);
+        verifier.Execute(code, args: "", expected: expectedSubCommand);
+        verifier.Execute(code, args: "hello-world --help", expected: expectedSubCommand);
     }
 
     [Fact]
@@ -421,7 +438,7 @@ public class MyClass
     /// </summary>
     /// <param name="boo">-b, my boo is not boo.</param>
     /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
-    [Command("hello-our-world")]
+    [Command("hw")]
     public void HelloWorld([Argument]int boo, string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
@@ -434,7 +451,121 @@ public class MyClass
 Usage: [command] [-h|--help] [--version]
 
 Commands:
-  hello-world, hello-our-world    hello my world.
+  hw    hello my world.
+
+""");
+
+
+        var expectedCommandHelp = """
+Usage: hw [arguments...] [options...] [-h|--help] [--version]
+
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+""";
+        verifier.Execute(code, args: "hw --help", expected: expectedCommandHelp);
+    }
+
+    [Fact]
+    public void CommandClassAttributeAndRootMethod()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<MyClass>();
+app.Run(args);
+
+[Command("hello-world")]
+public class MyClass
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    [Command("")]
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+
+    /// <summary>
+    /// hello our world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    [Command("hello-our-world")]
+    public void HelloOurWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+""";
+
+
+        verifier.Execute(code, args: "--help", expected: """
+Usage: [command] [arguments...] [options...] [-h|--help] [--version]
+
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+Commands:
+  hello-our-world    hello our world.
+
+""");
+    }
+
+    [Fact]
+    public void CommandClassAttributeAndMethodCoalescing()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<MyClass>();
+app.Run(args);
+
+[Command("hello-world")]
+[Command("hw")]
+public class MyClass
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+
+    /// <summary>
+    /// hello our world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    [Command("hello-our-world")]
+    public void HelloOurWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+""";
+
+
+        verifier.Execute(code, args: "--help", expected: """
+Usage: [command] [-h|--help] [--version]
+
+Commands:
+  hello-our-world    hello our world.
+  hello-world, hw    hello my world.
 
 """);
 
