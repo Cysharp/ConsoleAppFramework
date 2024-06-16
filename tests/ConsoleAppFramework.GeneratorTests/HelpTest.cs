@@ -389,7 +389,6 @@ Commands:
 
 """);
 
-
         var expectedCommandHelp = """
 Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
 
@@ -403,6 +402,7 @@ Options:
 
 """;
         verifier.Execute(code, args: "hello-world --help", expected: expectedCommandHelp);
+        verifier.Execute(code, args: "", expected: expectedCommandHelp);
     }
 
     [Fact]
