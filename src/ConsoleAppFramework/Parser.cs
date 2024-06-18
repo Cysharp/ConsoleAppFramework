@@ -138,6 +138,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         };
 
         return publicMethods
+            .Where(x => !x.GetAttributes().Any(y => y.AttributeClass?.Name == "IgnoreAttribute"))
             .Select(x =>
             {
                 string commandName;

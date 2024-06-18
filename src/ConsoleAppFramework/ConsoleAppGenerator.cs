@@ -144,7 +144,7 @@ internal sealed class ArgumentAttribute : Attribute
 {
 }
 
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 internal sealed class CommandAttribute : Attribute
 {
     public string Command { get; }
@@ -153,6 +153,11 @@ internal sealed class CommandAttribute : Attribute
     {
         this.Command = command;
     }
+}
+
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+internal sealed class IgnoreAttribute : Attribute
+{
 }
 
 internal static partial class ConsoleApp
