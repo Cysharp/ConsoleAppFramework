@@ -73,9 +73,9 @@ internal static class RoslynExtensions
         {
             return ctor.ParameterList;
         }
-        else if (node is ClassDeclarationSyntax primartyCtor)
+        else if (node is ClassDeclarationSyntax primaryCtor)
         {
-            return primartyCtor.ParameterList;
+            return primaryCtor.ParameterList;
         }
         else
         {
