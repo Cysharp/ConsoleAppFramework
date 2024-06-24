@@ -491,7 +491,7 @@ For `enum`, it is parsed using `Enum.TryParse(ignoreCase: true)`.
 
 Array parsing has three special patterns.
 
-For a regular `T[]`, if the value starts with `[`, it is parsed using `JsonSerialzier.Deserialize`. Otherwise, it is parsed as comma-separated values. For example, `[1,2,3]` or `1,2,3` are allowed as values. To set an empty array, pass `[]`.
+For a regular `T[]`, if the value starts with `[`, it is parsed using `JsonSerializer.Deserialize`. Otherwise, it is parsed as comma-separated values. For example, `[1,2,3]` or `1,2,3` are allowed as values. To set an empty array, pass `[]`.
 
 For `params T[]`, all subsequent arguments become the values of the array. For example, if there is an input like `--paramsArray foo bar baz`, it will be bound to a value like `["foo", "bar", "baz"]`.
 
