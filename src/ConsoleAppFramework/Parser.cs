@@ -104,6 +104,15 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             return [];
         }
 
+        List<string> rootAliases = [];
+        if (type.TypeKind.HasFlag(TypeKind.Class))
+        {
+            foreach (var item in type.GetAttributes().Where(x => x.AttributeClass?.Name == "CommandAttribute"))
+            {
+                rootAliases.Add((item.ConstructorArguments[0].Value as string)!);
+            }
+        }
+
         var hasIDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IDisposable));
         var hasIAsyncDisposable = type.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, wellKnownTypes.IAsyncDisposable));
 
@@ -141,8 +150,9 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             .Select(x =>
             {
                 string commandName;
-                var commandAttribute = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "CommandAttribute");
-                if (commandAttribute != null)
+                var commandAttributes = x.GetAttributes().Where(x => x.AttributeClass?.Name == "CommandAttribute");
+                var firstCommandAttribute = commandAttributes.FirstOrDefault();
+                if (firstCommandAttribute != null)
                 {
                     commandName = (x.GetAttributes()[0].ConstructorArguments[0].Value as string)!;
                 }
@@ -153,6 +163,21 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
 
                 var command = ParseFromMethodSymbol(x, false, (commandPath == null) ? commandName : $"{commandPath.Trim()} {commandName}", typeFilters);
                 if (command == null) return null;
+
+                List<string> methodAliases = [];
+                if (commandAttributes.Count() > 0)
+                {
+                    methodAliases.AddRange(commandAttributes.Select((ca, i) => (x.GetAttributes()[i].ConstructorArguments[0].Value as string)!));
+                }
+
+                if (command.IsRootCommand)
+                {
+                    command.Aliases = methodAliases.Concat(rootAliases).Select(a => NameConverter.ToKebabCase(a)).Distinct().Where(s => !s.Equals(commandName)).ToArray();
+                }
+                else
+                {
+                    command.Aliases = methodAliases.Select(a => NameConverter.ToKebabCase(a)).Distinct().Where(s => !s.Equals(commandName)).ToArray();
+                }
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
                 return command;
@@ -367,6 +392,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         var cmd = new Command
         {
             Name = commandName,
+            Aliases = [],
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,
@@ -522,6 +548,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         var cmd = new Command
         {
             Name = commandName,
+            Aliases = [],
             IsAsync = isAsync,
             IsVoid = isVoid,
             Parameters = parameters,

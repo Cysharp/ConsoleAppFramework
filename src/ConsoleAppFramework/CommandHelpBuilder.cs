@@ -217,7 +217,7 @@ public static class CommandHelpBuilder
         var formatted = commands
             .Select(x =>
             {
-                return (Command: x.Name, x.Description);
+                return (Command: string.Join(", ", Array.Empty<string>().Concat([x.Name]).Concat(x.Aliases)), x.Description);
             })
             .ToArray();
         maxWidth = formatted.Max(x => x.Command.Length);
