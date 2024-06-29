@@ -142,8 +142,8 @@ public class TestInfo {
 
 public abstract class TestBase
 {
-    public abstract TestInfo PrintInfo();
-    public virtual void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{PrintInfo().TestName} : {value}");
+    public abstract TestInfo GetTestInfo();
+    public virtual void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{GetTestInfo().TestName} : {value}");
 }
 
 public class Test : TestBase
@@ -151,10 +151,10 @@ public class Test : TestBase
     // This will fail at compile time with the error code CAF003
     // By adding the Ignore Attribute we prevent this compiler error as it then will not be included as a command
     [Ignore]
-    public override TestInfo PrintInfo() => new TestInfo() { TestName = "Test1" };
+    public override TestInfo GetTestInfo() => new TestInfo() { TestName = "Test1" };
     public override void Show(string aaa, [Range(0, 1)] double value){
         base.Show(aaa, value);
-        ConsoleApp.Log($"{PrintInfo().TestName}x2 : {value * 2}");
+        ConsoleApp.Log($"{GetTestInfo().TestName}x2 : {value * 2}");
     }
 }
 
