@@ -140,14 +140,17 @@ public class TestInfo {
     public string TestName { get; set; }
 }
 
-public abstact class TestBase
+public abstract class TestBase
 {
     public abstract TestInfo PrintInfo();
-    public virtual void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+    public virtual void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value} : {PrintInfo()}");
 }
 
 public class Test : TestBase
 {
+    // This will fail at compiletime with CAF003
+    // By adding the Ignore Attribute we prevent this compile error as it would be included as a command
+    [Ignore]
     public override TestInfo PrintInfo() => new TestInfo() { TestName = "Test1" };
     public override void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
 }
