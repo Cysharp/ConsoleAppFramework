@@ -121,4 +121,38 @@ public class Test
 """, "show --aaa foo --value 100", expected);
 
     }
+
+    [Fact]
+    public void ValidateAbstractClass()
+    {
+        var expected = """
+The field value must be between 0 and 1.
+
+
+""";
+
+        verifier.Execute("""
+var app = ConsoleApp.Create();
+app.Add<Test>();
+app.Run(args);
+
+public class TestInfo {
+    public string TestName { get; set; }
+}
+
+public abstact class TestBase
+{
+    public abstract TestInfo PrintInfo();
+    public virtual void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+}
+
+public class Test : TestBase
+{
+    public override TestInfo PrintInfo() => new TestInfo() { TestName = "Test1" };
+    public override void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+}
+
+""", "show --aaa foo --value 100", expected);
+
+    }
 }
