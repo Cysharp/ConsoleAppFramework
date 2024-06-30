@@ -311,7 +311,7 @@ Options:
     {
         var code = """
 var app = ConsoleApp.Create();
-app.Add<MyClass>();
+app.Add<MyClass>("mc");
 app.Run(args);
 
 [Command("mc")]
@@ -406,7 +406,6 @@ Options:
 var app = ConsoleApp.Create();
 app.Add<MyClass>();
 app.Add<MyClass2>();
-app.SubcommandHelp(DisplayType.Default);
 app.Run(args);
 
 /// <summary>
@@ -444,16 +443,16 @@ public class MyClass2
 }
 """;
         verifier.Execute(code, args: "--help", expected: """
-Usage: [command] [options...] [-h|--help] [--version]
+Usage: [command] [-h|--help] [--version]
 
 Commands:
-  mc hello-world     hello my world.
-  mc2 hello-world2   hello my world.
+  mc hello-world      hello my world.
+  mc2 hello-world2    hello my world.
 
 """);
 
         verifier.Execute(code, args: "mc hello-world --help", expected: """
-Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
+Usage: mc hello-world [arguments...] [options...] [-h|--help] [--version]
 
 hello my world.
 

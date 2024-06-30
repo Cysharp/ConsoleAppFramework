@@ -55,8 +55,32 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
         var genericType = genericName!.TypeArgumentList.Arguments[0];
 
-        // Add<T>(string commandPath)
         string? commandPath = null;
+
+        if (genericName != null)
+        {
+            var className = genericName.TypeArgumentList.Arguments.First().ToString();
+
+            // Find the class declaration with the matching class name
+            var classDeclaration = node.SyntaxTree.GetRoot().DescendantNodes()
+                .OfType<ClassDeclarationSyntax>()
+                .FirstOrDefault(c => c.Identifier.Text == className);
+
+            if (classDeclaration != null)
+            {
+                var commandAttribute = classDeclaration.AttributeLists
+                    .SelectMany(al => al.Attributes)
+                    .FirstOrDefault(a => a.Name.ToString() == "Command");
+
+                var attributeArgument = commandAttribute?.ArgumentList?.Arguments.FirstOrDefault()?.ToString().Trim('"');
+                if (attributeArgument != null)
+                {
+                    commandPath = attributeArgument;
+                }
+            }
+        }
+
+        // Add<T>(string commandPath)
         var args = node.ArgumentList.Arguments;
         if (node.ArgumentList.Arguments.Count == 1)
         {
@@ -67,7 +91,14 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                 return [];
             }
 
-            commandPath = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            if (commandPath == null)
+            {
+                commandPath = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            }
+            else
+            {
+                context.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, commandName.GetLocation(), commandPath);
+            }
         }
 
         // T
