@@ -333,7 +333,7 @@ public class MyClass
 Usage: mc [command] [options...] [-h|--help] [--version]
 
 Commands:
-  hello-world
+  hello-world    hello my world.
 
 """);
         verifier.Execute(code, args: "hello-world --help", expected: """
@@ -381,7 +381,7 @@ Usage: mc [command] [options...] [-h|--help] [--version]
 My class
 
 Commands:
-  hello-world
+  hello-world    hello my world.
 
 """);
 
@@ -447,8 +447,8 @@ public class MyClass2
 Usage: [command] [options...] [-h|--help] [--version]
 
 Commands:
-  mc hello-world
-  mc2 hello-world2
+  mc hello-world     hello my world.
+  mc2 hello-world2   hello my world.
 
 """);
 
@@ -514,8 +514,8 @@ public class MyClass2
 Usage: [command] [options...] [-h|--help] [--version]
 
 Commands:
-  mc
-  mc2
+  mc    My class
+  mc2   My class 2
 
 """);
 
@@ -580,8 +580,8 @@ public class MyClass
 Usage: [command] [options...] [-h|--help] [--version]
 
 Commands:
-  mc hello-world
-  hello-world
+  hello-world      My classz
+  mc hello-world   hello my world.
 
 """);
 
@@ -653,7 +653,7 @@ Options:
   -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
 
 Commands:
-  mc hello-world
+  mc hello-world   hello my world.
 
 """);
 
