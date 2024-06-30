@@ -96,7 +96,7 @@ namespace Takoyaki
          public int Foo { get; set; }
     }
 }
-""", "--foo 10 --bar aiueo --ft Grape --flag --half 1.3 --itt 99 --obj {\"Foo\":1999}", "10aiueoGrapeTrue1.3991999");
+""", "--foo 10 --bar aiueo --ft Grape --flag --half 1.3 --itt 99 --obj {\"Foo\":1999}", "10aiueoGrapeTrue13991999");
     }
 
     [Fact]
