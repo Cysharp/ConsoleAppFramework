@@ -472,7 +472,7 @@ Options:
 var app = ConsoleApp.Create();
 app.Add<MyClass>();
 app.Add<MyClass2>();
-app.SubcommandHelp(DisplayType.Hidden);
+app.SubcommandHelp(ConsoleApp.DisplayType.Hidden);
 app.Run(args);
 
 /// <summary>
@@ -515,6 +515,16 @@ Usage: [command] [options...] [-h|--help] [--version]
 Commands:
   mc    My class
   mc2   My class 2
+
+""");
+
+        verifier.Execute(code, args: "mc --help", expected: """
+Usage: mc [command] [options...] [-h|--help] [--version]
+
+My class
+
+Commands:
+  hello-world    hello my world.
 
 """);
 

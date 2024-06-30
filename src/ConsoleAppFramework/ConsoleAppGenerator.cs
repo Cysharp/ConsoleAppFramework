@@ -63,7 +63,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
                     var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync")
+                    if (methodName is "Add" or "SubcommandHelp" or "UseFilter" or "Run" or "RunAsync")
                     {
                         return true;
                     }
@@ -457,6 +457,12 @@ internal static partial class ConsoleApp
         }
     }
 
+    public enum DisplayType 
+    {
+        Default,
+        Hidden
+    }
+
     internal partial struct ConsoleAppBuilder
     {
         public ConsoleAppBuilder()
@@ -466,6 +472,11 @@ internal static partial class ConsoleApp
         public void Add(string commandName, Delegate command)
         {
             AddCore(commandName, command);
+        }
+
+        public void SubcommandHelp(DisplayType displayType)
+        {
+            // Not Implemented yet
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
