@@ -62,7 +62,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             var className = genericName.TypeArgumentList.Arguments.First().ToString();
 
             // Find the class declaration with the matching class name
-            var classDeclaration = node.SyntaxTree.GetRoot().DescendantNodes()
+            var classDeclaration = model.SyntaxTree.GetRoot().DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
                 .FirstOrDefault(c => c.Identifier.Text == className);
 

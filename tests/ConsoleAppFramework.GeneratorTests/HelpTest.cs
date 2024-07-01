@@ -609,6 +609,85 @@ Options:
     }
 
     [Fact]
+    public void AppWithClassWithSameCommandName()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<MyClass1>();
+app.Add<MyClass2>();
+app.Run(args);
+
+/// <summary>
+/// My class
+/// </summary>
+[Command("mc1")]
+public class MyClass1
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+
+/// <summary>
+/// My class
+/// </summary>
+[Command("mc2")]
+public class MyClass2
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World2! " + fooBar);
+    }
+}
+""";
+        verifier.Execute(code, args: "--help", expected: """
+Usage: [command] [-h|--help] [--version]
+
+Commands:
+  mc1 hello-world    hello my world.
+  mc2 hello-world    hello my world.
+
+""");
+
+        verifier.Execute(code, args: "mc1 hello-world --help", expected: """
+Usage: mc1 hello-world [arguments...] [options...] [-h|--help] [--version]
+
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+""");
+
+        verifier.Execute(code, args: "mc2 hello-world --help", expected: """
+Usage: mc2 hello-world [arguments...] [options...] [-h|--help] [--version]
+
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+""");
+    }
+
+    [Fact]
     public void AppWithClassRootAndRootCommand()
     {
         var code = """
@@ -652,6 +731,81 @@ public class MyClass
     }
 }
 """;
+        verifier.Execute(code, args: "--help", expected: """
+Usage: [command] | hello-world [arguments...] [options...] [-h|--help] [--version]
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+Commands:
+  mc hello-world   hello my world.
+
+""");
+
+        verifier.Execute(code, args: "mc hello-world --help", expected: """
+Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
+
+hello my world.
+
+Arguments:
+  [0] <int>    my boo is not boo.
+
+Options:
+  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+
+""");
+    }
+
+    [Fact]
+    public void AppWithClassRootAndRootCommandWithSameCommandName()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<Root>();
+app.Add<MyClass>();
+app.Run(args);
+
+/// <summary>
+/// My class
+/// </summary>
+[Command("")]
+public class Root
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    [Command("")]
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+
+/// <summary>
+/// My class
+/// </summary>
+[Command("mc")]
+public class MyClass
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="boo">-b, my boo is not boo.</param>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    public void HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World2! " + fooBar);
+    }
+}
+""";
+
+        verifier.Ok(code);
+
         verifier.Execute(code, args: "--help", expected: """
 Usage: [command] | hello-world [arguments...] [options...] [-h|--help] [--version]
 
