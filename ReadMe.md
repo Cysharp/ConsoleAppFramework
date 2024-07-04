@@ -943,7 +943,8 @@ If you have other applications such as ASP.NET in the entire project and want to
 var builder = Host.CreateApplicationBuilder(); // don't pass args.
 
 using var host = builder.Build(); // use using for host lifetime
-ConsoleApp.ServiceProvider = host.Services; // use host ServiceProvider
+using var scope = host.Services.CreateScope(); // create execution scope
+ConsoleApp.ServiceProvider = scope.ServiceProvider; // use host scoped ServiceProvider
 
 ConsoleApp.Run(args, ([FromServices] ILogger<Program> logger) => logger.LogInformation("Hello World!"));
 ```
@@ -987,7 +988,8 @@ v4 was running on top of `Microsoft.Extensions.Hosting`, so build a Host in the 
 
 ```csharp
 using var host = Host.CreateDefaultBuilder().Build(); // use using for host lifetime
-ConsoleApp.ServiceProvider = host.ServiceProvider;
+using var scope = host.Services.CreateScope(); // create execution scope
+ConsoleApp.ServiceProvider = scope.ServiceProvider;
 ```
 
 * `var app = ConsoleApp.Create(args); app.Run();` -> `var app = ConsoleApp.Create(); app.Run(args);`
