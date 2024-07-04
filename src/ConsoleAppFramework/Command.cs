@@ -22,6 +22,8 @@ public record class Command
     public bool IsRootCommand => Name == "";
     public required string Name { get; init; }
 
+    public required string[] Aliases { get; set; }
+
     public required EquatableArray<CommandParameter> Parameters { get; init; }
     public required string Description { get; init; }
     public required MethodKind MethodKind { get; init; }
