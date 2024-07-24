@@ -144,7 +144,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
                 var commandAttribute = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "CommandAttribute");
                 if (commandAttribute != null)
                 {
-                    commandName = (x.GetAttributes()[0].ConstructorArguments[0].Value as string)!;
+                    commandName = (commandAttribute.ConstructorArguments[0].Value as string)!;
                 }
                 else
                 {
