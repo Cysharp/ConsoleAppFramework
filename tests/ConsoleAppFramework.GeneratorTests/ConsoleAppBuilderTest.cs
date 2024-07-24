@@ -241,7 +241,46 @@ public class MyClass()
 
         verifier.Execute(code, "nomunomu", "yeah");
     }
+
+ [Fact]
+    public void CommandAttrWithFilter()
+    {
+        var code = """
+var builder = ConsoleApp.Create();
+builder.Add<MyClass>();
+builder.Run(args);
+
+public class MyClass()
+{
+    [ConsoleAppFilter<NopFilter1>]
+    [Command("nomunomu")]
+    [ConsoleAppFilter<NopFilter2>]
+    public void Do()
+    {
+        Console.Write("command");
+    }
 }
 
+internal class NopFilter1(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
+    {
+        Console.Write("filter1-");
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+internal class NopFilter2(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context,CancellationToken cancellationToken)
+    {
+        Console.Write("filter2-");
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+""";
 
-
+        verifier.Execute(code, "nomunomu", "filter1-filter2-command");
+    }
+}
