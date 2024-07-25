@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using Xunit.Abstractions;
@@ -34,7 +35,7 @@ global using ConsoleAppFramework;
         baseCompilation = compilation;
     }
 
-    public static (Compilation, ImmutableArray<Diagnostic>) RunGenerator(string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public static (Compilation, ImmutableArray<Diagnostic>) RunGenerator([StringSyntax("C#-test")] string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
         if (preprocessorSymbols == null)
         {
@@ -139,7 +140,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 {
     // Diagnostics Verify
 
-    public void Ok(string code, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public void Ok([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         output.WriteLine(codeExpr);
 
@@ -153,7 +154,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         diagnostics.Length.Should().Be(0);
     }
 
-    public void Verify(int id, string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public void Verify(int id, [StringSyntax("C#-test")] string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         output.WriteLine(codeExpr);
 
@@ -171,7 +172,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         text.Should().Be(diagnosticsCodeSpan);
     }
 
-    public (string, string)[] Verify(string code, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public (string, string)[] Verify([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         output.WriteLine(codeExpr);
 
@@ -182,7 +183,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     // Execute and check stdout result
 
-    public void Execute(string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public void Execute([StringSyntax("C#-test")]string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         output.WriteLine(codeExpr);
 
@@ -196,7 +197,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         stdout.Should().Be(expected);
     }
 
-    public string Error(string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public string Error([StringSyntax("C#-test")] string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         output.WriteLine(codeExpr);
 
