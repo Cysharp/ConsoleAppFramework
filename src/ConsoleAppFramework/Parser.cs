@@ -79,6 +79,12 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
             return [];
         }
 
+        if (type.DeclaringSyntaxReferences.Length == 0)
+        {
+            context.ReportDiagnostic(DiagnosticDescriptors.DefinedInOtherProject, node.GetLocation());
+            return [];
+        }
+
         var publicMethods = type.GetMembers()
             .Where(x => x.DeclaredAccessibility == Accessibility.Public)
             .OfType<IMethodSymbol>()
@@ -381,6 +387,12 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
 
     Command? ParseFromMethodSymbol(IMethodSymbol methodSymbol, bool addressOf, string commandName, FilterInfo[] typeFilters)
     {
+        if (methodSymbol.DeclaringSyntaxReferences.Length == 0)
+        {
+            context.ReportDiagnostic(DiagnosticDescriptors.DefinedInOtherProject, node.GetLocation());
+            return null;
+        }
+
         var docComment = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax().GetDocumentationCommentTriviaSyntax();
         var summary = "";
         Dictionary<string, string>? parameterDescriptions = null;

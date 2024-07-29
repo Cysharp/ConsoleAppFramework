@@ -10,3 +10,11 @@ public class TakoFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
         return Next.InvokeAsync(context, cancellationToken);
     }
 }
+
+public class OtherProjectCommand
+{
+    public void Execute(int x)
+    {
+        Console.WriteLine("Hello?");
+    }
+}

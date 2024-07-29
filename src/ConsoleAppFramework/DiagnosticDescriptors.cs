@@ -110,4 +110,8 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor ClassIsStaticOrAbstract { get; } = Create(
         13,
         "ConsoleAppBuilder.Add<T> class does not allow static or abstract classes.");
+
+    public static DiagnosticDescriptor DefinedInOtherProject { get; } = Create(
+        14,
+        "ConsoleAppFramework cannot register type/method in another project outside the SourceGenerator referenced project.");
 }
