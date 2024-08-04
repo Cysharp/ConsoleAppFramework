@@ -597,7 +597,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         if (splitOne[0].TrimStart().StartsWith("-"))
         {
             aliases = splitOne[0].Split(['|'], StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
-            description = splitOne[1].Trim();
+            description = splitOne.Length > 1 ? splitOne[1].Trim() : string.Empty;
         }
         else
         {
