@@ -591,13 +591,13 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         // Example:
         // -h|--help, This is a help.
 
-        var splitOne = originalDescription.Split(',');
+        var splitOne = originalDescription.Split(',', 2);
 
         // has alias
         if (splitOne[0].TrimStart().StartsWith("-"))
         {
             aliases = splitOne[0].Split(['|'], StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
-            description = string.Join("", splitOne.Skip(1)).Trim();
+            description = splitOne[1].Trim();
         }
         else
         {
