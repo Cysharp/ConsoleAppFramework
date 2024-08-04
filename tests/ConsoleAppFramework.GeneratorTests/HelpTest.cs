@@ -285,7 +285,7 @@ public class MyClass
     /// hello my world.
     /// </summary>
     /// <param name="boo">-b, my boo is not boo.</param>
-    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    /// <param name="fooBar">-f|-fb, my foo, is not bar.</param>
     public void HelloWorld([Argument]int boo, string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
@@ -301,7 +301,7 @@ Arguments:
   [0] <int>    my boo is not boo.
 
 Options:
-  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+  -f|-fb|--foo-bar <string>    my foo, is not bar. (Required)
 
 """);
     }
