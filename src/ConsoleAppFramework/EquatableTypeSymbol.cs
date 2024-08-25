@@ -26,3 +26,8 @@ public class EquatableTypeSymbol(ITypeSymbol typeSymbol) : IEquatable<EquatableT
         return this.TypeSymbol.EqualsNamespaceAndName(other.TypeSymbol);
     }
 }
+
+static class EquatableTypeSymbolExtensions
+{
+    public static EquatableTypeSymbol ToEquatable(this ITypeSymbol typeSymbol) => new(typeSymbol);
+}
