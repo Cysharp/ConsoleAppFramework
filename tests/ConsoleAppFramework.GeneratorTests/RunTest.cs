@@ -121,4 +121,51 @@ public class Test
 """, "show --aaa foo --value 100", expected);
 
     }
+
+    [Fact]
+    public void StringEscape()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<MyCommands>();
+app.Run(args);
+
+public class MyCommands
+{
+    [Command("Error1")]
+    public void Error1(string msg = @"\")
+    {
+        Console.Write(msg);
+    }
+    [Command("Error2")]
+    public void Error2(string msg = "\\")
+    {
+        Console.Write(msg);
+    }
+    [Command("Output")]
+    public void Output(string msg = @"\\")
+    {
+        Console.Write(msg); 
+    }
+}
+""";
+
+        verifier.Execute(code, "Error1", @"\");
+        verifier.Execute(code, "Error2", "\\");
+        verifier.Execute(code, "Output", @"\\");
+
+        // lambda
+
+        verifier.Execute("""
+ConsoleApp.Run(args, (string msg = @"\") => Console.Write(msg));
+""", "", @"\");
+
+        verifier.Execute("""
+ConsoleApp.Run(args, (string msg = "\\") => Console.Write(msg));
+""", "", "\\");
+
+        verifier.Execute("""
+ConsoleApp.Run(args, (string msg = @"\\") => Console.Write(msg));
+""", "", @"\\");
+    }
 }

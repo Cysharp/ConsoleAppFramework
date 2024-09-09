@@ -292,7 +292,8 @@ public record class CommandParameter
         }
         if (DefaultValue is string s)
         {
-            return "\"" + s + "\"";
+            // default string value is escaped in symbol so safe to use @
+            return "@\"" + s + "\"";
         }
         if (DefaultValue == null)
         {
