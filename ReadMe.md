@@ -156,7 +156,7 @@ Getting Started
 --
 This library is distributed via NuGet, minimal requirement is .NET 8 and C# 12.
 
-> PM> Install-Package [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
+> dotnet add package [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
 
 ConsoleAppFramework is an analyzer (Source Generator) and does not have any dll references. When referenced, the entry point class `ConsoleAppFramework.ConsoleApp` is generated internally.
 
