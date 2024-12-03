@@ -38,5 +38,4 @@ jobs:
       dry-run: ${{ inputs.dry-run }}
       tag: ${{ inputs.tag }}
       nuget-push: true
-      unitypackage-upload: false
     secrets: inherit
