@@ -1,10 +1,19 @@
 ﻿using ConsoleAppFramework;
 using FilterShareProject;
+using Microsoft.Extensions.DependencyInjection;
 
 
 args = ["Output"];
 
 var app = ConsoleApp.Create();
+
+// ConsoleApp.ServiceProvider
+// ConsoleApp.Create(
+
+ConsoleApp.Create(sc =>
+{
+    
+});
 
 app.Add<MyCommands>();
 
@@ -37,5 +46,25 @@ public class MyCommands
     public void Output(string msg = @"\\")
     {
         Console.WriteLine(msg); // 「\」
+    }
+}
+
+namespace ConsoleAppFramework
+{
+    internal static partial class ConsoleApp
+    {
+        //public static ConsoleAppBuilder Create(IServiceProvider serviceProvider)
+        //{
+        //    ConsoleApp.ServiceProvider = serviceProvider;
+        //    return ConsoleApp.Create();
+        //}
+
+        //public static ConsoleAppBuilder Create(Action<IServiceCollection> configure)
+        //{
+        //    var services = new ServiceCollection();
+        //    configure(services);
+        //    ConsoleApp.ServiceProvider = services.BuildServiceProvider();
+        //    return ConsoleApp.Create();
+        //}
     }
 }

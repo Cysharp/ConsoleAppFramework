@@ -199,6 +199,12 @@ internal static partial class ConsoleApp
 
     public static ConsoleAppBuilder Create() => new ConsoleAppBuilder();
 
+    public static ConsoleAppBuilder Create(IServiceProvider serviceProvider)
+    {
+        ConsoleApp.ServiceProvider = serviceProvider;
+        return ConsoleApp.Create();
+    }
+
     static void ThrowArgumentParseFailed(string argumentName, string value)
     {
         throw new ArgumentParseFailedException($"Argument '{argumentName}' failed to parse, provided value: {value}");
@@ -667,6 +673,26 @@ using System.ComponentModel.DataAnnotations;
             emitter.EmitHelp(help, commandIds!);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
+
+        // emit Create(IServiceCollection) if exists Microsoft.Extensions.DependencyInjection.ServiceCollection
+        if (collectBuilderContext.HasDependencyInjectionReference)
+        {
+            var runBuilder = new SourceBuilder(0);
+            runBuilder.AppendLine(GeneratedCodeHeader);
+            runBuilder.AppendLine("using Microsoft.Extensions.DependencyInjection");
+            runBuilder.AppendLine();
+            using (runBuilder.BeginBlock("internal static partial class ConsoleApp"))
+            {
+                using (runBuilder.BeginBlock("public static ConsoleAppBuilder Create(Action<IServiceCollection> configure)"))
+                {
+                    runBuilder.AppendLine("var services = new ServiceCollection();");
+                    runBuilder.AppendLine("configure(services);");
+                    runBuilder.AppendLine("ConsoleApp.ServiceProvider = services.BuildServiceProvider();");
+                    runBuilder.AppendLine("return ConsoleApp.Create();");
+                }
+            }
+            sourceProductionContext.AddSource("ConsoleApp.Builder.Run.g.cs", runBuilder.ToString());
+        }
     }
 
     class CommanContext(Command? command, bool isAsync, DiagnosticReporter diagnosticReporter, InvocationExpressionSyntax node) : IEquatable<CommanContext>
@@ -694,6 +720,7 @@ using System.ComponentModel.DataAnnotations;
         public CancellationToken CancellationToken { get; }
         public bool HasRun { get; }
         public bool HasRunAsync { get; }
+        public bool HasDependencyInjectionReference { get; }
 
         public CollectBuilderContext(ImmutableArray<BuilderContext> contexts, CancellationToken cancellationToken)
         {
@@ -805,6 +832,10 @@ using System.ComponentModel.DataAnnotations;
             this.Commands = commands1.Concat(commands2!).ToArray()!; // not null if no diagnostics
             this.HasRun = methodGroup["Run"].Any();
             this.HasRunAsync = methodGroup["RunAsync"].Any();
+            
+            var model = contexts[0].Model;
+            var serviceCollectionSymbol = model.Compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.ServiceCollection");
+            this.HasDependencyInjectionReference = serviceCollectionSymbol != null;
         }
 
         public bool Equals(CollectBuilderContext other)
@@ -812,6 +843,7 @@ using System.ComponentModel.DataAnnotations;
             if (DiagnosticReporter.HasDiagnostics || other.DiagnosticReporter.HasDiagnostics) return false;
             if (HasRun != other.HasRun) return false;
             if (HasRunAsync != other.HasRunAsync) return false;
+            if (HasDependencyInjectionReference != other.HasDependencyInjectionReference) return false;
 
             return Commands.AsSpan().SequenceEqual(other.Commands);
         }

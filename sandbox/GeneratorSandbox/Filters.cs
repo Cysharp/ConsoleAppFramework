@@ -1,6 +1,6 @@
 ﻿
 using ConsoleAppFramework;
-using Microsoft.Extensions.DependencyInjection;
+// using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -107,12 +107,12 @@ internal class PreventMultipleSameCommandInvokeFilter(ConsoleAppFilter next) : C
 }
 
 
-internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
-{
-    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
-    {
-        // create Microsoft.Extensions.DependencyInjection scope
-        await using var scope = serviceProvider.CreateAsyncScope();
-        await Next.InvokeAsync(context, cancellationToken);
-    }
-}
+//internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
+//{
+//    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+//    {
+//        // create Microsoft.Extensions.DependencyInjection scope
+//        await using var scope = serviceProvider.CreateAsyncScope();
+//        await Next.InvokeAsync(context, cancellationToken);
+//    }
+//}
