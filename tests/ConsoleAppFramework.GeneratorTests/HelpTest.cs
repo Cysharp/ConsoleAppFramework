@@ -38,6 +38,22 @@ ConsoleApp.Run(args, (int x, int y) => { });
     }
 
     [Fact]
+    public void VersionOnBuilder()
+    {
+        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+
+        verifier.Execute(code: """
+var app = ConsoleApp.Create();
+app.Run(args);
+""",
+    args: "--version",
+    expected: $$"""
+{{version}}
+
+""");
+    }
+
+    [Fact]
     public void Run()
     {
         verifier.Execute(code: """

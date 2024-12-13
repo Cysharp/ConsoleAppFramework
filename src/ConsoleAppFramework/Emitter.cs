@@ -500,7 +500,7 @@ internal class Emitter
             {
                 if (command == null)
                 {
-                    sb.AppendLine("ShowHelp(-1);");
+                    sb.AppendLine($"if (!TryShowHelpOrVersion(args.AsSpan({depth}), -1, -1)) ShowHelp(-1);");
                 }
                 else
                 {

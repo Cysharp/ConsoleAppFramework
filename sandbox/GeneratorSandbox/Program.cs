@@ -1,22 +1,21 @@
 ﻿using ConsoleAppFramework;
 using FilterShareProject;
+using System.Reflection;
+
 //using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.CompilerServices;
 
-
-args = ["Output"];
-
+args = ["--version"];
+Console.WriteLine(args.Length);
+Console.WriteLine(args.AsSpan(0).Length);
 
 // ConsoleApp.ServiceProvider
 // ConsoleApp.Create(
 
 
+// ConsoleApp.Run(args, (int x, int y) => { });
 var app = ConsoleApp.Create();
-
-// var app = ConsoleApp.Create();
-
-// app.Add<MyCommands>();
-app.Add<MyCommands>();
+app.Add<MyCommands>("zzz");
 
 app.Run(args);
 
