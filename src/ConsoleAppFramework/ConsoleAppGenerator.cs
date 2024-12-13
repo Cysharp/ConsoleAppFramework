@@ -13,7 +13,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
     {
         context.RegisterPostInitializationOutput(EmitConsoleAppTemplateSource);
 
-        // ConsoleApp.Create(Action<IServiceCollection> configure)
+        // TODO: modify this. ConsoleApp.Create(Action<IServiceCollection> configure)
         var hasDependencyInjection = context.MetadataReferencesProvider
             .Where(x =>
             {
@@ -23,6 +23,21 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             .Select((x, ct) => x.Length != 0);
 
         context.RegisterSourceOutput(hasDependencyInjection, EmitConsoleAppCreateConfigure);
+
+        var generatorOptions = context.CompilationProvider.Select((compilation, token) =>
+        {
+            foreach (var attr in compilation.Assembly.GetAttributes())
+            {
+                if (attr.AttributeClass?.Name == "ConsoleAppFrameworkGeneratorOptionsAttribute")
+                {
+                    var args = attr.NamedArguments;
+                    var disableNamingConversion = args.FirstOrDefault(x => x.Key == "DisableNamingConversion").Value.Value as bool? ?? false;
+                    return new ConsoleAppFrameworkGeneratorOptions(disableNamingConversion);
+                }
+            }
+
+            return new ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion: false);
+        });
 
         // ConsoleApp.Run
         var runSource = context.SyntaxProvider
@@ -47,12 +62,15 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 }
 
                 return false;
-            }, (context, ct) =>
+            }, (context, ct) => context)
+            .Combine(generatorOptions)
+            .Select((t, ct) =>
             {
+                var (context, options) = t;
                 var reporter = new DiagnosticReporter();
                 var node = (InvocationExpressionSyntax)context.Node;
                 var wellknownTypes = new WellKnownTypes(context.SemanticModel.Compilation);
-                var parser = new Parser(reporter, node, context.SemanticModel, wellknownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, []);
+                var parser = new Parser(options, reporter, node, context.SemanticModel, wellknownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, []);
                 var isRunAsync = (node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync";
 
                 var command = parser.ParseAndValidateForRun();
@@ -96,7 +114,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             })
             .WithTrackingName("ConsoleApp.Builder.1_Where")
             .Collect()
-            .Select((x, ct) => new CollectBuilderContext(x, ct))
+            .Combine(generatorOptions)
+            .Select((x, ct) => new CollectBuilderContext(x.Right, x.Left, ct))
             .WithTrackingName("ConsoleApp.Builder.2_Collect");
 
         var registerCommands = context.SyntaxProvider.ForAttributeWithMetadataName("ConsoleAppFramework.RegisterCommandsAttribute",
@@ -193,6 +212,12 @@ internal sealed class RegisterCommandsAttribute : Attribute
     {
         this.CommandPath = commandPath;
     }
+}
+
+[AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false, Inherited = false)]
+public class ConsoleAppFrameworkGeneratorOptionsAttribute : Attribute
+{
+    public bool DisableNamingConversion { get; set; }
 }
 
 internal static partial class ConsoleApp
@@ -773,11 +798,13 @@ internal static partial class ConsoleApp
         public bool HasRunAsync { get; }
 
         FilterInfo[]? globalFilters { get; }
+        ConsoleAppFrameworkGeneratorOptions generatorOptions { get; }
 
-        public CollectBuilderContext(ImmutableArray<BuilderContext> contexts, CancellationToken cancellationToken)
+        public CollectBuilderContext(ConsoleAppFrameworkGeneratorOptions generatorOptions, ImmutableArray<BuilderContext> contexts, CancellationToken cancellationToken)
         {
             this.DiagnosticReporter = new DiagnosticReporter();
             this.CancellationToken = cancellationToken;
+            this.generatorOptions = generatorOptions;
 
             // validation, invoke in loop is not allowed.
             foreach (var item in contexts)
@@ -836,7 +863,7 @@ internal static partial class ConsoleApp
                 .Select(x =>
                 {
                     var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-                    var parser = new Parser(DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, globalFilters);
+                    var parser = new Parser(generatorOptions, DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, globalFilters);
                     var command = parser.ParseAndValidateForBuilderDelegateRegistration();
 
                     // validation command name duplicate
@@ -855,7 +882,7 @@ internal static partial class ConsoleApp
                 .SelectMany(x =>
                 {
                     var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-                    var parser = new Parser(DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                    var parser = new Parser(generatorOptions, DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
                     var commands = parser.ParseAndValidateForBuilderClassRegistration();
 
                     // validation command name duplicate
@@ -903,7 +930,7 @@ internal static partial class ConsoleApp
                 }
 
                 var wellKnownTypes = new WellKnownTypes(ctx.SemanticModel.Compilation);
-                var parser = new Parser(DiagnosticReporter, ctx.TargetNode, ctx.SemanticModel, wellKnownTypes, DelegateBuildType.None, globalFilters ?? []);
+                var parser = new Parser(generatorOptions, DiagnosticReporter, ctx.TargetNode, ctx.SemanticModel, wellKnownTypes, DelegateBuildType.None, globalFilters ?? []);
 
                 var commands = parser.CreateCommandsFromType((ITypeSymbol)ctx.TargetSymbol, commandPath);
 

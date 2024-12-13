@@ -1,23 +1,14 @@
 ﻿using ConsoleAppFramework;
-using FilterShareProject;
-using System.Reflection;
 
-//using Microsoft.Extensions.DependencyInjection;
-using System.Runtime.CompilerServices;
-
-args = ["--version"];
-Console.WriteLine(args.Length);
-Console.WriteLine(args.AsSpan(0).Length);
-
-// ConsoleApp.ServiceProvider
-// ConsoleApp.Create(
+[assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
 
 
-// ConsoleApp.Run(args, (int x, int y) => { });
+args = ["HelloWorld", "--help"];
 var app = ConsoleApp.Create();
-app.Add<MyCommands>("zzz");
-
+//app.Add<MyCommands>();
+app.Add<Tacommands>();
 app.Run(args);
+
 
 
 
@@ -53,10 +44,11 @@ public class MyCommands
     }
 }
 
-[HogeHoge.Batch2Attribute]
 public class Tacommands
 {
-
+    public void HelloWorld(int hogeMoge)
+    {
+    }
 }
 
 namespace ConsoleAppFramework
@@ -101,8 +93,13 @@ namespace ConsoleAppFramework
 
 }
 
+
+
+
 namespace HogeHoge
 {
+
+
 
     public class BatchAttribute : Attribute
     {

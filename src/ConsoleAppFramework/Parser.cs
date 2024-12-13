@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConsoleAppFramework;
 
-internal class Parser(DiagnosticReporter context, SyntaxNode node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
+internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, DiagnosticReporter context, SyntaxNode node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
 {
     public Command? ParseAndValidateForRun() // for ConsoleApp.Run, lambda or method or &method
     {
@@ -160,7 +160,7 @@ internal class Parser(DiagnosticReporter context, SyntaxNode node, SemanticModel
                 }
                 else
                 {
-                    commandName = NameConverter.ToKebabCase(x.Name);
+                    commandName = generatorOptions.DisableNamingConversion ? x.Name : NameConverter.ToKebabCase(x.Name);
                 }
 
                 var command = ParseFromMethodSymbol(x, false, (commandPath == null) ? commandName : $"{commandPath.Trim()} {commandName}", typeFilters);
@@ -354,7 +354,7 @@ internal class Parser(DiagnosticReporter context, SyntaxNode node, SemanticModel
 
                 return new CommandParameter
                 {
-                    Name = NameConverter.ToKebabCase(x.Identifier.Text),
+                    Name = generatorOptions.DisableNamingConversion ? x.Identifier.Text : NameConverter.ToKebabCase(x.Identifier.Text),
                     WellKnownTypes = wellKnownTypes,
                     OriginalParameterName = x.Identifier.Text,
                     IsNullableReference = isNullableReference,
@@ -529,7 +529,7 @@ internal class Parser(DiagnosticReporter context, SyntaxNode node, SemanticModel
 
                 return new CommandParameter
                 {
-                    Name = NameConverter.ToKebabCase(x.Name),
+                    Name = generatorOptions.DisableNamingConversion ? x.Name : NameConverter.ToKebabCase(x.Name),
                     WellKnownTypes = wellKnownTypes,
                     OriginalParameterName = x.Name,
                     IsNullableReference = isNullableReference,
