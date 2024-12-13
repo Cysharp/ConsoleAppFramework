@@ -1,23 +1,24 @@
 ﻿using ConsoleAppFramework;
 using FilterShareProject;
-using Microsoft.Extensions.DependencyInjection;
+//using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.CompilerServices;
 
 
 args = ["Output"];
 
-var app = ConsoleApp.Create();
 
 // ConsoleApp.ServiceProvider
 // ConsoleApp.Create(
 
-ConsoleApp.Create(sc =>
-{
-    
-});
 
-app.Add<MyCommands>();
+var app = ConsoleApp.Create();
 
-app.Run(args);
+// var app = ConsoleApp.Create();
+
+ // app.Add<MyCommands>();
+//  app.Add<MyCommands>();
+
+// app.Run(args);
 
 
 
@@ -49,6 +50,12 @@ public class MyCommands
     }
 }
 
+[HogeHoge.Batch2Attribute]
+public class Tacommands
+{
+
+}
+
 namespace ConsoleAppFramework
 {
     internal static partial class ConsoleApp
@@ -66,5 +73,43 @@ namespace ConsoleAppFramework
         //    ConsoleApp.ServiceProvider = services.BuildServiceProvider();
         //    return ConsoleApp.Create();
         //}
+
+
+
+        //internal partial struct ConsoleAppBuilder
+        //{
+        //    /// <summary>
+        //    /// Add all [RegisterCommands] types as ConsoleApp command.
+        //    /// </summary>
+        //    public void RegisterAll()
+        //    {
+        //    }
+
+        //    /// <summary>
+        //    /// Add all [RegisterCommands] types as ConsoleApp command.
+        //    /// </summary>
+        //    public void RegisterAll(string commandPath)
+        //    {
+        //    }
+
+        //}
+    }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    internal sealed class RegisterCommandsAttribute : Attribute
+    {
+        public string CommandPath { get; set; } = "";
+    }
+}
+
+namespace HogeHoge
+{
+    public class BatchAttribute : Attribute
+    {
+    }
+
+
+    public class Batch2Attribute : BatchAttribute
+    {
     }
 }
