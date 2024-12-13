@@ -434,5 +434,27 @@ public interface IFoo
 }
 """, "app.Add<IFoo>()");
     }
+
+    [Fact]
+    public void DocCommentName()
+    {
+        verifier.Verify(15, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    /// <param name="nomsg">foobarbaz!</param>
+    [Command("Error1")]
+    public void Bar(string msg)
+    {
+        Console.WriteLine(msg);
+    }
+}
+
+""", "Bar");
+
+    }
 }
 

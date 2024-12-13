@@ -481,6 +481,19 @@ internal class Parser(DiagnosticReporter context, SyntaxNode node, SemanticModel
             return null;
         }
 
+        // validate parametersymbols
+        if (parameterDescriptions != null)
+        {
+            foreach (var item in parameterDescriptions)
+            {
+                if (!methodSymbol.Parameters.Any(x => x.Name == item.Key))
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.DocCommentParameterNameNotMatched, methodSymbol.Locations[0], item.Key);
+                    return null;
+                }
+            }
+        }
+
         var parsableIndex = 0;
         var parameters = methodSymbol.Parameters
             .Select(x =>

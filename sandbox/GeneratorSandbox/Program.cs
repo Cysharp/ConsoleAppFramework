@@ -36,7 +36,7 @@ public class MyCommands
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="msg2">foobarbaz!</param>
+    /// <param name="msg">foobarbaz!</param>
     [Command("Error1")]
     public void Error1(string msg = @"\")
     {

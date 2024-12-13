@@ -114,4 +114,8 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor DefinedInOtherProject { get; } = Create(
         14,
         "ConsoleAppFramework cannot register type/method in another project outside the SourceGenerator referenced project.");
+
+    public static DiagnosticDescriptor DocCommentParameterNameNotMatched { get; } = Create(
+        15,
+        "Document Comment parameter name '{0}' does not match method parameter name.");
 }
