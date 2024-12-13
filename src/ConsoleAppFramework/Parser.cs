@@ -4,11 +4,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConsoleAppFramework;
 
-internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
+internal class Parser(DiagnosticReporter context, SyntaxNode node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
 {
     public Command? ParseAndValidateForRun() // for ConsoleApp.Run, lambda or method or &method
     {
-        var args = node.ArgumentList.Arguments;
+        var args = (node as InvocationExpressionSyntax)!.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = args, 1 = lambda
         {
             var command = ExpressionToCommand(args[1].Expression, ""); // rootCommand(commandName = "")
@@ -26,7 +26,7 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
     public Command? ParseAndValidateForBuilderDelegateRegistration() // for ConsoleAppBuilder.Add
     {
         // Add(string commandName, Delgate command)
-        var args = node.ArgumentList.Arguments;
+        var args = (node as InvocationExpressionSyntax)!.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = string command, 1 = lambda
         {
             var commandName = args[0];
@@ -51,14 +51,15 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
 
     public Command?[] ParseAndValidateForBuilderClassRegistration()
     {
+        var node2 = (node as InvocationExpressionSyntax)!;
         // Add<T>
-        var genericName = (node.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
+        var genericName = (node2.Expression as MemberAccessExpressionSyntax)?.Name as GenericNameSyntax;
         var genericType = genericName!.TypeArgumentList.Arguments[0];
 
         // Add<T>(string commandPath)
         string? commandPath = null;
-        var args = node.ArgumentList.Arguments;
-        if (node.ArgumentList.Arguments.Count == 1)
+        var args = node2.ArgumentList.Arguments;
+        if (node2.ArgumentList.Arguments.Count == 1)
         {
             var commandName = args[0];
             if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
@@ -73,6 +74,11 @@ internal class Parser(DiagnosticReporter context, InvocationExpressionSyntax nod
         // T
         var type = model.GetTypeInfo(genericType).Type!;
 
+        return CreateCommandsFromType(type, commandPath);
+    }
+
+    public Command?[] CreateCommandsFromType(ITypeSymbol type, string? commandPath)
+    {
         if (type.IsStatic || type.IsAbstract)
         {
             context.ReportDiagnostic(DiagnosticDescriptors.ClassIsStaticOrAbstract, node.GetLocation());

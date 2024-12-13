@@ -15,10 +15,10 @@ var app = ConsoleApp.Create();
 
 // var app = ConsoleApp.Create();
 
- // app.Add<MyCommands>();
-//  app.Add<MyCommands>();
+// app.Add<MyCommands>();
+app.Add<MyCommands>();
 
-// app.Run(args);
+app.Run(args);
 
 
 
@@ -33,6 +33,10 @@ public class MyProjectCommand
 
 public class MyCommands
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="msg2">foobarbaz!</param>
     [Command("Error1")]
     public void Error1(string msg = @"\")
     {
@@ -95,15 +99,12 @@ namespace ConsoleAppFramework
         //}
     }
 
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    internal sealed class RegisterCommandsAttribute : Attribute
-    {
-        public string CommandPath { get; set; } = "";
-    }
+
 }
 
 namespace HogeHoge
 {
+
     public class BatchAttribute : Attribute
     {
     }
@@ -111,5 +112,14 @@ namespace HogeHoge
 
     public class Batch2Attribute : BatchAttribute
     {
+    }
+
+
+    [RegisterCommands, Batch]
+    public class Takoyaki
+    {
+        public void Error12345()
+        {
+        }
     }
 }

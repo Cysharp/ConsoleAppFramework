@@ -20,7 +20,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 return x.Display?.EndsWith("Microsoft.Extensions.DependencyInjection.Abstractions.dll") ?? false;
             })
             .Collect()
-            .Select((x, ct) => x.Any());
+            .Select((x, ct) => x.Length != 0);
 
         context.RegisterSourceOutput(hasDependencyInjection, EmitConsoleAppCreateConfigure);
 
@@ -99,16 +99,20 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             .Select((x, ct) => new CollectBuilderContext(x, ct))
             .WithTrackingName("ConsoleApp.Builder.2_Collect");
 
-        // WIP
-        //var registerCommands = context.SyntaxProvider.ForAttributeWithMetadataName("ConsoleAppFramework.RegisterCommandsAttribute",
-        //    (node, token) => true,
-        //    (ctx, token) => ctx)
-        //    .Collect()
-        //    .Select((x, token) => new CollectBuilderContext(default, token));
+        var registerCommands = context.SyntaxProvider.ForAttributeWithMetadataName("ConsoleAppFramework.RegisterCommandsAttribute",
+            (node, token) => true,
+            (ctx, token) => ctx)
+            .Collect();
 
-        //var lr = builderSource.Combine(registerCommands); // combine with registerCommands
+        var combined = builderSource.Combine(registerCommands)
+            .Select((tuple, token) =>
+            {
+                var (context, commands) = tuple;
+                context.AddRegisterAttributes(commands);
+                return context;
+            });
 
-        context.RegisterSourceOutput(builderSource, EmitConsoleAppBuilder);
+        context.RegisterSourceOutput(combined, EmitConsoleAppBuilder);
     }
 
     public const string ConsoleAppBaseCode = """
@@ -172,6 +176,22 @@ internal sealed class CommandAttribute : Attribute
     public CommandAttribute(string command)
     {
         this.Command = command;
+    }
+}
+
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+internal sealed class RegisterCommandsAttribute : Attribute
+{
+    public string CommandPath { get; }
+
+    public RegisterCommandsAttribute()
+    {
+        this.CommandPath = "";
+    }
+
+    public RegisterCommandsAttribute(string commandPath)
+    {
+        this.CommandPath = commandPath;
     }
 }
 
@@ -746,11 +766,13 @@ internal static partial class ConsoleApp
 
     class CollectBuilderContext : IEquatable<CollectBuilderContext>
     {
-        public Command[] Commands { get; } = [];
+        public Command[] Commands { get; private set; } = [];
         public DiagnosticReporter DiagnosticReporter { get; }
         public CancellationToken CancellationToken { get; }
         public bool HasRun { get; }
         public bool HasRunAsync { get; }
+
+        FilterInfo[]? globalFilters { get; }
 
         public CollectBuilderContext(ImmutableArray<BuilderContext> contexts, CancellationToken cancellationToken)
         {
@@ -781,7 +803,7 @@ internal static partial class ConsoleApp
                 return x.Name;
             });
 
-            var globalFilters = methodGroup["UseFilter"]
+            globalFilters = methodGroup["UseFilter"]
                 .OrderBy(x => x.Node.GetLocation().SourceSpan) // sort by line number
                 .Select(x =>
                 {
@@ -805,6 +827,7 @@ internal static partial class ConsoleApp
             // don't emit if exists failure
             if (DiagnosticReporter.HasDiagnostics)
             {
+                globalFilters = null;
                 return;
             }
 
@@ -862,46 +885,46 @@ internal static partial class ConsoleApp
         // from ForAttributeWithMetadataName
         public void AddRegisterAttributes(ImmutableArray<GeneratorAttributeSyntaxContext> contexts)
         {
-            if (contexts.Length == 0)
+            if (contexts.Length == 0 || DiagnosticReporter.HasDiagnostics)
             {
                 return;
             }
 
-            //var names = new HashSet<string>();
+            var names = new HashSet<string>(Commands.Select(x => x.Name));
 
-            //var commands2 = methodGroup["Add<T>"]
-            //    .SelectMany(x =>
-            //    {
-            //        var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-            //        var parser = new Parser(DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
-            //        var commands = parser.ParseAndValidateForBuilderClassRegistration();
+            var list = new List<Command>();
+            foreach (var ctx in contexts)
+            {
+                string? commandPath = null;
+                var attrData = ctx.Attributes[0]; // AllowMultiple = false
+                if (attrData.ConstructorArguments.Length != 0)
+                {
+                    commandPath = attrData.ConstructorArguments[0].Value as string;
+                }
 
-            //        // validation command name duplicate
-            //        foreach (var command in commands)
-            //        {
-            //            if (command != null && !names.Add(command.Name))
-            //            {
-            //                DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, x.Node.GetLocation(), command!.Name);
-            //                return [null];
-            //            }
-            //        }
+                var wellKnownTypes = new WellKnownTypes(ctx.SemanticModel.Compilation);
+                var parser = new Parser(DiagnosticReporter, ctx.TargetNode, ctx.SemanticModel, wellKnownTypes, DelegateBuildType.None, globalFilters ?? []);
 
-            //        return commands;
-            //    });
+                var commands = parser.CreateCommandsFromType((ITypeSymbol)ctx.TargetSymbol, commandPath);
 
-            //if (DiagnosticReporter.HasDiagnostics)
-            //{
-            //    return;
-            //}
+                foreach (var command in commands)
+                {
+                    if (command != null)
+                    {
+                        if (!names.Add(command.Name))
+                        {
+                            DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, ctx.TargetNode.GetLocation(), command!.Name);
+                            break;
+                        }
+                        else
+                        {
+                            list.Add(command);
+                        }
+                    }
+                }
+            }
 
-            //// set properties
-            //this.Commands = commands1.Concat(commands2!).ToArray()!; // not null if no diagnostics
-            //this.HasRun = methodGroup["Run"].Any();
-            //this.HasRunAsync = methodGroup["RunAsync"].Any();
-
-            //var model = contexts[0].Model;
-            //var serviceCollectionSymbol = model.Compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.ServiceCollection");
-            //this.HasDependencyInjectionReference = serviceCollectionSymbol != null;
+            Commands = Commands.Concat(list).ToArray();
         }
 
         public bool Equals(CollectBuilderContext other)
