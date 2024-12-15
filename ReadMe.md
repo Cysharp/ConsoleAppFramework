@@ -369,7 +369,7 @@ app.Add("foo baz", async (string foo = "test", CancellationToken cancellationTok
 The Source Generator generates four fields and holds them with specific types.
 
 ```csharp
-partial struct ConsoleAppBuilder
+partial class ConsoleAppBuilder
 {
     Action command0 = default!;
     Action<int, int> command1 = default!;

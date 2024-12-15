@@ -21,6 +21,12 @@
 		<Description>Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator.</Description>
 		<Configurations>Debug;Release</Configurations>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="bin\**" />
+	  <EmbeddedResource Remove="bin\**" />
+	  <None Remove="bin\**" />
+	</ItemGroup>
 	
 	<ItemGroup>
 		<!-- Roslyn for .NET 8 / C# 12 -->

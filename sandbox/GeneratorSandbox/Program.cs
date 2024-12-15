@@ -1,14 +1,34 @@
-﻿using ConsoleAppFramework;
+﻿#nullable enable
+
+using ConsoleAppFramework;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
+using ZLogger;
 
 [assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
 
 
-args = ["HelloWorld", "--help"];
-var app = ConsoleApp.Create();
-//app.Add<MyCommands>();
-app.Add<Tacommands>();
-app.Run(args);
 
+var app = ConsoleApp.Create()
+    ;
+
+app.ConfigureDefaultConfiguration();
+
+app.ConfigureServices(services =>
+{
+
+});
+
+  //  .ConfigureLogging(
+   // .ConfigureDefaultConfiguration()
+  //  ;
+
+app.Add("", () => { });
+
+app.Run(args);
 
 
 
@@ -71,22 +91,79 @@ namespace ConsoleAppFramework
 
 
 
-        //internal partial struct ConsoleAppBuilder
+        //internal partial class ConsoleAppBuilder
         //{
-        //    /// <summary>
-        //    /// Add all [RegisterCommands] types as ConsoleApp command.
-        //    /// </summary>
-        //    public void RegisterAll()
+        //    bool requireConfiguration;
+        //    IConfiguration? configuration;
+        //    Action<IConfiguration, IServiceCollection>? configureServices;
+        //    Action<IConfiguration, ILoggingBuilder>? configureLogging;
+
+        //    /// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile("appsettings.json").</summary>
+        //    public void ConfigureDefaultConfiguration(Action<IConfigurationBuilder> configure)
         //    {
+        //        var config = new ConfigurationBuilder();
+        //        config.SetBasePath(System.IO.Directory.GetCurrentDirectory());
+        //        config.AddJsonFile("appsettings.json", optional: true);
+        //        configure(config);
+        //        configuration = config.Build();
         //    }
 
-        //    /// <summary>
-        //    /// Add all [RegisterCommands] types as ConsoleApp command.
-        //    /// </summary>
-        //    public void RegisterAll(string commandPath)
+        //    public void ConfigureEmptyConfiguration(Action<IConfigurationBuilder> configure)
         //    {
+        //        var config = new ConfigurationBuilder();
+        //        configure(config);
+        //        configuration = config.Build();
         //    }
 
+        //    public void ConfigureServices(Action<IServiceCollection> configure)
+        //    {
+        //        this.configureServices = (_, services) => configure(services);
+        //    }
+
+        //    public void ConfigureServices(Action<IConfiguration, IServiceCollection> configure)
+        //    {
+        //        this.requireConfiguration = true;
+        //        this.configureServices = configure;
+        //    }
+
+        //    public void ConfigureLogging(Action<ILoggingBuilder> configure)
+        //    {
+        //        this.configureLogging = (_, builder) => configure(builder);
+        //    }
+
+        //    public void ConfigureLogging(Action<IConfiguration, ILoggingBuilder> configure)
+        //    {
+        //        this.requireConfiguration = true;
+        //        this.configureLogging = configure;
+        //    }
+
+        //    public void BuildAndSetServiceProvider()
+        //    {
+        //        if (configureServices == null && configureLogging == null) return;
+
+        //        if (configureServices != null)
+        //        {
+        //            var services = new ServiceCollection();
+        //            configureServices?.Invoke(configuration!, services);
+
+        //            if (configureLogging != null)
+        //            {
+        //                var config = configuration;
+        //                if (requireConfiguration && config == null)
+        //                {
+        //                    config = new ConfigurationRoot(Array.Empty<IConfigurationProvider>());
+        //                }
+
+        //                var configure = configureLogging;
+        //                services.AddLogging(logging =>
+        //                {
+        //                    configure!(config!, logging);
+        //                });
+        //            }
+
+        //            ConsoleApp.ServiceProvider = services.BuildServiceProvider();
+        //        }
+        //    }
         //}
     }
 

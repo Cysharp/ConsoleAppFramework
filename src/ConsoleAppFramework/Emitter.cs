@@ -334,7 +334,7 @@ internal class Emitter
         var commandGroup = commandIds.ToLookup(x => x.Command.Name.Split(' ')[0]);
         var hasRootCommand = commandIds.Any(x => x.Command.IsRootCommand);
 
-        using (sb.BeginBlock("partial struct ConsoleAppBuilder"))
+        using (sb.BeginBlock("partial class ConsoleAppBuilder"))
         {
             // fields: 'Action command0 = default!;'
             foreach (var item in commandIds.Where(x => x.FieldType != null))
@@ -601,6 +601,184 @@ internal class Emitter
                     sb.AppendLineWithoutIndent("\"\"\");");
                     sb.AppendLine("break;");
                 }
+            }
+        }
+    }
+
+    public void EmitConfigure(SourceBuilder sb, DllReference dllReference)
+    {
+        // configuration
+        if (dllReference.HasConfiguration)
+        {
+            sb.AppendLine("bool requireConfiguration;");
+            sb.AppendLine("IConfiguration? configuration;");
+
+            sb.AppendLine();
+            sb.AppendLine("/// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile(appsettings.json).</summary>");
+            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureDefaultConfiguration()"))
+            {
+                sb.AppendLine("var config = new ConfigurationBuilder();");
+                sb.AppendLine("config.SetBasePath(System.IO.Directory.GetCurrentDirectory());");
+                sb.AppendLine("config.AddJsonFile(\"appsettings.json\", optional: true);");
+                sb.AppendLine("configuration = config.Build();");
+                sb.AppendLine("return this;");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("/// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile(appsettings.json).</summary>");
+            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureDefaultConfiguration(Action<IConfigurationBuilder> configure)"))
+            {
+                sb.AppendLine("var config = new ConfigurationBuilder();");
+                sb.AppendLine("config.SetBasePath(System.IO.Directory.GetCurrentDirectory());");
+                sb.AppendLine("config.AddJsonFile(\"appsettings.json\", optional: true);");
+                sb.AppendLine("configure(config);");
+                sb.AppendLine("configuration = config.Build();");
+                sb.AppendLine("return this;");
+            }
+
+            sb.AppendLine();
+            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureEmptyConfiguration(Action<IConfigurationBuilder> configure)"))
+            {
+                sb.AppendLine("var config = new ConfigurationBuilder();");
+                sb.AppendLine("configure(config);");
+                sb.AppendLine("configuration = config.Build();");
+                sb.AppendLine("return this;");
+            }
+            sb.AppendLine();
+        }
+
+        // DependencyInjection
+        if (dllReference.HasDependencyInjection)
+        {
+            if (dllReference.HasConfiguration)
+            {
+                sb.AppendLine("Action<IConfiguration, IServiceCollection>? configureServices;");
+            }
+            else
+            {
+                sb.AppendLine("Action<IServiceCollection>? configureServices;");
+            }
+
+            sb.AppendLine();
+            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
+            {
+                if (dllReference.HasConfiguration)
+                {
+                    sb.AppendLine("this.configureServices = (_, services) => configure(services);");
+                }
+                else
+                {
+                    sb.AppendLine("this.configureServices = configure;");
+                }
+                sb.AppendLine("return this;");
+            }
+
+            if (dllReference.HasConfiguration)
+            {
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IConfiguration, IServiceCollection> configure)"))
+                {
+                    sb.AppendLine("this.requireConfiguration = true;");
+                    sb.AppendLine("this.configureServices = configure;");
+                    sb.AppendLine("return this;");
+                }
+            }
+            sb.AppendLine();
+        }
+
+        // Logging
+        if (dllReference.HasLogging)
+        {
+            if (dllReference.HasConfiguration)
+            {
+                sb.AppendLine("Action<IConfiguration, ILoggingBuilder>? configureLogging;");
+            }
+            else
+            {
+                sb.AppendLine("Action<ILoggingBuilder>? configureLogging;");
+            }
+
+            sb.AppendLine();
+            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ILoggingBuilder> configure)"))
+            {
+                if (dllReference.HasConfiguration)
+                {
+                    sb.AppendLine("this.configureLogging = (_, logging) => configure(logging);");
+                }
+                else
+                {
+                    sb.AppendLine("this.configureLogging = configure;");
+                }
+                sb.AppendLine("return this;");
+            }
+
+            if (dllReference.HasConfiguration)
+            {
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<IConfiguration, ILoggingBuilder> configure)"))
+                {
+                    sb.AppendLine("this.requireConfiguration = true;");
+                    sb.AppendLine("this.configureLogging = configure;");
+                    sb.AppendLine("return this;");
+                }
+            }
+            sb.AppendLine();
+        }
+
+        // Build
+        using (sb.BeginBlock("partial void BuildAndSetServiceProvider()"))
+        {
+            if (dllReference.HasDependencyInjection && dllReference.HasLogging)
+            {
+                sb.AppendLine("if (configureServices == null && configureLogging == null) return;");
+            }
+            else if (dllReference.HasDependencyInjection)
+            {
+                sb.AppendLine("if (configureServices == null) return;");
+            }
+
+            if (dllReference.HasDependencyInjection)
+            {
+                if (dllReference.HasConfiguration)
+                {
+                    sb.AppendLine("var config = configuration;");
+                    using (sb.BeginBlock("if (requireConfiguration && config == null)"))
+                    {
+                        sb.AppendLine("config = new ConfigurationRoot(Array.Empty<IConfigurationProvider>());");
+                    }
+                }
+
+                sb.AppendLine("var services = new ServiceCollection();");
+                if (dllReference.HasConfiguration)
+                {
+                    sb.AppendLine("configureServices?.Invoke(configuration!, services);");
+                }
+                else
+                {
+                    sb.AppendLine("configureServices?.Invoke(services);");
+                }
+
+                if (dllReference.HasLogging)
+                {
+                    using (sb.BeginBlock("if (configureLogging != null)"))
+                    {
+                        sb.AppendLine("var configure = configureLogging;");
+                        using (sb.BeginIndent("services.AddLogging(logging => {"))
+                        {
+                            if (dllReference.HasConfiguration)
+                            {
+                                sb.AppendLine("configure!(config!, logging);");
+                            }
+                            else
+                            {
+                                sb.AppendLine("configure!(logging);");
+                            }
+                        }
+                        sb.AppendLine("});");
+                    }
+                }
+
+                sb.AppendLine("ConsoleApp.ServiceProvider = services.BuildServiceProvider();");
             }
         }
     }
