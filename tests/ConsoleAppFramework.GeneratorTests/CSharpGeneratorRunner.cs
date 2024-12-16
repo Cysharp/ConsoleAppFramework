@@ -49,6 +49,8 @@ global using ConsoleAppFramework;
             driver = (Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver)driver.WithUpdatedAnalyzerConfigOptions(options);
         }
 
+        // MetadataReference.CreateFromFile("", MetadataReferenceProperties.
+
         var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions));
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics);

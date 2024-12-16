@@ -469,15 +469,42 @@ internal static partial class ConsoleApp
         public void Run(string[] args)
         {
             BuildAndSetServiceProvider();
-            RunCore(args);
+            try
+            {
+                RunCore(args);
+            }
+            finally
+            {
+                if (ServiceProvider is IDisposable d)
+                {
+                    d.Dispose();
+                }
+            }
         }
 
-        public Task RunAsync(string[] args)
+        public async Task RunAsync(string[] args)
         {
             BuildAndSetServiceProvider();
-            Task? task = null;
-            RunAsyncCore(args, ref task!);
-            return task ?? Task.CompletedTask;
+            try
+            {
+                Task? task = null;
+                RunAsyncCore(args, ref task!);
+                if (task != null)
+                {
+                    await task;
+                }
+            }
+            finally
+            {
+                if (ServiceProvider is IAsyncDisposable ad)
+                {
+                    await ad.DisposeAsync();
+                }
+                else if (ServiceProvider is IDisposable d)
+                {
+                    d.Dispose();
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

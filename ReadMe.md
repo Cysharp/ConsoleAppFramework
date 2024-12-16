@@ -168,6 +168,8 @@ using ConsoleAppFramework;
 ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 ```
 
+> The latest Visual Studio changed the execution timing of Source Generators to either during save or at compile time. If you encounter unexpected behavior, try compiling once or change the option to "Automatic" under TextEditor -> C# -> Advanced -> Source Generators.
+
 You can execute command like `sampletool --name "foo"`.
 
 * The return value can be `void`, `int`, `Task`, or `Task<int>`
@@ -257,7 +259,7 @@ To add aliases to parameters, list the aliases separated by `|` before the comma
 
 Unfortunately, due to current C# specifications, lambda expressions and [local functions do not support document comments](https://github.com/dotnet/csharplang/issues/2110), so a class is required.
 
-In addition to `-h|--help`, there is another special built-in option: `--version`. In default, it displays the `AssemblyInformationalVersion` or `AssemblyVersion`. You can configure version string by `ConsoleApp.Version`, for example `ConsoleApp.Version = "2001.9.3f14-preview2";`.
+In addition to `-h|--help`, there is another special built-in option: `--version`. In default, it displays the `AssemblyInformationalVersion` without source revision or `AssemblyVersion`. You can configure version string by `ConsoleApp.Version`, for example `ConsoleApp.Version = "2001.9.3f14-preview2";`.
 
 Command
 ---
@@ -354,6 +356,43 @@ app.Add<MyCommands>("foo");
 //  foo sum     Sum parameters.
 app.Run(args);
 ```
+
+### Register from attribute
+
+Instead of using `Add<T>`, you can automatically add commands by applying the `[RegisterCommands]` attribute to a class.
+
+```csharp
+[RegisterCommands]
+public class Foo
+{
+    public void Baz(int x)
+    {
+        Console.Write(x);
+    }
+}
+
+[RegisterCommands("bar")]
+public class Bar
+{
+    public void Baz(int x)
+    {
+        Console.Write(x);
+    }
+}
+```
+
+These are automatically added when using `ConsoleApp.Create()`.
+
+```csharp
+var app = ConsoleApp.Create();
+
+// Commands:
+//   baz
+//   bar baz
+app.Run(args);
+```
+
+You can also combine this with `Add` or `Add<T>` to add more commands.
 
 ### Performance of Commands
 
@@ -453,6 +492,30 @@ partial void RunCore(string[] args)
 ```
 
 The C# compiler performs complex generation for string constant switches, making them extremely fast, and it would be difficult to achieve faster routing than this.
+
+Disable Naming Conversion
+---
+Command names and option names are automatically converted to kebab-case by default. While this follows standard command-line tool naming conventions, you might find this conversion inconvenient when creating batch files for internal applications. Therefore, it's possible to disable this conversion at the assembly level.
+
+```csharp
+using ConsoleAppFramework;
+
+[assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
+
+var app = ConsoleApp.Create();
+app.Add<MyProjectCommand>();
+app.Run(args);
+
+public class MyProjectCommand
+{
+    public void ExecuteCommand(string fooBarBaz)
+    {
+        Console.WriteLine(fooBarBaz);
+    }
+}
+```
+
+You can disable automatic conversion by using `[assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]`. In this case, the command would be `ExecuteCommand --fooBarBaz`.
 
 Parse and Value Binding
 ---
@@ -824,7 +887,49 @@ Dependency Injection(Logging, Configuration, etc...)
 ---
 The execution processing of `ConsoleAppFramework` fully supports `DI`. When you want to use a logger, read a configuration, or share processing with an ASP.NET project, using `Microsoft.Extensions.DependencyInjection` or other DI libraries can make processing convenient.
 
-Lambda expressions passed to Run, class constructors, methods, and filter constructors can inject services obtained from `IServiceProvider`. Let's look at a minimal example. Setting any `System.IServiceProvider` to `ConsoleApp.ServiceProvider` enables DI throughout the system.
+If you are referencing `Microsoft.Extensions.DependencyInjection`, you can call the `ConfigureServices` method from `ConsoleApp.ConsoleAppBuilder` (ConsoleAppFramework adds methods based on your project's reference status).
+
+```csharp
+var app = ConsoleApp.Create()
+    .ConfigureServices(service =>
+    {
+        service.AddTransient<MyService>();
+    });
+
+app.Add("", ([FromServices] MyService service, int x, int y) => Console.WriteLine(x + y));
+
+app.Run(args);
+```
+
+When passing to a lambda expression or method, the `[FromServices]` attribute is used to distinguish it from command parameters. When passing a class, Constructor Injection can be used, resulting in a simpler appearance.
+
+Let's try injecting a logger and enabling output to a file. The libraries used are Microsoft.Extensions.Logging and [Cysharp/ZLogger](https://github.com/Cysharp/ZLogger/) (a high-performance logger built on top of MS.E.Logging). If you are referencing `Microsoft.Extensions.Logging`, you can call `ConfigureLogging` from `ConsoleAppBuilder`.
+
+```csharp
+// Package Import: ZLogger
+var app = ConsoleApp.Create()
+    .ConfigureLogging(x =>
+    {
+        x.ClearProviders();
+        x.SetMinimumLevel(LogLevel.Trace);
+        x.AddZLoggerConsole();
+        x.AddZLoggerFile("log.txt");
+    });
+
+app.Add<MyCommand>();
+app.Run(args);
+
+// inject logger to constructor
+public class MyCommand(ILogger<MyCommand> logger)
+{
+    public void Echo(string msg)
+    {
+        logger.ZLogInformation($"Message is {msg}");
+    }
+}
+```
+
+For building an `IServiceProvider`, `ConfigureServices/ConfigureLogging` uses `Microsoft.Extensions.DependencyInjection.ServiceCollection`. If you want to set a custom ServiceProvider or a ServiceProvider built from Host, or if you want to execute DI with `ConsoleApp.Run`, set it to `ConsoleApp.ServiceProvider`.
 
 ```csharp
 // Microsoft.Extensions.DependencyInjection
@@ -840,50 +945,23 @@ ConsoleApp.ServiceProvider = serviceProvider;
 ConsoleApp.Run(args, ([FromServices]MyService service, int x, int y) => Console.WriteLine(x + y));
 ```
 
-When passing to a lambda expression or method, the `[FromServices]` attribute is used to distinguish it from command parameters. When passing a class, Constructor Injection can be used, resulting in a simpler appearance.
-
-Let's try injecting a logger and enabling output to a file. The libraries used are Microsoft.Extensions.Logging and [Cysharp/ZLogger](https://github.com/Cysharp/ZLogger/) (a high-performance logger built on top of MS.E.Logging).
-
-
-```csharp
-// Package Import: ZLogger
-var services = new ServiceCollection();
-services.AddLogging(x =>
-{
-    x.ClearProviders();
-    x.SetMinimumLevel(LogLevel.Trace);
-    x.AddZLoggerConsole();
-    x.AddZLoggerFile("log.txt");
-});
-
-using var serviceProvider = services.BuildServiceProvider(); // using for logger flush(important!)
-ConsoleApp.ServiceProvider = serviceProvider;
-
-var app = ConsoleApp.Create();
-app.Add<MyCommand>();
-app.Run(args);
-
-// inject logger to constructor
-public class MyCommand(ILogger<MyCommand> logger)
-{
-    [Command("")]
-    public void Echo(string msg)
-    {
-        logger.ZLogInformation($"Message is {msg}");
-    }
-}
-```
-
 `ConsoleApp` has replaceable default logging methods `ConsoleApp.Log` and `ConsoleApp.LogError` used for Help display and exception handling. If using `ILogger<T>`, it's better to replace these as well.
 
 ```csharp
-using var serviceProvider = services.BuildServiceProvider(); // using for cleanup(important)
-ConsoleApp.ServiceProvider = serviceProvider;
+app.UseFilter<ReplaceLogFilter>();
 
-// setup ConsoleApp system logger
-var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-ConsoleApp.Log = msg => logger.LogInformation(msg);
-ConsoleApp.LogError = msg => logger.LogError(msg);
+// inject logger to filter
+internal sealed class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> logger)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        ConsoleApp.Log = msg => logger.LogInformation(msg);
+        ConsoleApp.LogError = msg => logger.LogError(msg);
+
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
 ```
 
 DI can also be effectively used when reading application configuration from `appsettings.json`. For example, suppose you have the following JSON file.
@@ -899,30 +977,32 @@ DI can also be effectively used when reading application configuration from `app
 }
 ```
 
+```xml
+<ItemGroup>
+    <None Update="appsettings.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+</ItemGroup>
+```
+
 Using `Microsoft.Extensions.Configuration.Json`, reading, binding, and registering with DI can be done as follows.
 
 ```csharp
 // Package Import: Microsoft.Extensions.Configuration.Json
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json")
-    .Build();
+var app = ConsoleApp.Create()
+    .ConfigureDefaultConfiguration()
+    .ConfigureServices((configuration, services) =>
+    {
+        // Package Import: Microsoft.Extensions.Options.ConfigurationExtensions
+        services.Configure<PositionOptions>(configuration.GetSection("Position"));
+    });
 
-// Bind to services( Package Import: Microsoft.Extensions.Options.ConfigurationExtensions )
-var services = new ServiceCollection();
-services.Configure<PositionOptions>(configuration.GetSection("Position"));
-
-using var serviceProvider = services.BuildServiceProvider();
-ConsoleApp.ServiceProvider = serviceProvider;
-
-var app = ConsoleApp.Create();
 app.Add<MyCommand>();
 app.Run(args);
 
 // inject options
 public class MyCommand(IOptions<PositionOptions> options)
 {
-    [Command("")]
     public void Echo(string msg)
     {
         ConsoleApp.Log($"Binded Option: {options.Value.Title} {options.Value.Name}");
@@ -936,25 +1016,23 @@ public class PositionOptions
 }
 ```
 
-If you have other applications such as ASP.NET in the entire project and want to use common DI and configuration set up using `Microsoft.Extensions.Hosting`, you can share them by setting the `IServiceProvider` of `IHost` after building.
+When `Microsoft.Extensions.Configuration.Abstractions` is imported, `ConfigureEmptyConfiguration` becomes available to call. Additionally, when `Microsoft.Extensions.Configuration.Json` is imported, `ConfigureDefaultConfiguration` becomes available to call. In DefaultConfiguration, `SetBasePath(System.IO.Directory.GetCurrentDirectory())` and `AddJsonFile("appsettings.json", optional: true)` are executed before calling `Action<IConfigurationBuilder> configure`.
 
-```csharp
-// Package Import: Microsoft.Extensions.Hosting
-var builder = Host.CreateApplicationBuilder(); // don't pass args.
+Furthermore, overloads of `Action<IConfiguration, IServiceCollection> configure` and `Action<IConfiguration, ILoggingBuilder> configure` are added to `ConfigureServices` and `ConfigureLogging`, allowing you to retrieve the Configuration when executing the delegate.
 
-using var host = builder.Build(); // use using for host lifetime
-using var scope = host.Services.CreateScope(); // create execution scope
-ConsoleApp.ServiceProvider = scope.ServiceProvider; // use host scoped ServiceProvider
+without Hosting dependency, I've prefere these import packages.
 
-ConsoleApp.Run(args, ([FromServices] ILogger<Program> logger) => logger.LogInformation("Hello World!"));
+```xml
+<ItemGroup>
+	<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+	<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
+	<PackageReference Include="ZLogger" Version="2.5.9" />
+</ItemGroup>
 ```
-
-ConsoleAppFramework has its own lifetime management (see the [CancellationToken(Gracefully Shutdown) and Timeout](#cancellationtokengracefully-shutdown-and-timeout) section), so Host's Start/Stop is not necessary. However, be sure to use the Host itself.
 
 As it is, the DI scope is not set, but by using a global filter, you can add a scope for each command execution. `ConsoleAppFilter` can also inject services via constructor injection, so let's get the `IServiceProvider`.
 
 ```csharp
-var app = ConsoleApp.Create();
 app.UseFilter<ServiceProviderScopeFilter>();
 
 internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
@@ -963,12 +1041,34 @@ internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, Cons
     {
         // create Microsoft.Extensions.DependencyInjection scope
         await using var scope = serviceProvider.CreateAsyncScope();
-        await Next.InvokeAsync(context, cancellationToken);
+
+        var originalServiceProvider = ConsoleApp.ServiceProvider;
+        ConsoleApp.ServiceProvider = scope.ServiceProvider;
+        try
+        {
+            await Next.InvokeAsync(context, cancellationToken);
+        }
+        finally
+        {
+            ConsoleApp.ServiceProvider = originalServiceProvider;
+        }
     }
 }
 ```
 
 However, since the construction of the filters is performed before execution, automatic injection using scopes is only effective for the command body itself.
+
+If you have other applications such as ASP.NET in the entire project and want to use common DI and configuration set up using `Microsoft.Extensions.Hosting`, you can call `ToConsoleAppBuilder` from `IHostBuilder` or `HostApplicationBuilder`.
+
+```csharp
+// Package Import: Microsoft.Extensions.Hosting
+var app = Host.CreateApplicationBuilder()
+    .ToConsoleAppBuilder();
+```
+
+In this case, it builds the HostBuilder, creates a Scope for the ServiceProvider, and disposes of all of them after execution.
+
+ConsoleAppFramework has its own lifetime management (see the [CancellationToken(Gracefully Shutdown) and Timeout](#cancellationtokengracefully-shutdown-and-timeout) section), so Host's Start/Stop is not necessary.
 
 Colorize
 ---

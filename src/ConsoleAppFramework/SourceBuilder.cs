@@ -100,6 +100,13 @@ internal class SourceBuilder(int level)
         }
     }
 
+    public SourceBuilder Clone()
+    {
+        var sb = new SourceBuilder(level);
+        sb.builder.Append(builder.ToString());
+        return sb;
+    }
+
     class NullDisposable : IDisposable
     {
         public static readonly IDisposable Instance = new NullDisposable();

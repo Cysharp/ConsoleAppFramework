@@ -324,6 +324,30 @@ internal class Emitter
                         sb.AppendLine("LogError(ex.ToString());");
                     }
                 }
+                if (!emitForBuilder)
+                {
+                    using (sb.BeginBlock("finally"))
+                    {
+                        if (!isRunAsync)
+                        {
+                            using (sb.BeginBlock("if (ServiceProvider is IDisposable d)"))
+                            {
+                                sb.AppendLine("d.Dispose();");
+                            }
+                        }
+                        else
+                        {
+                            using (sb.BeginBlock("if (ServiceProvider is IAsyncDisposable ad)"))
+                            {
+                                sb.AppendLine("await ad.DisposeAsync();");
+                            }
+                            using (sb.BeginBlock("else if (ServiceProvider is IDisposable d)"))
+                            {
+                                sb.AppendLine("d.Dispose();");
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -613,27 +637,30 @@ internal class Emitter
             sb.AppendLine("bool requireConfiguration;");
             sb.AppendLine("IConfiguration? configuration;");
 
-            sb.AppendLine();
-            sb.AppendLine("/// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile(appsettings.json).</summary>");
-            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureDefaultConfiguration()"))
+            if (dllReference.HasJsonConfiguration)
             {
-                sb.AppendLine("var config = new ConfigurationBuilder();");
-                sb.AppendLine("config.SetBasePath(System.IO.Directory.GetCurrentDirectory());");
-                sb.AppendLine("config.AddJsonFile(\"appsettings.json\", optional: true);");
-                sb.AppendLine("configuration = config.Build();");
-                sb.AppendLine("return this;");
-            }
+                sb.AppendLine();
+                sb.AppendLine("/// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile(appsettings.json).</summary>");
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureDefaultConfiguration()"))
+                {
+                    sb.AppendLine("var config = new ConfigurationBuilder();");
+                    sb.AppendLine("config.SetBasePath(System.IO.Directory.GetCurrentDirectory());");
+                    sb.AppendLine("config.AddJsonFile(\"appsettings.json\", optional: true);");
+                    sb.AppendLine("configuration = config.Build();");
+                    sb.AppendLine("return this;");
+                }
 
-            sb.AppendLine();
-            sb.AppendLine("/// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile(appsettings.json).</summary>");
-            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureDefaultConfiguration(Action<IConfigurationBuilder> configure)"))
-            {
-                sb.AppendLine("var config = new ConfigurationBuilder();");
-                sb.AppendLine("config.SetBasePath(System.IO.Directory.GetCurrentDirectory());");
-                sb.AppendLine("config.AddJsonFile(\"appsettings.json\", optional: true);");
-                sb.AppendLine("configure(config);");
-                sb.AppendLine("configuration = config.Build();");
-                sb.AppendLine("return this;");
+                sb.AppendLine();
+                sb.AppendLine("/// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile(appsettings.json).</summary>");
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureDefaultConfiguration(Action<IConfigurationBuilder> configure)"))
+                {
+                    sb.AppendLine("var config = new ConfigurationBuilder();");
+                    sb.AppendLine("config.SetBasePath(System.IO.Directory.GetCurrentDirectory());");
+                    sb.AppendLine("config.AddJsonFile(\"appsettings.json\", optional: true);");
+                    sb.AppendLine("configure(config);");
+                    sb.AppendLine("configuration = config.Build();");
+                    sb.AppendLine("return this;");
+                }
             }
 
             sb.AppendLine();
@@ -780,6 +807,73 @@ internal class Emitter
 
                 sb.AppendLine("ConsoleApp.ServiceProvider = services.BuildServiceProvider();");
             }
+        }
+    }
+
+    public void EmitAsConsoleAppBuilder(SourceBuilder sb, DllReference dllReference)
+    {
+        sb.AppendLine("""
+
+internal static class ConsoleAppHostBuilderExtensions
+{
+    class CompositeDisposableServiceProvider(IDisposable host, IServiceProvider serviceServiceProvider, IDisposable scope, IServiceProvider serviceProvider)
+        : IServiceProvider, IDisposable
+    {
+        public object? GetService(Type serviceType)
+        {
+            return serviceProvider.GetService(serviceType);
+        }
+
+        public void Dispose()
+        {
+            if (serviceProvider is IDisposable d)
+            {
+                d.Dispose();
+            }
+            scope.Dispose();
+            if (serviceServiceProvider is IDisposable d2)
+            {
+                d2.Dispose();
+            }
+            host.Dispose();
+        }
+    }
+
+""");
+
+        if (dllReference.HasHostAbstraction)
+        {
+            sb.AppendLine("""
+    internal static ConsoleApp.ConsoleAppBuilder ToConsoleAppBuilder(this IHostBuilder hostBuilder)
+    {
+        var host = hostBuilder.Build();
+        var serviceServiceProvider = host.Services;
+        var scope = serviceServiceProvider.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+        ConsoleApp.ServiceProvider = new CompositeDisposableServiceProvider(host, serviceServiceProvider, scope, serviceProvider);
+                
+        return ConsoleApp.Create();
+    }
+
+""");
+        }
+
+        if (dllReference.HasHost)
+        {
+            sb.AppendLine("""
+    internal static ConsoleApp.ConsoleAppBuilder ToConsoleAppBuilder(this HostApplicationBuilder hostBuilder)
+    {
+        var host = hostBuilder.Build();
+        var serviceServiceProvider = host.Services;
+        var scope = serviceServiceProvider.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+        ConsoleApp.ServiceProvider = new CompositeDisposableServiceProvider(host, serviceServiceProvider, scope, serviceProvider);
+                
+        return ConsoleApp.Create();
+    }
+""");
+
+            sb.AppendLine("}");
         }
     }
 

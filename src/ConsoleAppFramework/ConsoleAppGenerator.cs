@@ -15,7 +15,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         // Emit ConsoleApp.g.cs
         context.RegisterPostInitializationOutput(EmitConsoleAppTemplateSource);
 
-        // Emti ConfigureConfiguration/Logging/Services
+        // Emti ConfigureConfiguration/Logging/Services and Host.AsConsoleApp
         var hasDependencyInjection = context.MetadataReferencesProvider
             .Collect()
             .Select((xs, _) =>
@@ -23,11 +23,12 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 var hasDependencyInjection = false;
                 var hasLogging = false;
                 var hasConfiguration = false;
+                var hasJsonConfiguration = false;
+                var hasHostAbstraction = false;
+                var hasHost = false;
 
                 foreach (var x in xs)
                 {
-                    if (hasDependencyInjection && hasLogging && hasConfiguration) break;
-
                     var name = x.Display;
                     if (name == null) continue;
 
@@ -49,9 +50,26 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                         continue;
                     }
 
+                    if (!hasJsonConfiguration && name.EndsWith("Microsoft.Extensions.Configuration.Json.dll"))
+                    {
+                        hasJsonConfiguration = true;
+                        continue;
+                    }
+
+                    if (!hasHostAbstraction && name.EndsWith("Microsoft.Extensions.Hosting.Abstractions.dll"))
+                    {
+                        hasHostAbstraction = true;
+                        continue;
+                    }
+
+                    if (!hasHost && name.EndsWith("Microsoft.Extensions.Hosting.dll"))
+                    {
+                        hasHost = true;
+                        continue;
+                    }
                 }
 
-                return new DllReference(hasDependencyInjection, hasLogging, hasConfiguration);
+                return new DllReference(hasDependencyInjection, hasLogging, hasConfiguration, hasJsonConfiguration, hasHostAbstraction, hasHost);
             });
 
         context.RegisterSourceOutput(hasDependencyInjection, EmitConsoleAppConfigure);
@@ -143,7 +161,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             .Where(x =>
             {
                 var model = x.Model.GetTypeInfo((x.Node.Expression as MemberAccessExpressionSyntax)!.Expression, x.CancellationToken);
-                return model.Type?.Name is "ConsoleAppBuilder";
+                return model.Type?.Name is "ConsoleAppBuilder" or "IHostBuilder" || model.Type?.Kind == SymbolKind.ErrorType; // allow ErrorType(ConsoleAppBuilder from Configure***(Source Generator generated method) is unknown in Source Generator)
             })
             .WithTrackingName("ConsoleApp.Builder.1_Where")
             .Collect()
@@ -157,12 +175,14 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             .Collect();
 
         var combined = builderSource.Combine(registerCommands)
+            .WithTrackingName("ConsoleApp.Builder.3_Combined")
             .Select((tuple, token) =>
             {
                 var (context, commands) = tuple;
                 context.AddRegisterAttributes(commands);
                 return context;
-            });
+            })
+            .WithTrackingName("ConsoleApp.Builder.4_CombineSelected");
 
         context.RegisterSourceOutput(combined, EmitConsoleAppBuilder);
     }
@@ -271,9 +291,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
     static void EmitConsoleAppConfigure(SourceProductionContext sourceProductionContext, DllReference dllReference)
     {
-        if (!dllReference.HasDependencyInjection && !dllReference.HasLogging && !dllReference.HasConfiguration)
+        if (!dllReference.HasDependencyInjection && !dllReference.HasLogging && !dllReference.HasConfiguration && !dllReference.HasHost && !dllReference.HasHostAbstraction)
         {
-            sourceProductionContext.AddSource("ConsoleApp.Builder.Configure.g.cs", "");
             return;
         }
 
@@ -288,9 +307,18 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         {
             sb.AppendLine("using Microsoft.Extensions.Logging;");
         }
-        if (dllReference.HasConfiguration)
+        if (dllReference.HasConfiguration || dllReference.HasJsonConfiguration)
         {
             sb.AppendLine("using Microsoft.Extensions.Configuration;");
+        }
+
+        if (dllReference.HasHost || dllReference.HasHostAbstraction)
+        {
+            var sb2 = sb.Clone();
+            sb2.AppendLine("using Microsoft.Extensions.Hosting;");
+            var emitter = new Emitter();
+            emitter.EmitAsConsoleAppBuilder(sb2, dllReference);
+            sourceProductionContext.AddSource("ConsoleAppHostBuilderExtensions.g.cs", sb2.ToString());
         }
 
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
@@ -436,7 +464,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             }
 
             // set properties
-            this.Commands = commands1.Concat(commands2!).ToArray()!; // not null if no diagnostics
+            this.Commands = commands1.Concat(commands2!).Where(x => x != null).ToArray()!;
             this.HasRun = methodGroup["Run"].Any();
             this.HasRunAsync = methodGroup["RunAsync"].Any();
         }
@@ -472,7 +500,9 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     {
                         if (!names.Add(command.Name))
                         {
-                            DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, ctx.TargetNode.GetLocation(), command!.Name);
+                            var methodSymbol = command.Symbol.Value as IMethodSymbol;
+                            var location = methodSymbol?.Locations[0] ?? ctx.TargetNode.GetLocation();
+                            DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateCommandName, location, command!.Name);
                             break;
                         }
                         else
@@ -483,7 +513,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 }
             }
 
-            Commands = Commands.Concat(list).ToArray();
+            Commands = Commands.Concat(list).Where(x => x != null).ToArray();
         }
 
         public bool Equals(CollectBuilderContext other)

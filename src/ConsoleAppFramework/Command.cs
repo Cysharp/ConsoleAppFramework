@@ -28,6 +28,7 @@ public record class Command
     public required DelegateBuildType DelegateBuildType { get; init; }
     public CommandMethodInfo? CommandMethodInfo { get; set; } // can set...!
     public required EquatableArray<FilterInfo> Filters { get; init; }
+    public IgnoreEquality<ISymbol> Symbol { get; init; }
     public bool HasFilter => Filters.Length != 0;
 
     // return is delegateType(Name).

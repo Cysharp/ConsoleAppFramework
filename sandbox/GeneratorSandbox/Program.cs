@@ -1,43 +1,107 @@
 ﻿#nullable enable
 
 using ConsoleAppFramework;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
-using ZLogger;
+//using Microsoft.Extensions.Configuration;
+//using Microsoft.Extensions.DependencyInjection;
+//// using Microsoft.Extensions.Hosting;
+//using Microsoft.Extensions.Logging;
+//using Microsoft.Extensions.Options;
+//using ZLogger;
 
-[assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
+//args = ["echo", "--msg", "zzzz"];
+
+//// IHostBuilder
+//// HostApplicationBuilder
+////var app = Host.CreateApplicationBuilder()
+////    .ToConsoleAppBuilder();
+//// appBuilder.Build();
+
+//// Package Import: Microsoft.Extensions.Configuration.Json
+//var app = ConsoleApp.Create()
+//    .ConfigureDefaultConfiguration()
+//    .ConfigureServices((configuration, services) =>
+//    {
+//        // Microsoft.Extensions.Options.ConfigurationExtensions
+//        services.Configure<PositionOptions>(configuration.GetSection("Position"));
+//    });
+
+//app.Add<MyCommand>();
+//app.Run(args);
+
+ConsoleApp.Run(args, () => { });
+
+// inject options
+//public class MyCommand(IOptions<PositionOptions> options)
+//{
+//    public void Echo(string msg)
+//    {
+//        ConsoleApp.Log($"Binded Option: {options.Value.Title} {options.Value.Name}");
+//    }
+//}
+
+//public class PositionOptions
+//{
+//    public string Title { get; set; } = "";
+//    public string Name { get; set; } = "";
+//}
+
+//internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
+//{
+//    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+//    {
+//        // create Microsoft.Extensions.DependencyInjection scope
+//        await using var scope = serviceProvider.CreateAsyncScope();
+
+//        var originalServiceProvider = ConsoleApp.ServiceProvider;
+//        ConsoleApp.ServiceProvider = scope.ServiceProvider;
+//        try
+//        {
+//            await Next.InvokeAsync(context, cancellationToken);
+//        }
+//        finally
+//        {
+//            ConsoleApp.ServiceProvider = originalServiceProvider;
+//        }
+//    }
+//}
 
 
 
-var app = ConsoleApp.Create()
-    ;
+//// inject logger to filter
+//internal class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> logger)
+//    : ConsoleAppFilter(next)
+//{
+//    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+//    {
+//        ConsoleApp.Log = msg => logger.LogInformation(msg);
+//        ConsoleApp.LogError = msg => logger.LogError(msg);
 
-app.ConfigureDefaultConfiguration();
+//        return Next.InvokeAsync(context, cancellationToken);
+//    }
+//}
 
-app.ConfigureServices(services =>
+class MyProvider : IServiceProvider, IAsyncDisposable
 {
-
-});
-
-  //  .ConfigureLogging(
-   // .ConfigureDefaultConfiguration()
-  //  ;
-
-app.Add("", () => { });
-
-app.Run(args);
-
-
-
-public class MyProjectCommand
-{
-    public void Execute(int x)
+    public void Dispose()
     {
-        Console.WriteLine("Hello?");
+        Console.WriteLine("disposed");
     }
+
+    public ValueTask DisposeAsync()
+    {
+        Console.WriteLine("dispose async");
+        return default;
+    }
+
+    public object? GetService(Type serviceType)
+    {
+        return null;
+    }
+}
+
+public class MyService
+{
+
 }
 
 
@@ -188,11 +252,4 @@ namespace HogeHoge
     }
 
 
-    [RegisterCommands, Batch]
-    public class Takoyaki
-    {
-        public void Error12345()
-        {
-        }
-    }
 }

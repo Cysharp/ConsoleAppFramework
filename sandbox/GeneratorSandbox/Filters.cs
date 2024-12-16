@@ -1,5 +1,7 @@
 ﻿
 using ConsoleAppFramework;
+using System.ComponentModel.DataAnnotations;
+
 // using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.Reflection;
@@ -29,6 +31,8 @@ internal class NopFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
         }
     }
 }
+
+
 
 internal class AuthenticationFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
 {

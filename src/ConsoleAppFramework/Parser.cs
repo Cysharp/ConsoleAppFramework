@@ -385,7 +385,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             MethodKind = MethodKind.Lambda,
             Description = "",
             DelegateBuildType = delegateBuildType,
-            Filters = globalFilters,
+            Filters = globalFilters
         };
 
         return cmd;
@@ -560,6 +560,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             Description = summary,
             DelegateBuildType = delegateBuildType,
             Filters = globalFilters.Concat(typeFilters).Concat(methodFilters).ToArray(),
+            Symbol = new IgnoreEquality<ISymbol>(methodSymbol)
         };
 
         return cmd;
