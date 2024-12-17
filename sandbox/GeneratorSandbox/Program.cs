@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using ConsoleAppFramework;
+using Microsoft.Extensions.DependencyInjection;
 //using Microsoft.Extensions.Configuration;
 //using Microsoft.Extensions.DependencyInjection;
 //// using Microsoft.Extensions.Hosting;
@@ -27,6 +28,10 @@ using ConsoleAppFramework;
 
 //app.Add<MyCommand>();
 //app.Run(args);
+// sc.BuildServiceProvider()
+
+//IServiceProvider ser;
+//ser.CreateScope()
 
 ConsoleApp.Run(args, () => { });
 

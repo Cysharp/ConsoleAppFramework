@@ -16,7 +16,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(EmitConsoleAppTemplateSource);
 
         // Emti ConfigureConfiguration/Logging/Services and Host.AsConsoleApp
-        var hasDependencyInjection = context.MetadataReferencesProvider
+        var hasReferences = context.MetadataReferencesProvider
             .Collect()
             .Select((xs, _) =>
             {
@@ -24,7 +24,6 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 var hasLogging = false;
                 var hasConfiguration = false;
                 var hasJsonConfiguration = false;
-                var hasHostAbstraction = false;
                 var hasHost = false;
 
                 foreach (var x in xs)
@@ -32,47 +31,41 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     var name = x.Display;
                     if (name == null) continue;
 
-                    if (!hasDependencyInjection && name.EndsWith("Microsoft.Extensions.DependencyInjection.Abstractions.dll"))
+                    if (!hasDependencyInjection && name.EndsWith("Microsoft.Extensions.DependencyInjection.dll")) // BuildServiceProvider
                     {
                         hasDependencyInjection = true;
                         continue;
                     }
 
-                    if (!hasLogging && name.EndsWith("Microsoft.Extensions.Logging.Abstractions.dll"))
+                    if (!hasLogging && name.EndsWith("Microsoft.Extensions.Logging.dll")) // AddLogging
                     {
                         hasLogging = true;
                         continue;
                     }
 
-                    if (!hasConfiguration && name.EndsWith("Microsoft.Extensions.Configuration.Abstractions.dll"))
+                    if (!hasConfiguration && name.EndsWith("Microsoft.Extensions.Configuration.dll")) // needs ConfigurationBuilder
                     {
                         hasConfiguration = true;
                         continue;
                     }
 
-                    if (!hasJsonConfiguration && name.EndsWith("Microsoft.Extensions.Configuration.Json.dll"))
+                    if (!hasJsonConfiguration && name.EndsWith("Microsoft.Extensions.Configuration.Json.dll")) // AddJson
                     {
                         hasJsonConfiguration = true;
                         continue;
                     }
 
-                    if (!hasHostAbstraction && name.EndsWith("Microsoft.Extensions.Hosting.Abstractions.dll"))
-                    {
-                        hasHostAbstraction = true;
-                        continue;
-                    }
-
-                    if (!hasHost && name.EndsWith("Microsoft.Extensions.Hosting.dll"))
+                    if (!hasHost && name.EndsWith("Microsoft.Extensions.Hosting.dll")) // IHostBuilder, ApplicationHostBuilder
                     {
                         hasHost = true;
                         continue;
                     }
                 }
 
-                return new DllReference(hasDependencyInjection, hasLogging, hasConfiguration, hasJsonConfiguration, hasHostAbstraction, hasHost);
+                return new DllReference(hasDependencyInjection, hasLogging, hasConfiguration, hasJsonConfiguration, hasHost);
             });
 
-        context.RegisterSourceOutput(hasDependencyInjection, EmitConsoleAppConfigure);
+        context.RegisterSourceOutput(hasReferences, EmitConsoleAppConfigure);
 
         // get Options for Combine
         var generatorOptions = context.CompilationProvider.Select((compilation, token) =>
@@ -291,7 +284,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
     static void EmitConsoleAppConfigure(SourceProductionContext sourceProductionContext, DllReference dllReference)
     {
-        if (!dllReference.HasDependencyInjection && !dllReference.HasLogging && !dllReference.HasConfiguration && !dllReference.HasHost && !dllReference.HasHostAbstraction)
+        if (!dllReference.HasDependencyInjection && !dllReference.HasLogging && !dllReference.HasConfiguration && !dllReference.HasHost)
         {
             return;
         }
@@ -312,7 +305,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             sb.AppendLine("using Microsoft.Extensions.Configuration;");
         }
 
-        if (dllReference.HasHost || dllReference.HasHostAbstraction)
+        if (dllReference.HasHost)
         {
             var sb2 = sb.Clone();
             sb2.AppendLine("using Microsoft.Extensions.Hosting;");

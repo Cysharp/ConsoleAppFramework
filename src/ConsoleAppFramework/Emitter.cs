@@ -839,11 +839,6 @@ internal static class ConsoleAppHostBuilderExtensions
         }
     }
 
-""");
-
-        if (dllReference.HasHostAbstraction)
-        {
-            sb.AppendLine("""
     internal static ConsoleApp.ConsoleAppBuilder ToConsoleAppBuilder(this IHostBuilder hostBuilder)
     {
         var host = hostBuilder.Build();
@@ -855,12 +850,6 @@ internal static class ConsoleAppHostBuilderExtensions
         return ConsoleApp.Create();
     }
 
-""");
-        }
-
-        if (dllReference.HasHost)
-        {
-            sb.AppendLine("""
     internal static ConsoleApp.ConsoleAppBuilder ToConsoleAppBuilder(this HostApplicationBuilder hostBuilder)
     {
         var host = hostBuilder.Build();
@@ -871,10 +860,8 @@ internal static class ConsoleAppHostBuilderExtensions
                 
         return ConsoleApp.Create();
     }
+}
 """);
-
-            sb.AppendLine("}");
-        }
     }
 
     internal record CommandWithId(string? FieldType, Command Command, int Id)

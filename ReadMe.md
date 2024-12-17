@@ -1016,7 +1016,7 @@ public class PositionOptions
 }
 ```
 
-When `Microsoft.Extensions.Configuration.Abstractions` is imported, `ConfigureEmptyConfiguration` becomes available to call. Additionally, when `Microsoft.Extensions.Configuration.Json` is imported, `ConfigureDefaultConfiguration` becomes available to call. In DefaultConfiguration, `SetBasePath(System.IO.Directory.GetCurrentDirectory())` and `AddJsonFile("appsettings.json", optional: true)` are executed before calling `Action<IConfigurationBuilder> configure`.
+When `Microsoft.Extensions.Configuration` is imported, `ConfigureEmptyConfiguration` becomes available to call. Additionally, when `Microsoft.Extensions.Configuration.Json` is imported, `ConfigureDefaultConfiguration` becomes available to call. In DefaultConfiguration, `SetBasePath(System.IO.Directory.GetCurrentDirectory())` and `AddJsonFile("appsettings.json", optional: true)` are executed before calling `Action<IConfigurationBuilder> configure`.
 
 Furthermore, overloads of `Action<IConfiguration, IServiceCollection> configure` and `Action<IConfiguration, ILoggingBuilder> configure` are added to `ConfigureServices` and `ConfigureLogging`, allowing you to retrieve the Configuration when executing the delegate.
 
