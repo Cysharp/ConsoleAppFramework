@@ -2,6 +2,7 @@
 
 using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 //using Microsoft.Extensions.Configuration;
 //using Microsoft.Extensions.DependencyInjection;
 //// using Microsoft.Extensions.Hosting;
@@ -70,7 +71,7 @@ ConsoleApp.Run(args, () => { });
 //    }
 //}
 
-
+// JsonSerializer.Deserialize<int>("foo");
 
 //// inject logger to filter
 //internal class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> logger)

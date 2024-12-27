@@ -228,7 +228,8 @@ internal static partial class ConsoleApp
         {
             try
             {
-                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s, JsonSerializerOptions)!;
+                var type = (System.Text.Json.Serialization.Metadata.JsonTypeInfo<T[]>)JsonSerializerOptions.GetTypeInfo(typeof(T))!;
+                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s, type)!;
                 return true;
             }
             catch
