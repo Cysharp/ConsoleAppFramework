@@ -10,6 +10,8 @@ using System.Text.Json;
 //using Microsoft.Extensions.Options;
 //using ZLogger;
 
+
+
 //args = ["echo", "--msg", "zzzz"];
 
 //// IHostBuilder
@@ -145,6 +147,11 @@ namespace ConsoleAppFramework
 {
     internal static partial class ConsoleApp
     {
+        static void Foo()
+        {
+            var options = JsonSerializerOptions ?? System.Text.Json.JsonSerializerOptions.Default;
+        }
+
         //public static ConsoleAppBuilder Create(IServiceProvider serviceProvider)
         //{
         //    ConsoleApp.ServiceProvider = serviceProvider;
