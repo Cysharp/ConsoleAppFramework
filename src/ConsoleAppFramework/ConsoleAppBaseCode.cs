@@ -21,7 +21,9 @@ public static class ConsoleAppBaseCode
 #pragma warning disable CA1050 // Declare types in namespaces.
 #pragma warning disable CS1998
 #pragma warning disable CS8625
-        
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code        
+
 namespace ConsoleAppFramework;
         
 using System;
@@ -55,6 +57,8 @@ using System.ComponentModel.DataAnnotations;
 #pragma warning disable CA1050 // Declare types in namespaces.
 #pragma warning disable CS1998
 #pragma warning disable CS8625
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
 namespace ConsoleAppFramework;
 
@@ -228,9 +232,7 @@ internal static partial class ConsoleApp
         {
             try
             {
-                var options = JsonSerializerOptions ?? System.Text.Json.JsonSerializerOptions.Default;
-                var type = (System.Text.Json.Serialization.Metadata.JsonTypeInfo<T[]>)options.GetTypeInfo(typeof(T[]))!;
-                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s, type)!;
+                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s, JsonSerializerOptions)!;
                 return true;
             }
             catch
