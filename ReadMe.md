@@ -564,6 +564,8 @@ If none of the above cases apply, `JsonSerializer.Deserialize<T>` is used to per
 
 If you want to change the deserialization options, you can set `JsonSerializerOptions` to `ConsoleApp.JsonSerializerOptions`.
 
+> NOTE: If they are not set when NativeAOT is used, a runtime exception may occur. If they are included in the parsing process, be sure to set source generated options.
+
 ### Custom Value Converter
 
 To perform custom binding to existing types that do not support `ISpanParsable<T>`, you can create and set up a custom parser. For example, if you want to pass `System.Numerics.Vector3` as a comma-separated string like `1.3,4.12,5.947` and parse it, you can create an `Attribute` with `AttributeTargets.Parameter` that implements `IArgumentParser<T>`'s `static bool TryParse(ReadOnlySpan<char> s, out Vector3 result)` as follows:
