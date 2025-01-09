@@ -9,6 +9,7 @@ public static class ConsoleAppBaseCode
 #pragma warning disable CS0162 // Unreachable code
 #pragma warning disable CS0164 // This label has not been referenced
 #pragma warning disable CS0219 // Variable assigned but never used
+#pragma warning disable CS1591 // Missing XML comment
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS8601 // Possible null reference assignment
 #pragma warning disable CS8602
