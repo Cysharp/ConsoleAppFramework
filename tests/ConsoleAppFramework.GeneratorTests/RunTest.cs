@@ -1,5 +1,4 @@
-﻿using FluentAssertions;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -23,15 +22,15 @@ public class Test(ITestOutputHelper output)
     [Fact]
     public void SyncRunShouldFailed()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x").Should().Contain("Argument 'x' failed to parse");
+        verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x").ShouldContain("Argument 'x' failed to parse");
     }
 
     [Fact]
     public void MissingArgument()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").Should().Contain("Argument 'y' is not recognized.");
+        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Argument 'y' is not recognized.");
 
-        Environment.ExitCode.Should().Be(1);
+        Environment.ExitCode.ShouldBe(1);
         Environment.ExitCode = 0;
     }
 
@@ -48,7 +47,7 @@ The field x must be between 1 and 10.
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, "--x 100 --y 140", expected);
 
-        Environment.ExitCode.Should().Be(1);
+        Environment.ExitCode.ShouldBe(1);
         Environment.ExitCode = 0;
     }
 
@@ -66,7 +65,7 @@ The field y must be between 100 and 200.
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, "--x 100 --y 240", expected);
 
-        Environment.ExitCode.Should().Be(1);
+        Environment.ExitCode.ShouldBe(1);
         Environment.ExitCode = 0;
     }
     [Fact]

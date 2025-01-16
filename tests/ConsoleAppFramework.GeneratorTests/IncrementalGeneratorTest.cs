@@ -13,13 +13,13 @@ public class IncrementalGeneratorTest
     void VerifySourceOutputReasonIsCached((string Key, string Reasons)[] reasons)
     {
         var reason = reasons.FirstOrDefault(x => x.Key == "SourceOutput").Reasons;
-        reason.Should().Be("Cached");
+        reason.ShouldBe("Cached");
     }
 
     void VerifySourceOutputReasonIsNotCached((string Key, string Reasons)[] reasons)
     {
         var reason = reasons.FirstOrDefault(x => x.Key == "SourceOutput").Reasons;
-        reason.Should().NotBe("Cached");
+        reason.ShouldNotBe("Cached");
     }
 
     [Fact]
@@ -49,9 +49,9 @@ Console.WriteLine("foo"); // unrelated line
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
-        reasons[0][0].Reasons.Should().Be("New");
-        reasons[1][0].Reasons.Should().Be("Unchanged");
-        reasons[2][0].Reasons.Should().Be("Modified");
+        reasons[0][0].Reasons.ShouldBe("New");
+        reasons[1][0].Reasons.ShouldBe("Unchanged");
+        reasons[2][0].Reasons.ShouldBe("Modified");
 
         VerifySourceOutputReasonIsCached(reasons[1]);
         VerifySourceOutputReasonIsNotCached(reasons[2]);
@@ -116,9 +116,9 @@ public class Tako
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
-        reasons[0][0].Reasons.Should().Be("New");
-        reasons[1][0].Reasons.Should().Be("Unchanged");
-        reasons[2][0].Reasons.Should().Be("Modified");
+        reasons[0][0].Reasons.ShouldBe("New");
+        reasons[1][0].Reasons.ShouldBe("Unchanged");
+        reasons[2][0].Reasons.ShouldBe("Modified");
 
         VerifySourceOutputReasonIsCached(reasons[1]);
     }
@@ -171,9 +171,9 @@ static void DoHello(int x, int y) // change signature
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
-        reasons[0][0].Reasons.Should().Be("New");
-        reasons[1][0].Reasons.Should().Be("Unchanged");
-        reasons[2][0].Reasons.Should().Be("Modified");
+        reasons[0][0].Reasons.ShouldBe("New");
+        reasons[1][0].Reasons.ShouldBe("Unchanged");
+        reasons[2][0].Reasons.ShouldBe("Modified");
 
         VerifySourceOutputReasonIsCached(reasons[1]);
     }

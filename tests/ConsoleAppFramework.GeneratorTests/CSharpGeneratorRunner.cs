@@ -153,7 +153,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         }
         OutputGeneratedCode(compilation);
 
-        diagnostics.Length.Should().Be(0);
+        diagnostics.Length.ShouldBe(0);
     }
 
     public void Verify(int id, [StringSyntax("C#-test")] string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
@@ -167,11 +167,11 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         }
         OutputGeneratedCode(compilation);
 
-        diagnostics.Length.Should().Be(1);
-        diagnostics[0].Id.Should().Be(idPrefix + id.ToString("000"));
+        diagnostics.Length.ShouldBe(1);
+        diagnostics[0].Id.ShouldBe(idPrefix + id.ToString("000"));
 
         var text = GetLocationText(diagnostics[0], compilation.SyntaxTrees);
-        text.Should().Be(diagnosticsCodeSpan);
+        text.ShouldBe(diagnosticsCodeSpan);
     }
 
     public (string, string)[] Verify([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
@@ -196,7 +196,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         }
         OutputGeneratedCode(compilation);
 
-        stdout.Should().Be(expected);
+        stdout.ShouldBe(expected);
     }
 
     public string Error([StringSyntax("C#-test")] string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)

@@ -14,19 +14,19 @@ public class NameConverterTest(ITestOutputHelper output)
     [Fact]
     public void KebabCase()
     {
-        NameConverter.ToKebabCase("").Should().Be("");
-        NameConverter.ToKebabCase("HelloWorld").Should().Be("hello-world");
-        NameConverter.ToKebabCase("HelloWorldMyHome").Should().Be("hello-world-my-home");
-        NameConverter.ToKebabCase("helloWorld").Should().Be("hello-world");
-        NameConverter.ToKebabCase("hello-world").Should().Be("hello-world");
-        NameConverter.ToKebabCase("A").Should().Be("a");
-        NameConverter.ToKebabCase("AB").Should().Be("ab");
-        NameConverter.ToKebabCase("ABC").Should().Be("abc");
-        NameConverter.ToKebabCase("ABCD").Should().Be("abcd");
-        NameConverter.ToKebabCase("ABCDeF").Should().Be("abc-def");
-        NameConverter.ToKebabCase("XmlReader").Should().Be("xml-reader");
-        NameConverter.ToKebabCase("XMLReader").Should().Be("xml-reader");
-        NameConverter.ToKebabCase("MLLibrary").Should().Be("ml-library");
+        NameConverter.ToKebabCase("").ShouldBe("");
+        NameConverter.ToKebabCase("HelloWorld").ShouldBe("hello-world");
+        NameConverter.ToKebabCase("HelloWorldMyHome").ShouldBe("hello-world-my-home");
+        NameConverter.ToKebabCase("helloWorld").ShouldBe("hello-world");
+        NameConverter.ToKebabCase("hello-world").ShouldBe("hello-world");
+        NameConverter.ToKebabCase("A").ShouldBe("a");
+        NameConverter.ToKebabCase("AB").ShouldBe("ab");
+        NameConverter.ToKebabCase("ABC").ShouldBe("abc");
+        NameConverter.ToKebabCase("ABCD").ShouldBe("abcd");
+        NameConverter.ToKebabCase("ABCDeF").ShouldBe("abc-def");
+        NameConverter.ToKebabCase("XmlReader").ShouldBe("xml-reader");
+        NameConverter.ToKebabCase("XMLReader").ShouldBe("xml-reader");
+        NameConverter.ToKebabCase("MLLibrary").ShouldBe("ml-library");
     }
 
     [Fact]
