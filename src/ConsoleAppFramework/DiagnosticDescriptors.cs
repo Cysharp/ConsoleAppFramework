@@ -118,4 +118,8 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor DocCommentParameterNameNotMatched { get; } = Create(
         15,
         "Document Comment parameter name '{0}' does not match method parameter name.");
+
+    public static DiagnosticDescriptor ReturnTypeMethodAsyncVoid { get; } = Create(
+        16,
+        "Command method return type does not allow async void.");
 }

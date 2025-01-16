@@ -456,5 +456,24 @@ public class Foo
 """, "Bar");
 
     }
+
+    [Fact]
+    public void AsyncVoid()
+    {
+        verifier.Verify(16, """
+var app = ConsoleApp.Create();
+app.Add<MyCommands2>();
+app.Run(args);
+
+public class MyCommands2
+{
+    public async void Foo()
+    {
+        await Task.Yield();
+    }
+}
+
+""", "async");
+    }
 }
 
