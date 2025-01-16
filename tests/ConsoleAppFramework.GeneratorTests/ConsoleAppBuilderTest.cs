@@ -27,9 +27,9 @@ builder.Run(args);
         verifier.Execute(code, "foo --x 10 --y 20", "30");
         verifier.Execute(code, "bar --x 20 --y 30", "50");
         verifier.Execute(code, "bar --x 20", "30");
-        Environment.ExitCode.Should().Be(0);
+        Environment.ExitCode.ShouldBe(0);
         verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
-        Environment.ExitCode.Should().Be(10);
+        Environment.ExitCode.ShouldBe(10);
         Environment.ExitCode = 0;
 
         verifier.Execute(code, "boz --x 40", "80");
@@ -50,9 +50,9 @@ await builder.RunAsync(args);
         verifier.Execute(code, "foo --x 10 --y 20", "30");
         verifier.Execute(code, "bar --x 20 --y 30", "50");
         verifier.Execute(code, "bar --x 20", "30");
-        Environment.ExitCode.Should().Be(0);
+        Environment.ExitCode.ShouldBe(0);
         verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
-        Environment.ExitCode.Should().Be(10);
+        Environment.ExitCode.ShouldBe(10);
         Environment.ExitCode = 0;
 
         verifier.Execute(code, "boz --x 40", "80");
