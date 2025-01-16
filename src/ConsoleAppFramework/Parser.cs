@@ -414,6 +414,18 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         if (methodSymbol.ReturnType.SpecialType == SpecialType.System_Void)
         {
             isVoid = true;
+
+            // check `async void`
+            var syntax = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax() as MethodDeclarationSyntax;
+            if (syntax != null)
+            {
+                var asyncKeyword = syntax.Modifiers.FirstOrDefault(x => x.IsKind(SyntaxKind.AsyncKeyword));
+                if (asyncKeyword != default)
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.ReturnTypeMethodAsyncVoid, asyncKeyword.GetLocation());
+                    return null;
+                }
+            }
         }
         else if (methodSymbol.ReturnType.SpecialType == SpecialType.System_Int32)
         {
