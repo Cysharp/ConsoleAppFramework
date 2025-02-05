@@ -2,7 +2,7 @@
 
 namespace ConsoleAppFramework.GeneratorTests
 {
-    public class ArrayPraseTest(ITestOutputHelper output)
+    public class ArrayParseTest(ITestOutputHelper output)
     {
         VerifyHelper verifier = new VerifyHelper(output, "CAF");
 

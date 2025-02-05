@@ -670,7 +670,7 @@ The field secondArg must be between 0 and 2.
 
 By default, the ExitCode is set to 1 in this case.
 
-Filter(Middleware) Pipline / ConsoleAppContext
+Filter(Middleware) Pipeline / ConsoleAppContext
 ---
 Filters are provided as a mechanism to hook into the execution before and after. To use filters, define an `internal class` that implements `ConsoleAppFilter`.
 
@@ -1022,7 +1022,7 @@ When `Microsoft.Extensions.Configuration` is imported, `ConfigureEmptyConfigurat
 
 Furthermore, overloads of `Action<IConfiguration, IServiceCollection> configure` and `Action<IConfiguration, ILoggingBuilder> configure` are added to `ConfigureServices` and `ConfigureLogging`, allowing you to retrieve the Configuration when executing the delegate.
 
-without Hosting dependency, I've prefere these import packages.
+without Hosting dependency, I've preferred these import packages.
 
 ```xml
 <ItemGroup>
@@ -1106,7 +1106,7 @@ ConsoleApp.ServiceProvider = scope.ServiceProvider;
 * `app.AddAllCommandType` -> `NotSupported`(use `Add<T>` manually)
 * `[Option(int index)]` -> `[Argument]`
 * `[Option(string shortName, string description)]` -> `Xml Document Comment`
-* `ConsoleAppFilter.Order` -> `NotSupported`(global -> class -> method declrative order)
+* `ConsoleAppFilter.Order` -> `NotSupported`(global -> class -> method declarative order)
 * `ConsoleAppOptions.GlobalFilters` -> `app.UseFilter<T>`
 * `ConsoleAppBase` -> inject `ConsoleAppContext`, `CancellationToken` to method
 

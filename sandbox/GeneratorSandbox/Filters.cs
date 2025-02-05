@@ -54,7 +54,7 @@ internal class AuthenticationFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
     }
 }
 
-record class ApplicationContext(Guid RequiestId, int UserId);
+record class ApplicationContext(Guid RequestId, int UserId);
 
 internal class LogRunningTimeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
 {

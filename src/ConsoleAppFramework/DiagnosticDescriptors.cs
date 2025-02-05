@@ -95,11 +95,11 @@ internal static class DiagnosticDescriptors
         9,
         "ConsoleApp.Run does not allow the use of filters, but the function has a filter attribute.");
 
-    public static DiagnosticDescriptor FilterMultipleConsturtor { get; } = Create(
+    public static DiagnosticDescriptor FilterMultipleConstructor { get; } = Create(
         10,
         "ConsoleAppFilter class does not allow multiple constructors.");
 
-    public static DiagnosticDescriptor ClassMultipleConsturtor { get; } = Create(
+    public static DiagnosticDescriptor ClassMultipleConstructor { get; } = Create(
         11,
         "ConsoleAppBuilder.Add<T> class does not allow multiple constructors.");
 
