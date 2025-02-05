@@ -470,16 +470,16 @@ internal class Emitter
         void EmitRunBody(ILookup<string, CommandWithId> groupedCommands, int depth, bool isRunAsync)
         {
             var leafCommand = groupedCommands[""].FirstOrDefault();
-            IDisposable? ifBlcok = null;
+            IDisposable? ifBlock = null;
             if (!(groupedCommands.Count == 1 && leafCommand != null))
             {
-                ifBlcok = sb.BeginBlock($"if (args.Length == {depth})");
+                ifBlock = sb.BeginBlock($"if (args.Length == {depth})");
             }
             EmitLeafCommand(leafCommand);
-            if (ifBlcok != null)
+            if (ifBlock != null)
             {
                 sb.AppendLine("return;");
-                ifBlcok.Dispose();
+                ifBlock.Dispose();
             }
             else
             {

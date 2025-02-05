@@ -15,7 +15,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         // Emit ConsoleApp.g.cs
         context.RegisterPostInitializationOutput(EmitConsoleAppTemplateSource);
 
-        // Emti ConfigureConfiguration/Logging/Services and Host.AsConsoleApp
+        // Emit ConfigureConfiguration/Logging/Services and Host.AsConsoleApp
         var hasReferences = context.MetadataReferencesProvider
             .Collect()
             .Select((xs, _) =>
@@ -118,7 +118,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 var isRunAsync = (node.Expression as MemberAccessExpressionSyntax)?.Name.Identifier.Text == "RunAsync";
 
                 var command = parser.ParseAndValidateForRun();
-                return new CommanContext(command, isRunAsync, reporter, node);
+                return new CommandContext(command, isRunAsync, reporter, node);
             })
             .WithTrackingName("ConsoleApp.Run.0_CreateSyntaxProvider"); // annotate for IncrementalGeneratorTest
 
@@ -185,7 +185,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         context.AddSource("ConsoleApp.g.cs", ConsoleAppBaseCode.InitializationCode);
     }
 
-    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommanContext commandContext)
+    static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommandContext commandContext)
     {
         if (commandContext.DiagnosticReporter.HasDiagnostics)
         {
@@ -324,14 +324,14 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         sourceProductionContext.AddSource("ConsoleApp.Builder.Configure.g.cs", sb.ToString());
     }
 
-    class CommanContext(Command? command, bool isAsync, DiagnosticReporter diagnosticReporter, InvocationExpressionSyntax node) : IEquatable<CommanContext>
+    class CommandContext(Command? command, bool isAsync, DiagnosticReporter diagnosticReporter, InvocationExpressionSyntax node) : IEquatable<CommandContext>
     {
         public Command? Command => command;
         public DiagnosticReporter DiagnosticReporter => diagnosticReporter;
         public InvocationExpressionSyntax Node => node;
         public bool IsAsync => isAsync;
 
-        public bool Equals(CommanContext other)
+        public bool Equals(CommandContext other)
         {
             // has diagnostics, always go to modified(don't cache)
             if (diagnosticReporter.HasDiagnostics || other.DiagnosticReporter.HasDiagnostics) return false;
@@ -396,7 +396,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     if (filter == null)
                     {
-                        DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, genericType.GetLocation());
+                        DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConstructor, genericType.GetLocation());
                         return null!;
                     }
 

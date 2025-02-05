@@ -25,7 +25,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
     public Command? ParseAndValidateForBuilderDelegateRegistration() // for ConsoleAppBuilder.Add
     {
-        // Add(string commandName, Delgate command)
+        // Add(string commandName, Delegate command)
         var args = (node as InvocationExpressionSyntax)!.ArgumentList.Arguments;
         if (args.Count == 2) // 0 = string command, 1 = lambda
         {
@@ -112,7 +112,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
         if (publicConstructors.Length != 1)
         {
-            context.ReportDiagnostic(DiagnosticDescriptors.ClassMultipleConsturtor, node.GetLocation());
+            context.ReportDiagnostic(DiagnosticDescriptors.ClassMultipleConstructor, node.GetLocation());
             return [];
         }
 
@@ -128,7 +128,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
                 if (filter == null)
                 {
-                    context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
+                    context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConstructor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
                     return null!;
                 }
 
@@ -146,7 +146,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             IsIDisposable = hasIDisposable,
             IsIAsyncDisposable = hasIAsyncDisposable,
             ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbol(x.Type)).ToArray(),
-            MethodName = "", // without methodname
+            MethodName = "", // without method name
         };
 
         return publicMethods
@@ -481,7 +481,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
                 if (filter == null)
                 {
-                    context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConsturtor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
+                    context.ReportDiagnostic(DiagnosticDescriptors.FilterMultipleConstructor, x.ApplicationSyntaxReference!.GetSyntax().GetLocation());
                     return null!;
                 }
 
@@ -493,7 +493,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             return null;
         }
 
-        // validate parametersymbols
+        // validate parameter symbols
         if (parameterDescriptions != null)
         {
             foreach (var item in parameterDescriptions)

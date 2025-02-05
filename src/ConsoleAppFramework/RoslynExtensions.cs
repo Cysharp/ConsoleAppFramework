@@ -92,9 +92,9 @@ internal static class RoslynExtensions
     public static DocumentationCommentTriviaSyntax? GetDocumentationCommentTriviaSyntax(this SyntaxNode node)
     {
         // Hack note:
-        // ISymbol.GetDocumentationCommtentXml requires<GenerateDocumentaionFile>true</>.
+        // ISymbol.GetDocumentationCommentXml requires<GenerateDocumentationFile>true</>.
         // However, getting the DocumentationCommentTrivia of a SyntaxNode also requires the same condition.
-        // It can only be obtained when DocumentationMode is Parse or Diagnostic, but when<GenerateDocumentaionFile>false</>,
+        // It can only be obtained when DocumentationMode is Parse or Diagnostic, but when<GenerateDocumentationFile>false</>,
         // it becomes None, and the necessary Trivia cannot be obtained.
         // Therefore, we will attempt to reparse and retrieve it.
 

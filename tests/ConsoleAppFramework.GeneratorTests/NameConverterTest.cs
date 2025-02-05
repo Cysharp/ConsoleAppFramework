@@ -30,7 +30,7 @@ public class NameConverterTest(ITestOutputHelper output)
     }
 
     [Fact]
-    public void CommmandName()
+    public void CommandName()
     {
         verifier.Execute("""
 var builder = ConsoleApp.Create();
