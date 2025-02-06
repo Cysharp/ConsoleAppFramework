@@ -45,7 +45,42 @@ internal interface IArgumentParser<T>
     static abstract bool TryParse(ReadOnlySpan<char> s, out T result);
 }
 
-internal record class ConsoleAppContext(string CommandName, string[] Arguments, object? State);
+internal record ConsoleAppContext
+{
+    public string CommandName { get; init; }
+    public string[] Arguments { get; init; }
+    public object? State { get; init; }
+    internal int CommandDepth { get; }
+    internal int EscapeIndex  { get; }
+
+    public ReadOnlySpan<string> CommandArguments
+    {
+        get => (EscapeIndex == -1)
+            ? Arguments.AsSpan(CommandDepth)
+            : Arguments.AsSpan(CommandDepth, EscapeIndex - CommandDepth);
+    }
+
+    public ReadOnlySpan<string> EscapedArguments
+    {
+        get => (EscapeIndex == -1)
+            ? Array.Empty<string>()
+            : Arguments.AsSpan(EscapeIndex + 1);
+    }
+
+    public ConsoleAppContext(string commandName, string[] arguments, object? state, int commandDepth, int escapeIndex)
+    {
+        this.CommandName = commandName;
+        this.Arguments = arguments;
+        this.State = state;
+        this.CommandDepth = commandDepth;
+        this.EscapeIndex = escapeIndex;
+    }
+
+    public override string ToString()
+    {
+        return string.Join(" ", Arguments);
+    }
+}
 
 internal abstract class ConsoleAppFilter(ConsoleAppFilter next)
 {
@@ -329,12 +364,12 @@ internal static partial class ConsoleApp
 
     static partial void ShowHelp(int helpId);
 
-    static async Task RunWithFilterAsync(string commandName, string[] args, ConsoleAppFilter invoker)
+    static async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, int escapeIndex, ConsoleAppFilter invoker)
     {
         using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
         try
         {
-            await Task.Run(() => invoker.InvokeAsync(new ConsoleAppContext(commandName, args, null), posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
+            await Task.Run(() => invoker.InvokeAsync(new ConsoleAppContext(commandName, args, null, commandDepth, escapeIndex), posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
         }
         catch (Exception ex)
         {
