@@ -1,7 +1,9 @@
 ﻿#nullable enable
 
 using ConsoleAppFramework;
+using GeneratorSandbox;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 using System.Text.Json;
 //using Microsoft.Extensions.Configuration;
 //using Microsoft.Extensions.DependencyInjection;
@@ -29,14 +31,30 @@ using System.Text.Json;
 //        services.Configure<PositionOptions>(configuration.GetSection("Position"));
 //    });
 
-//app.Add<MyCommand>();
-//app.Run(args);
-// sc.BuildServiceProvider()
 
-//IServiceProvider ser;
-//ser.CreateScope()
+args = ["run", "--project", "foo.csproj", "--", "--foo", "100", "--bar", "bazbaz"];
 
-ConsoleApp.Run(args, () => { });
+// dotnet run --project foo.csproj -- --foo 100 --bar bazbaz
+
+var app = ConsoleApp.Create();
+
+app.Add("run", (string project, ConsoleAppContext context) =>
+{
+    // run --project foo.csproj -- --foo 100 --bar bazbaz
+    Console.WriteLine(string.Join(" ", context.Arguments));
+
+    // --project foo.csproj
+    Console.WriteLine(string.Join(" ", context.CommandArguments!));
+
+    // --foo 100 --bar bazbaz
+    Console.WriteLine(string.Join(" ", context.EscapedArguments!));
+});
+
+app.Run(args);
+
+
+
+//ConsoleApp.Run(args, (ConsoleAppContext ctx) => { });
 
 // inject options
 //public class MyCommand(IOptions<PositionOptions> options)
@@ -115,24 +133,13 @@ public class MyService
 
 public class MyCommands
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="msg">foobarbaz!</param>
-    [Command("Error1")]
-    public void Error1(string msg = @"\")
+    public void Cmd1(int x, int y, ConsoleAppContext ctx)
     {
-        Console.WriteLine(msg);
     }
-    [Command("Error2")]
-    public void Error2(string msg = "\\")
+
+    public Task Cmd2(int x, int y)
     {
-        Console.WriteLine(msg);
-    }
-    [Command("Output")]
-    public void Output(string msg = @"\\")
-    {
-        Console.WriteLine(msg); // 「\」
+        return Task.CompletedTask;
     }
 }
 

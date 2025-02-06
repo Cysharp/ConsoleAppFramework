@@ -2,7 +2,7 @@ ConsoleAppFramework
 ===
 [![GitHub Actions](https://github.com/Cysharp/ConsoleAppFramework/workflows/Build-Debug/badge.svg)](https://github.com/Cysharp/ConsoleAppFramework/actions) [![Releases](https://img.shields.io/github/release/Cysharp/ConsoleAppFramework.svg)](https://github.com/Cysharp/ConsoleAppFramework/releases)
 
-ConsoleAppFramework v5 is Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator; achieves exceptionally high performance, fastest start-up time(with NativeAOT) and minimal binary size. Leveraging the latest features of .NET 8 and C# 12 ([IncrementalGenerator](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md), [managed function pointer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers#function-pointers-1), [params arrays and default values lambda expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions#input-parameters-of-a-lambda-expression), [`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1), [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration), etc.), this library ensures maximum performance while maintaining flexibility and extensibility.
+ConsoleAppFramework v5 is Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator; achieves exceptionally high performance, fastest start-up time(with NativeAOT) and minimal binary size. Leveraging the latest features of .NET 8 and C# 13 ([IncrementalGenerator](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md), [managed function pointer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers#function-pointers-1), [params arrays and default values lambda expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions#input-parameters-of-a-lambda-expression), [`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1), [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration), etc.), this library ensures maximum performance while maintaining flexibility and extensibility.
 
 ![image](https://github.com/Cysharp/ConsoleAppFramework/assets/46207/db4bf599-9fe0-4ce4-801f-0003f44d5628)
 > Set `RunStrategy=ColdStart WarmupCount=0` to calculate the cold start benchmark, which is suitable for CLI application.
@@ -147,6 +147,7 @@ ConsoleAppFramework offers a rich set of features as a framework. The Source Gen
 * High performance value parsing via `ISpanParsable<T>`
 * Parsing of params arrays
 * Parsing of JSON arguments
+* Double-dash escape arguments
 * Help(`-h|--help`) option builder
 * Default show version(`--version`) option
 
@@ -154,7 +155,7 @@ As you can see from the generated output, the help display is also fast. In typi
 
 Getting Started
 --
-This library is distributed via NuGet, minimal requirement is .NET 8 and C# 12.
+This library is distributed via NuGet, minimal requirement is .NET 8 and C# 13.
 
 > dotnet add package [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
 
@@ -167,6 +168,13 @@ using ConsoleAppFramework;
 
 ConsoleApp.Run(args, (string name) => Console.WriteLine($"Hello {name}"));
 ```
+
+> When using .NET 8, you need to explicitly set LangVersion to 13 or above.
+> ```xml
+>  <PropertyGroup>
+>      <TargetFramework>net8.0</TargetFramework>
+>      <LangVersion>13</LangVersion>
+>  </PropertyGroup>
 
 > The latest Visual Studio changed the execution timing of Source Generators to either during save or at compile time. If you encounter unexpected behavior, try compiling once or change the option to "Automatic" under TextEditor -> C# -> Advanced -> Source Generators.
 
@@ -604,6 +612,25 @@ By setting this attribute on a parameter, the custom parser will be called when 
 ```csharp
 ConsoleApp.Run(args, ([Vector3Parser] Vector3 position) => Console.WriteLine(position));
 ```
+
+### Double-dash escaping
+
+Arguments after double-dash (`--`) can be received as escaped arguments without being parsed. This is useful when creating commands like `dotnet run`.
+```csharp
+// dotnet run --project foo.csproj -- --foo 100 --bar bazbaz
+var app = ConsoleApp.Create();
+app.Add("run", (string project, ConsoleAppContext context) =>
+{
+    // run --project foo.csproj -- --foo 100 --bar bazbaz
+    Console.WriteLine(string.Join(" ", context.Arguments));
+    // --project foo.csproj
+    Console.WriteLine(string.Join(" ", context.CommandArguments!));
+    // --foo 100 --bar bazbaz
+    Console.WriteLine(string.Join(" ", context.EscapedArguments!));
+});
+app.Run(args);
+```
+You can get the escaped arguments using `ConsoleAppContext.EscapedArguments`. From `ConsoleAppContext`, you can also get `Arguments` which contains all arguments passed to `Run/RunAsync`, and `CommandArguments` which contains the arguments used for command execution.
 
 ### Syntax Parsing Policy and Performance
 

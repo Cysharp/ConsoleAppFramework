@@ -25,7 +25,6 @@ internal class Emitter
         }
         var returnType = isRunAsync ? "async Task" : "void";
         var accessibility = !emitForBuilder ? "public" : "private";
-        var argsType = !emitForBuilder ? "string[]" : (isRunAsync ? "string[]" : "ReadOnlySpan<string>"); // NOTE: C# 13 will allow Span<T> in async methods so can change to ReadOnlyMemory<string>(and store .Span in local var)
         methodName = methodName ?? (isRunAsync ? "RunAsync" : "Run");
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
@@ -42,8 +41,8 @@ internal class Emitter
             sb.AppendLine();
         }
 
+        var commandDepthEscapeIndex = emitForBuilder ? ", int commandDepth, int escapeIndex" : "";
         var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken" : "";
-        var rawArgs = !emitForBuilder ? "" : "string[] rawArgs, ";
 
         if (!emitForBuilder)
         {
@@ -59,9 +58,26 @@ internal class Emitter
         }
 
         // method signature
-        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}({rawArgs}{argsType} args{commandMethodType}{filterCancellationToken})"))
+        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}(string[] args{commandDepthEscapeIndex}{commandMethodType}{filterCancellationToken})"))
         {
-            sb.AppendLine($"if (TryShowHelpOrVersion(args, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
+            if (emitForBuilder)
+            {
+                sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan(commandDepth) : args.AsSpan(commandDepth, escapeIndex - commandDepth);");
+            }
+            else
+            {
+                if (hasConsoleAppContext)
+                {
+                    sb.AppendLine("var escapeIndex = args.AsSpan().IndexOf(\"--\");");
+                    sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan() : args.AsSpan(0, escapeIndex);");
+                }
+                else
+                {
+                    sb.AppendLine("var commandArgs = args.AsSpan();");
+                }
+            }
+
+            sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
             sb.AppendLine();
 
             // prepare argument variables
@@ -71,8 +87,7 @@ internal class Emitter
             }
             if (hasConsoleAppContext)
             {
-                var rawArgsName = !emitForBuilder ? "args" : "rawArgs";
-                sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", {rawArgsName}, null);");
+                sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", args, null, {(emitForBuilder ? "commandDepth" : "0")}, escapeIndex);");
             }
             for (var i = 0; i < command.Parameters.Length; i++)
             {
@@ -113,7 +128,7 @@ internal class Emitter
 
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
-                using (sb.BeginBlock("for (int i = 0; i < args.Length; i++)"))
+                using (sb.BeginBlock("for (int i = 0; i < commandArgs.Length; i++)"))
                 {
                     // parse indexed argument([Argument] parameter)
                     if (hasArgument)
@@ -137,7 +152,7 @@ internal class Emitter
                         sb.AppendLine();
                     }
 
-                    sb.AppendLine("var name = args[i];");
+                    sb.AppendLine("var name = commandArgs[i];");
                     sb.AppendLine();
 
                     using (sb.BeginBlock("switch (name)"))
@@ -538,16 +553,16 @@ internal class Emitter
                     {
                         if (!isRunAsync)
                         {
-                            sb.AppendLine($"RunCommand{command.Id}(args, args.AsSpan({depth}){commandArgs});");
+                            sb.AppendLine($"RunCommand{command.Id}(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs});");
                         }
                         else
                         {
-                            sb.AppendLine($"result = RunCommand{command.Id}Async(args, args[{depth}..]{commandArgs});");
+                            sb.AppendLine($"result = RunCommand{command.Id}Async(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs});");
                         }
                     }
                     else
                     {
-                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, new Command{command.Id}Invoker(args[{depth}..]{commandArgs}).BuildFilter())";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker({commandArgs.TrimStart(',', ' ')}).BuildFilter())";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
@@ -565,9 +580,9 @@ internal class Emitter
         {
             var commandType = command.Command.BuildDelegateSignature(command.BuildCustomDelegateTypeName(), out _);
             var needsCommand = commandType != null;
-            if (needsCommand) commandType = $", {commandType} command";
+            if (needsCommand) commandType = $"{commandType} command";
 
-            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker(string[] args{commandType}) : ConsoleAppFilter(null!)"))
+            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker({commandType}) : ConsoleAppFilter(null!)"))
             {
                 using (sb.BeginBlock($"public ConsoleAppFilter BuildFilter()"))
                 {
@@ -584,7 +599,7 @@ internal class Emitter
                 using (sb.BeginBlock($"public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)"))
                 {
                     var cmdArgs = needsCommand ? ", command" : "";
-                    sb.AppendLine($"return RunCommand{command.Id}Async(context.Arguments, args{cmdArgs}, context, cancellationToken);");
+                    sb.AppendLine($"return RunCommand{command.Id}Async(context.Arguments, context.CommandDepth, context.EscapeIndex{cmdArgs}, context, cancellationToken);");
                 }
             }
         }

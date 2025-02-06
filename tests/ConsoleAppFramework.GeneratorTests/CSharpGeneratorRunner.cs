@@ -41,7 +41,7 @@ global using ConsoleAppFramework;
         {
             preprocessorSymbols = new[] { "NET8_0_OR_GREATER" };
         }
-        var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp12, preprocessorSymbols: preprocessorSymbols); // 12
+        var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp13, preprocessorSymbols: preprocessorSymbols); // 13
 
         var driver = CSharpGeneratorDriver.Create(new ConsoleAppGenerator()).WithUpdatedParseOptions(parseOptions);
         if (options != null)
@@ -94,7 +94,7 @@ global using ConsoleAppFramework;
 
     public static (string Key, string Reasons)[][] GetIncrementalGeneratorTrackedStepsReasons(string keyPrefixFilter, params string[] sources)
     {
-        var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp12); // 12
+        var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp13); // 13
         var driver = CSharpGeneratorDriver.Create(
             [new ConsoleAppGenerator().AsSourceGenerator()],
             driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true))
@@ -185,7 +185,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     // Execute and check stdout result
 
-    public void Execute([StringSyntax("C#-test")]string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public void Execute([StringSyntax("C#-test")] string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         output.WriteLine(codeExpr);
 
