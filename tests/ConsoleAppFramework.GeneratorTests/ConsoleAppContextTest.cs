@@ -1,4 +1,4 @@
-﻿namespace ConsoleAppFramework.GeneratorTests;
+namespace ConsoleAppFramework.GeneratorTests;
 
 public class ConsoleAppContextTest(ITestOutputHelper output)
 {

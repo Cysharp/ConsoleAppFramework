@@ -1,4 +1,4 @@
-﻿
+
 using ConsoleAppFramework;
 using System.ComponentModel.DataAnnotations;
 

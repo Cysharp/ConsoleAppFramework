@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestPlatform.Utilities;
+using Microsoft.VisualStudio.TestPlatform.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -242,7 +242,7 @@ public class MyClass()
         verifier.Execute(code, "nomunomu", "yeah");
     }
 
- [Fact]
+    [Fact]
     public void CommandAttrWithFilter()
     {
         var code = """
