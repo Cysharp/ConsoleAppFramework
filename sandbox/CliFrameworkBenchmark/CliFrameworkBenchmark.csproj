@@ -15,7 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
+		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
 		<PackageReference Include="CliFx" Version="2.3.5" />
 		<PackageReference Include="clipr" Version="1.6.1" />
 		<PackageReference Include="Cocona" Version="2.2.0" />
@@ -26,7 +26,8 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
 		<PackageReference Include="PowerArgs" Version="4.0.3" />
 		<PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
-		<PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20071.2" />
+		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+		<PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
 	</ItemGroup>
 
 

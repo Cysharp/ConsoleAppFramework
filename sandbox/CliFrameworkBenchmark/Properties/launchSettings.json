@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Default": {
+      "commandName": "Project",
+      "commandLineArgs": ""
+    },
+    "Measure": {
+      "commandName": "Project",
+      "commandLineArgs": "--launchCount 20"
+    }
+  }
+}
