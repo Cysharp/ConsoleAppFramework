@@ -1,41 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<TargetFramework>net8.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<nullable>annotations</nullable>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<IsPackable>false</IsPackable>
-		<Configurations>Debug;Release</Configurations>
-	</PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <nullable>annotations</nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
 
-	<ItemGroup>
-	  <Compile Include="..\GeneratorSandbox\Filters.cs" />
-	</ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\GeneratorSandbox\Filters.cs" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
-		<PackageReference Include="CliFx" Version="2.3.5" />
-		<PackageReference Include="clipr" Version="1.6.1" />
-		<PackageReference Include="Cocona" Version="2.2.0" />
-		<PackageReference Include="Cocona.Lite" Version="2.2.0" />
-		<PackageReference Include="CommandLineParser" Version="2.9.1" />
-		<!--<PackageReference Include="ConsoleAppFramework" Version="4.2.4" />-->
-		<PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
-		<PackageReference Include="PowerArgs" Version="4.0.3" />
-		<PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
-		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-		<PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageReference Include="CliFx" Version="2.3.5" />
+    <PackageReference Include="clipr" Version="1.6.1" />
+    <PackageReference Include="Cocona" Version="2.2.0" />
+    <PackageReference Include="Cocona.Lite" Version="2.2.0" />
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <!--<PackageReference Include="ConsoleAppFramework" Version="4.2.4" />-->
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="PowerArgs" Version="4.0.3" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
 
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj">
-			<OutputItemType>Analyzer</OutputItemType>
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-		</ProjectReference>
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj">
+      <OutputItemType>Analyzer</OutputItemType>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
 
 </Project>
