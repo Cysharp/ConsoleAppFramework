@@ -1,5 +1,5 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
+using System.CommandLine.NamingConventionBinder;
 
 namespace Cocona.Benchmark.External.Commands;
 
@@ -11,18 +11,9 @@ public class SystemCommandLineCommand
     {
         var command = new RootCommand
         {
-            new Option(new[] {"--str", "-s"})
-            {
-                Argument = new Argument<string?>()
-            },
-            new Option(new[] {"--int", "-i"})
-            {
-                Argument = new Argument<int>()
-            },
-            new Option(new[] {"--bool", "-b"})
-            {
-                Argument = new Argument<bool>()
-            }
+            new Option<string?>(new[] {"--str", "-s"}),
+            new Option<int>(new[] {"--int", "-i"}),
+            new Option<bool>(new[] {"--bool", "-b"}),
         };
 
         command.Handler = CommandHandler.Create(ExecuteHandler);
@@ -33,18 +24,9 @@ public class SystemCommandLineCommand
     {
         var command = new RootCommand
         {
-            new Option(new[] {"--str", "-s"})
-            {
-                Argument = new Argument<string?>()
-            },
-            new Option(new[] {"--int", "-i"})
-            {
-                Argument = new Argument<int>()
-            },
-            new Option(new[] {"--bool", "-b"})
-            {
-                Argument = new Argument<bool>()
-            }
+            new Option<string?>(new[] {"--str", "-s"}),
+            new Option<int>(new[] {"--int", "-i"}),
+            new Option<bool>(new[] {"--bool", "-b"}),
         };
 
         command.Handler = CommandHandler.Create(ExecuteHandler);

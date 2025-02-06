@@ -12,6 +12,6 @@ class Program
 {
     static void Main(string[] args)
     {
-        BenchmarkRunner.Run<Benchmark>(DefaultConfig.Instance.WithSummaryStyle(SummaryStyle.Default.WithTimeUnit(TimeUnit.Millisecond)));
+        BenchmarkRunner.Run<Benchmark>(DefaultConfig.Instance.WithSummaryStyle(SummaryStyle.Default.WithTimeUnit(TimeUnit.Millisecond)), args);
     }
 }
