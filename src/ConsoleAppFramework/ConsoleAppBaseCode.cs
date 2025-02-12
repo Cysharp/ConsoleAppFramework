@@ -8,7 +8,7 @@ public static class ConsoleAppBaseCode
 #pragma warning disable
 
 namespace ConsoleAppFramework;
-        
+
 using System;
 using System.Text;
 using System.Reflection;
@@ -307,7 +307,7 @@ internal static partial class ConsoleApp
         if (args.Length == 0)
         {
             if (requiredParameterCount == 0) return false;
-            
+
             ShowHelp(helpId);
             return true;
         }
@@ -531,7 +531,7 @@ internal static partial class ConsoleApp
             if (args.Length == 0)
             {
                 if (requiredParameterCount == 0) return false;
-            
+
                 ShowHelp(helpId);
                 return true;
             }
