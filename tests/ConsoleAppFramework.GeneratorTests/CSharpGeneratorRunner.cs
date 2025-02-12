@@ -196,7 +196,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         }
         OutputGeneratedCode(compilation);
 
-        stdout.ShouldBe(expected);
+        stdout.ShouldBe(expected, StringCompareShould.IgnoreLineEndings);
     }
 
     public string Error([StringSyntax("C#-test")] string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
