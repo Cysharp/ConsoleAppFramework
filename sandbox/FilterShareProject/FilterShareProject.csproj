@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-	  <IsPackable>false</IsPackable>
-	  <Nullable>enable</Nullable>
-	  <Configurations>Debug;Release</Configurations>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

@@ -14,6 +14,6 @@ public class CliFxCommand : CliFx.ICommand
 
     [CommandOption("bool", 'b')]
     public bool BoolOption { get; set; }
-    
+
     public ValueTask ExecuteAsync(IConsole console) => ValueTask.CompletedTask;
 }

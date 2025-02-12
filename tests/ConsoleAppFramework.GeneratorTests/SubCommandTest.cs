@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,7 +29,7 @@ builder.Add("a b c d e f", () => { Console.Write("a b c d e f"); });
 builder.Run(args);
 """;
 
-        verifier.Execute(code, "", "root");    
+        verifier.Execute(code, "", "root");
         verifier.Execute(code, "a", "a");
         verifier.Execute(code, "a b1", "a b1");
         verifier.Execute(code, "a b2", "a b2");
@@ -57,7 +57,7 @@ builder.Add("a b c d e f", (int x, int y) => { Console.Write($"a b c d e f {x} {
 builder.Run(args);
 """;
 
-        verifier.Execute(code, "--x 10 --y 20", "root 10 20");    
+        verifier.Execute(code, "--x 10 --y 20", "root 10 20");
         verifier.Execute(code, "a --x 10 --y 20", "a 10 20");
         verifier.Execute(code, "a b1 --x 10 --y 20", "a b1 10 20");
         verifier.Execute(code, "a b2 --x 10 --y 20", "a b2 10 20");
@@ -85,7 +85,7 @@ builder.Add("a b c d e f", () => { Console.Write("a b c d e f"); });
 await builder.RunAsync(args);
 """;
 
-        verifier.Execute(code, "", "root");    
+        verifier.Execute(code, "", "root");
         verifier.Execute(code, "a", "a");
         verifier.Execute(code, "a b1", "a b1");
         verifier.Execute(code, "a b2", "a b2");
@@ -113,7 +113,7 @@ builder.Add("a b c d e f", (int x, int y) => { Console.Write($"a b c d e f {x} {
 await builder.RunAsync(args);
 """;
 
-        verifier.Execute(code, "--x 10 --y 20", "root 10 20");    
+        verifier.Execute(code, "--x 10 --y 20", "root 10 20");
         verifier.Execute(code, "a --x 10 --y 20", "a 10 20");
         verifier.Execute(code, "a b1 --x 10 --y 20", "a b1 10 20");
         verifier.Execute(code, "a b2 --x 10 --y 20", "a b2 10 20");
