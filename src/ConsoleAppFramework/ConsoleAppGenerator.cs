@@ -182,7 +182,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
     static void EmitConsoleAppTemplateSource(IncrementalGeneratorPostInitializationContext context)
     {
-        context.AddSource("ConsoleApp.g.cs", ConsoleAppBaseCode.InitializationCode);
+        context.AddSource("ConsoleApp.g.cs", ConsoleAppBaseCode.InitializationCode.ReplaceLineEndings());
     }
 
     static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommandContext commandContext)
@@ -209,7 +209,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             var withId = new Emitter.CommandWithId(null, command, -1);
             emitter.EmitRun(sb, withId, command.IsAsync);
         }
-        sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString().ReplaceLineEndings());
 
         var help = new SourceBuilder(0);
         help.AppendLine(ConsoleAppBaseCode.GeneratedCodeHeader);
@@ -218,7 +218,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             var emitter = new Emitter();
             emitter.EmitHelp(help, command);
         }
-        sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString().ReplaceLineEndings());
     }
 
     static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, CollectBuilderContext collectBuilderContext)
@@ -267,7 +267,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             var emitter = new Emitter();
             emitter.EmitBuilder(sb, commandIds, hasRun, hasRunAsync);
         }
-        sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString().ReplaceLineEndings());
 
         // Build Help
 
@@ -279,7 +279,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             var emitter = new Emitter();
             emitter.EmitHelp(help, commandIds!);
         }
-        sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString().ReplaceLineEndings());
     }
 
     static void EmitConsoleAppConfigure(SourceProductionContext sourceProductionContext, DllReference dllReference)
@@ -311,7 +311,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             sb2.AppendLine("using Microsoft.Extensions.Hosting;");
             var emitter = new Emitter();
             emitter.EmitAsConsoleAppBuilder(sb2, dllReference);
-            sourceProductionContext.AddSource("ConsoleAppHostBuilderExtensions.g.cs", sb2.ToString());
+            sourceProductionContext.AddSource("ConsoleAppHostBuilderExtensions.g.cs", sb2.ToString().ReplaceLineEndings());
         }
 
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
@@ -321,7 +321,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             emitter.EmitConfigure(sb, dllReference);
         }
 
-        sourceProductionContext.AddSource("ConsoleApp.Builder.Configure.g.cs", sb.ToString());
+        sourceProductionContext.AddSource("ConsoleApp.Builder.Configure.g.cs", sb.ToString().ReplaceLineEndings());
     }
 
     class CommandContext(Command? command, bool isAsync, DiagnosticReporter diagnosticReporter, InvocationExpressionSyntax node) : IEquatable<CommandContext>
