@@ -1,8 +1,10 @@
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class ConsoleAppBuilderTest(ITestOutputHelper output)
+public class ConsoleAppBuilderTest(ITestOutputHelper output) : IDisposable
 {
     VerifyHelper verifier = new VerifyHelper(output, "CAF");
+
+    public void Dispose() => Environment.ExitCode = 0;
 
     [Fact]
     public void BuilderRun()

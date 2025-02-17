@@ -14,7 +14,7 @@ public class HelpTest(ITestOutputHelper output)
     [Fact]
     public void Version()
     {
-        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+        var version = GetEntryAssemblyVersion();
 
         verifier.Execute(code: $$"""
 ConsoleApp.Run(args, (int x, int y) => { });
@@ -39,7 +39,7 @@ ConsoleApp.Run(args, (int x, int y) => { });
     [Fact]
     public void VersionOnBuilder()
     {
-        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+        var version = GetEntryAssemblyVersion();
 
         verifier.Execute(code: """
 var app = ConsoleApp.Create();
@@ -319,5 +319,22 @@ Options:
   -f|-fb|--foo-bar <string>    my foo, is not bar. (Required)
 
 """);
+    }
+
+    private static string GetEntryAssemblyVersion()
+    {
+        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (version == null)
+            return "1.0.0";
+
+        // Trim SourceRevisionId (SourceLink feature is enabled by default when using .NET SDK 8 or later)
+        var i = version.IndexOf('+');
+        if (i != -1)
+        {
+            version = version.Substring(0, i);
+        }
+
+        return version;
     }
 }

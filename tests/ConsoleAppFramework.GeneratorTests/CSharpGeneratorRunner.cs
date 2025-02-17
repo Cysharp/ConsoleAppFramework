@@ -24,7 +24,13 @@ global using ConsoleAppFramework;
 
         var references = AppDomain.CurrentDomain.GetAssemblies()
             .Where(x => !x.IsDynamic && !string.IsNullOrWhiteSpace(x.Location))
-            .Select(x => MetadataReference.CreateFromFile(x.Location));
+            .Select(x => MetadataReference.CreateFromFile(x.Location))
+            .Concat([
+                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),                                                 // System.Console.dll
+                MetadataReference.CreateFromFile(typeof(IServiceProvider).Assembly.Location),                                        // System.ComponentModel.dll
+                MetadataReference.CreateFromFile(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute).Assembly.Location), // System.ComponentModel.DataAnnotations
+                MetadataReference.CreateFromFile(typeof(System.Text.Json.JsonDocument).Assembly.Location),                           // System.Text.Json.dll
+            ]);
 
         var compilation = CSharpCompilation.Create("generatortest",
             references: references,
