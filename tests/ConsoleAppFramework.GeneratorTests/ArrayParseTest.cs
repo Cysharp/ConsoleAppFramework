@@ -1,5 +1,3 @@
-using Xunit.Abstractions;
-
 namespace ConsoleAppFramework.GeneratorTests
 {
     public class ArrayParseTest(ITestOutputHelper output)

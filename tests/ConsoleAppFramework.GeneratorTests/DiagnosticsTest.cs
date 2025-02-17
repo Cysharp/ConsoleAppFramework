@@ -1,5 +1,3 @@
-using Xunit.Abstractions;
-
 namespace ConsoleAppFramework.GeneratorTests;
 
 public class DiagnosticsTest(ITestOutputHelper output)

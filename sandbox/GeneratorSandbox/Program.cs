@@ -31,8 +31,8 @@ using System.Text.Json;
 //        services.Configure<PositionOptions>(configuration.GetSection("Position"));
 //    });
 
-
-args = ["run", "--project", "foo.csproj", "--", "--foo", "100", "--bar", "bazbaz"];
+//// Uncomment following line to overwrite args.
+// args = ["run", "--project", "foo.csproj", "--", "--foo", "100", "--bar", "bazbaz"];
 
 // dotnet run --project foo.csproj -- --foo 100 --bar bazbaz
 

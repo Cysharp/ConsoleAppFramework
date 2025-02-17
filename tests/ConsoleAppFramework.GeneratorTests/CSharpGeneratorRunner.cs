@@ -6,7 +6,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
-using Xunit.Abstractions;
 
 public static class CSharpGeneratorRunner
 {
@@ -25,7 +24,13 @@ global using ConsoleAppFramework;
 
         var references = AppDomain.CurrentDomain.GetAssemblies()
             .Where(x => !x.IsDynamic && !string.IsNullOrWhiteSpace(x.Location))
-            .Select(x => MetadataReference.CreateFromFile(x.Location));
+            .Select(x => MetadataReference.CreateFromFile(x.Location))
+            .Concat([
+                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),                                                 // System.Console.dll
+                MetadataReference.CreateFromFile(typeof(IServiceProvider).Assembly.Location),                                        // System.ComponentModel.dll
+                MetadataReference.CreateFromFile(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute).Assembly.Location), // System.ComponentModel.DataAnnotations
+                MetadataReference.CreateFromFile(typeof(System.Text.Json.JsonDocument).Assembly.Location),                           // System.Text.Json.dll
+            ]);
 
         var compilation = CSharpCompilation.Create("generatortest",
             references: references,
@@ -144,7 +149,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     public void Ok([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr);
+        output.WriteLine(codeExpr!);
 
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         foreach (var item in diagnostics)
@@ -158,7 +163,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     public void Verify(int id, [StringSyntax("C#-test")] string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr);
+        output.WriteLine(codeExpr!);
 
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         foreach (var item in diagnostics)
@@ -176,7 +181,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     public (string, string)[] Verify([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr);
+        output.WriteLine(codeExpr!);
 
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         OutputGeneratedCode(compilation);
@@ -187,7 +192,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     public void Execute([StringSyntax("C#-test")] string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr);
+        output.WriteLine(codeExpr!);
 
         var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
         foreach (var item in diagnostics)
@@ -201,7 +206,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     public string Error([StringSyntax("C#-test")] string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr);
+        output.WriteLine(codeExpr!);
 
         var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
         foreach (var item in diagnostics)
