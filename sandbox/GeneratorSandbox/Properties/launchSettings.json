@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "Default": {
+      "commandName": "Project",
+      "commandLineArgs": "run --project foo.csproj -- --foo 100 --bar bazbaz"
+    },
+    "ShowVersion": {
+      "commandName": "Project",
+      "commandLineArgs": "--version"
+    },
+    "ShowRootCommandHelp": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    },
+    "ShowRunCommandHelp": {
+      "commandName": "Project",
+      "commandLineArgs": "run --help"
+    }
+  }
+}
