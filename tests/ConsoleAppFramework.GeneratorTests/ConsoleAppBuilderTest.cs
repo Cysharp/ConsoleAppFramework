@@ -1,16 +1,10 @@
-using Microsoft.VisualStudio.TestPlatform.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xunit.Abstractions;
-
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class ConsoleAppBuilderTest(ITestOutputHelper output)
+public class ConsoleAppBuilderTest(ITestOutputHelper output) : IDisposable
 {
     VerifyHelper verifier = new VerifyHelper(output, "CAF");
+
+    public void Dispose() => Environment.ExitCode = 0;
 
     [Fact]
     public void BuilderRun()

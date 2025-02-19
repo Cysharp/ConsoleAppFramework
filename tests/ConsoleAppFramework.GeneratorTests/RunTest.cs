@@ -1,17 +1,10 @@
-using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xunit.Abstractions;
-
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class Test(ITestOutputHelper output)
+public class Test(ITestOutputHelper output) : IDisposable
 {
     VerifyHelper verifier = new VerifyHelper(output, "CAF");
+
+    public void Dispose() => Environment.ExitCode = 0;
 
     [Fact]
     public void SyncRun()
