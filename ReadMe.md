@@ -993,6 +993,9 @@ internal sealed class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> l
 }
 ```
 
+> I don't recommend using `ConsoleApp.Log` and `ConsoleApp.LogError` directly as an application logging method, as they are intended to be used as output destinations for internal framework output.
+> For error handling, it would be better to define your own custom filters for error handling, which would allow you to record more details when handling errors.
+
 DI can also be effectively used when reading application configuration from `appsettings.json`. For example, suppose you have the following JSON file.
 
 ```json
