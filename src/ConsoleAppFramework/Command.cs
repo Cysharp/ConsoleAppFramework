@@ -18,6 +18,7 @@ public record class Command
 {
     public required bool IsAsync { get; init; } // Task or Task<int>
     public required bool IsVoid { get; init; }  // void or int
+    public required bool IsHidden { get; init; } // Hide help from command list
 
     public bool IsRootCommand => Name == "";
     public required string Name { get; init; }
@@ -153,6 +154,7 @@ public record class CommandParameter
     public required IgnoreEquality<WellKnownTypes> WellKnownTypes { get; init; }
     public required bool IsNullableReference { get; init; }
     public required bool IsParams { get; init; }
+    public required bool IsHidden { get; init; } // Hide command parameter help
     public required string Name { get; init; }
     public required string OriginalParameterName { get; init; }
     public required bool HasDefaultValue { get; init; }

@@ -697,6 +697,13 @@ The field secondArg must be between 0 and 2.
 
 By default, the ExitCode is set to 1 in this case.
 
+Hide command/parameter help
+---
+`ConsoleAppFramework` supports `HiddenAttribute` which is used to hide specific help for a command/parameter.
+
+- When`HiddenAttribute` is set to command, it hides command from command list.
+- When`HiddenAttribute` is set to parameter, it hides parameter from command help.
+
 Filter(Middleware) Pipeline / ConsoleAppContext
 ---
 Filters are provided as a mechanism to hook into the execution before and after. To use filters, define an `internal class` that implements `ConsoleAppFilter`.

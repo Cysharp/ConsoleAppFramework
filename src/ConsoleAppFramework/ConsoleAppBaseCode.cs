@@ -122,6 +122,11 @@ internal sealed class CommandAttribute : Attribute
     }
 }
 
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+internal sealed class HiddenAttribute : Attribute
+{
+}
+
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 internal sealed class RegisterCommandsAttribute : Attribute
 {
