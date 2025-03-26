@@ -165,6 +165,13 @@ internal static partial class ConsoleApp
         set => logErrorAction = value;
     }
 
+    static Action<Exception>? logExceptionAction;
+    public static Action<Exception> LogException
+    {
+        get => logExceptionAction ??= (static ex => LogError(ex.ToString()));
+        set => logExceptionAction = value;
+    }
+
     /// <summary>
     /// <para>You can pass second argument that generates new Run overload.</para>
     /// ConsoleApp.Run(args, (int x, int y) => { });<br/>
@@ -386,7 +393,7 @@ internal static partial class ConsoleApp
             }
             else
             {
-                LogError(ex.ToString());
+                LogException(ex);
             }
         }
     }
