@@ -96,7 +96,7 @@ internal static partial class ConsoleApp
             }
             else
             {
-                LogError(ex.ToString());
+                LogException(ex);
             }
         }
     }
@@ -678,7 +678,7 @@ await ConsoleApp.RunAsync(args, async Task<int> (string url, CancellationToken c
 });
 ```
 
-If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code. Also, in that case, output `Exception.ToString` to `ConsoleApp.LogError` (the default is `Console.WriteLine`). If you want to modify this code, please create a custom filter. For more details, refer to the [Filter](#filtermiddleware-pipline--consoleappcontext) section. 
+If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code. Also, in that case, output `Exception` to `ConsoleApp.LogException` (the default is `Console.WriteLine`). If you want to modify this code, please create a custom filter. For more details, refer to the [Filter](#filtermiddleware-pipline--consoleappcontext) section. 
 
 Attribute based parameters validation
 ---
@@ -974,7 +974,7 @@ ConsoleApp.ServiceProvider = serviceProvider;
 ConsoleApp.Run(args, ([FromServices]MyService service, int x, int y) => Console.WriteLine(x + y));
 ```
 
-`ConsoleApp` has replaceable default logging methods `ConsoleApp.Log` and `ConsoleApp.LogError` used for Help display and exception handling. If using `ILogger<T>`, it's better to replace these as well.
+`ConsoleApp` has replaceable default logging methods `ConsoleApp.Log`, `ConsoleApp.LogError` and `ConsoleApp.LogException` used for Help display and exception handling. If using `ILogger<T>`, it's better to replace these as well.
 
 ```csharp
 app.UseFilter<ReplaceLogFilter>();
@@ -987,13 +987,14 @@ internal sealed class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> l
     {
         ConsoleApp.Log = msg => logger.LogInformation(msg);
         ConsoleApp.LogError = msg => logger.LogError(msg);
+        ConsoleApp.LogException = ex => logger.LogCritical(ex, "Unhandled exception.");
 
         return Next.InvokeAsync(context, cancellationToken);
     }
 }
 ```
 
-> I don't recommend using `ConsoleApp.Log` and `ConsoleApp.LogError` directly as an application logging method, as they are intended to be used as output destinations for internal framework output.
+> I don't recommend using `ConsoleApp.Log`, `ConsoleApp.LogError` and `ConsoleApp.LogException` directly as an application logging method, as they are intended to be used as output destinations for internal framework output.
 > For error handling, it would be better to define your own custom filters for error handling, which would allow you to record more details when handling errors.
 
 DI can also be effectively used when reading application configuration from `appsettings.json`. For example, suppose you have the following JSON file.
