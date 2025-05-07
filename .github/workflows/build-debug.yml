@@ -11,6 +11,8 @@ on:
 
 jobs:
   build-dotnet:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

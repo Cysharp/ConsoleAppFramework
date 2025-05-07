@@ -14,6 +14,8 @@ on:
 
 jobs:
   build-dotnet:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -32,6 +34,8 @@ jobs:
   # release
   create-release:
     needs: [build-dotnet]
+    permissions:
+      contents: write
     uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
     with:
       commit-id: ${{ github.sha }}
