@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -321,6 +321,40 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                         return identifier is "FromServices" or "FromServicesAttribute";
                     });
 
+                object? keyedServiceKey = null;
+                var isFromKeyedServices = x.AttributeLists.SelectMany(x => x.Attributes)
+                    .Any(x =>
+                    {
+                        var name = x.Name;
+                        if (x.Name is QualifiedNameSyntax qns)
+                        {
+                            name = qns.Right;
+                        }
+                        
+                        var identifier = name.ToString();
+                        var result = identifier is "FromKeyedServices" or "FromKeyedServicesAttribute";
+                        if (result)
+                        {
+                            SemanticModel semanticModel = model; // we can use SemanticModel
+                            if (x.ArgumentList?.Arguments.Count > 0)
+                            {
+                                var argumentExpression = x.ArgumentList.Arguments[0].Expression;
+
+                                var constantValue = semanticModel.GetConstantValue(argumentExpression);
+                                if (constantValue.HasValue)
+                                {
+                                    keyedServiceKey = constantValue.Value;
+                                }
+                                else if (argumentExpression is TypeOfExpressionSyntax typeOf)
+                                {
+                                    var typeInfo = semanticModel.GetTypeInfo(typeOf.Type);
+                                    keyedServiceKey = typeInfo.Type;
+                                }
+                            }
+                        }
+                        return result;
+                    });
+
                 var hasArgument = x.AttributeLists.SelectMany(x => x.Attributes)
                     .Any(x =>
                     {
@@ -368,6 +402,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                     HasValidation = hasValidation,
                     IsCancellationToken = isCancellationToken,
                     IsFromServices = isFromServices,
+                    IsFromKeyedServices = isFromKeyedServices,
+                    KeyedServiceKey = keyedServiceKey,
                     Aliases = [],
                     Description = "",
                     ArgumentIndex = argumentIndex,
@@ -512,10 +548,17 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             {
                 var customParserType = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.AllInterfaces.Any(y => y.Name == "IArgumentParser") ?? false);
                 var hasFromServices = x.GetAttributes().Any(x => x.AttributeClass?.Name == "FromServicesAttribute");
+                var hasFromKeyedServices = x.GetAttributes().Any(x => x.AttributeClass?.Name == "FromKeyedServicesAttribute");
                 var hasArgument = x.GetAttributes().Any(x => x.AttributeClass?.Name == "ArgumentAttribute");
                 var hasValidation = x.GetAttributes().Any(x => x.AttributeClass?.GetBaseTypes().Any(y => y.Name == "ValidationAttribute") ?? false);
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
                 var isConsoleAppContext = x.Type!.Name == "ConsoleAppContext";
+
+                object? keyedServiceKey = null;
+                if (hasFromKeyedServices)
+                {
+                    // TODO: try to get keyedservicekey
+                }
 
                 string description = "";
                 string[] aliases = [];
@@ -554,6 +597,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                     CustomParserType = customParserType?.AttributeClass?.ToEquatable(),
                     IsCancellationToken = isCancellationToken,
                     IsFromServices = hasFromServices,
+                    IsFromKeyedServices = hasFromKeyedServices,
+                    KeyedServiceKey = keyedServiceKey,
                     HasValidation = hasValidation,
                     Aliases = aliases,
                     ArgumentIndex = argumentIndex,

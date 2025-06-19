@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
@@ -122,6 +122,12 @@ internal class Emitter
                 {
                     var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
                     sb.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
+                }
+                else if (parameter.IsFromKeyedServices)
+                {
+                    var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
+                    var line = $"var arg{i} = ({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.GetFormattedKeyedServiceKey()})!;";
+                    sb.AppendLine(line);
                 }
             }
             sb.AppendLineIfExists(command.Parameters.AsSpan());

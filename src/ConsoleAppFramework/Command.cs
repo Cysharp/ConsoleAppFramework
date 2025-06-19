@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System.Text;
 
 namespace ConsoleAppFramework;
@@ -159,9 +159,11 @@ public record class CommandParameter
     public object? DefaultValue { get; init; }
     public required EquatableTypeSymbol? CustomParserType { get; init; }
     public required bool IsFromServices { get; init; }
+    public required bool IsFromKeyedServices { get; init; }
+    public required object? KeyedServiceKey { get; init; }
     public required bool IsConsoleAppContext { get; init; }
     public required bool IsCancellationToken { get; init; }
-    public bool IsParsable => !(IsFromServices || IsCancellationToken || IsConsoleAppContext);
+    public bool IsParsable => !(IsFromServices || IsFromKeyedServices || IsCancellationToken || IsConsoleAppContext);
     public bool IsFlag => Type.SpecialType == SpecialType.System_Boolean;
     public required bool HasValidation { get; init; }
     public required int ArgumentIndex { get; init; } // -1 is not Argument, other than marked as [Argument]
@@ -328,6 +330,14 @@ public record class CommandParameter
     {
         var t = Type.ToDisplayString(NullableFlowState.NotNull, SymbolDisplayFormat.MinimallyQualifiedFormat);
         return IsNullableReference ? $"{t}?" : t;
+    }
+
+    public string GetFormattedKeyedServiceKey()
+    {
+        if (KeyedServiceKey == null) return "null";
+
+        if (KeyedServiceKey is string) return $"\"{KeyedServiceKey}\"";
+        return $"({KeyedServiceKey.GetType().FullName}){KeyedServiceKey.ToString()}";
     }
 
     public override string ToString()

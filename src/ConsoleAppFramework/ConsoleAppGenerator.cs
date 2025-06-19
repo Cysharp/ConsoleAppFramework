@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
@@ -31,7 +31,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     var name = x.Display;
                     if (name == null) continue;
 
-                    if (!hasDependencyInjection && name.EndsWith("Microsoft.Extensions.DependencyInjection.dll")) // BuildServiceProvider
+                    if (!hasDependencyInjection && name.EndsWith("Microsoft.Extensions.DependencyInjection.dll")) // BuildServiceProvider, IKeyedServiceProvider
                     {
                         hasDependencyInjection = true;
                         continue;

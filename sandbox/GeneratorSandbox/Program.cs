@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using ConsoleAppFramework;
 using GeneratorSandbox;
@@ -38,13 +38,19 @@ using System.Text.Json;
 
 var app = ConsoleApp.Create();
 
-app.Add("run", (string project, ConsoleAppContext context) =>
+app.Add("run", ([FromKeyedServices("takoyaki")] List<int> testList, string project, ConsoleAppContext context) =>
 {
     // run --project foo.csproj -- --foo 100 --bar bazbaz
     Console.WriteLine(string.Join(" ", context.Arguments));
 
     // --project foo.csproj
     Console.WriteLine(string.Join(" ", context.CommandArguments!));
+
+    //IServiceProvider ServiceProvider = null!;
+    // ((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(Type, "");
+
+    // FromKeyedServicesAttribute
+    // IKeyedServiceProvider
 
     // --foo 100 --bar bazbaz
     Console.WriteLine(string.Join(" ", context.EscapedArguments!));
