@@ -334,10 +334,21 @@ public record class CommandParameter
 
     public string GetFormattedKeyedServiceKey()
     {
-        if (KeyedServiceKey == null) return "null";
+        return GetFormattedKeyedServiceKey(KeyedServiceKey);
+    }
 
-        if (KeyedServiceKey is string) return $"\"{KeyedServiceKey}\"";
-        return $"({KeyedServiceKey.GetType().FullName}){KeyedServiceKey.ToString()}";
+    public static string GetFormattedKeyedServiceKey(object? keyedServiceKey)
+    {
+        if (keyedServiceKey == null) return "null";
+
+        if (keyedServiceKey is string) return $"\"{keyedServiceKey}\"";
+
+        if (keyedServiceKey is ITypeSymbol type)
+        {
+            return $"typeof({type.ToFullyQualifiedFormatDisplayString()})";
+        }
+
+        return $"({keyedServiceKey.GetType().FullName}){keyedServiceKey.ToString()}";
     }
 
     public override string ToString()
@@ -364,7 +375,7 @@ public record class CommandMethodInfo
 {
     public required string TypeFullName { get; init; }
     public required string MethodName { get; init; }
-    public required EquatableArray<EquatableTypeSymbol> ConstructorParameterTypes { get; init; }
+    public required EquatableArray<EquatableTypeSymbolWithKeyedServiceKey> ConstructorParameterTypes { get; init; }
     public required bool IsIDisposable { get; init; }
     public required bool IsIAsyncDisposable { get; init; }
 
@@ -373,7 +384,14 @@ public record class CommandMethodInfo
         var p = ConstructorParameterTypes.Select(parameter =>
         {
             var type = parameter.ToFullyQualifiedFormatDisplayString();
-            return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+            if (!parameter.IsKeyedService)
+            {
+                return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+            }
+            else
+            {
+                return $"({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.FormattedKeyedServiceKey})!";
+            }
         });
 
         return $"new {TypeFullName}({string.Join(", ", p)})";
@@ -383,7 +401,7 @@ public record class CommandMethodInfo
 public record class FilterInfo
 {
     public required string TypeFullName { get; init; }
-    public required EquatableArray<EquatableTypeSymbol> ConstructorParameterTypes { get; init; }
+    public required EquatableArray<EquatableTypeSymbolWithKeyedServiceKey> ConstructorParameterTypes { get; init; }
 
     FilterInfo()
     {
@@ -405,7 +423,12 @@ public record class FilterInfo
         var filter = new FilterInfo
         {
             TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
-            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbol(x.Type)).ToArray()
+            ConstructorParameterTypes = publicConstructors[0].Parameters
+            .Select(x =>
+            {
+                return new EquatableTypeSymbolWithKeyedServiceKey(x);
+            })
+            .ToArray()
         };
 
         return filter;
@@ -422,7 +445,14 @@ public record class FilterInfo
             }
             else
             {
-                return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+                if (!parameter.IsKeyedService)
+                {
+                    return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+                }
+                else
+                {
+                    return $"({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.FormattedKeyedServiceKey})!";
+                }
             }
         });
 

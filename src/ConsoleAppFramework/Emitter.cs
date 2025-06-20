@@ -838,11 +838,21 @@ internal class Emitter
 internal static class ConsoleAppHostBuilderExtensions
 {
     class CompositeDisposableServiceProvider(IDisposable host, IServiceProvider serviceServiceProvider, IDisposable scope, IServiceProvider serviceProvider)
-        : IServiceProvider, IDisposable
+        : IServiceProvider, IKeyedServiceProvider, IDisposable
     {
         public object? GetService(Type serviceType)
         {
             return serviceProvider.GetService(serviceType);
+        }
+
+        public object? GetKeyedService(Type serviceType, object? serviceKey)
+        {
+            return ((IKeyedServiceProvider)serviceProvider).GetKeyedService(serviceType, serviceKey);
+        }
+
+        public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
+        {
+            return ((IKeyedServiceProvider)serviceProvider).GetRequiredKeyedService(serviceType, serviceKey);
         }
 
         public void Dispose()

@@ -930,7 +930,7 @@ app.Add("", ([FromServices] MyService service, int x, int y) => Console.WriteLin
 app.Run(args);
 ```
 
-When passing to a lambda expression or method, the `[FromServices]` attribute is used to distinguish it from command parameters. When passing a class, Constructor Injection can be used, resulting in a simpler appearance.
+When passing to a lambda expression or method, the `[FromServices]` attribute is used to distinguish it from command parameters. When passing a class, Constructor Injection can be used, resulting in a simpler appearance. Lambda, method, constructor, filter, etc, all DI supported parameter also supports `[FromKeyedServices]`.
 
 Let's try injecting a logger and enabling output to a file. The libraries used are Microsoft.Extensions.Logging and [Cysharp/ZLogger](https://github.com/Cysharp/ZLogger/) (a high-performance logger built on top of MS.E.Logging). If you are referencing `Microsoft.Extensions.Logging`, you can call `ConfigureLogging` from `ConsoleAppBuilder`.
 

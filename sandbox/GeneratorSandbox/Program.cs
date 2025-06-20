@@ -1,16 +1,47 @@
 ﻿#nullable enable
 
 using ConsoleAppFramework;
-using GeneratorSandbox;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
-using System.Text.Json;
-//using Microsoft.Extensions.Configuration;
-//using Microsoft.Extensions.DependencyInjection;
-//// using Microsoft.Extensions.Hosting;
-//using Microsoft.Extensions.Logging;
-//using Microsoft.Extensions.Options;
-//using ZLogger;
+using Microsoft.Extensions.Hosting;
+
+[assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
+
+args = ["TestCommand", "Run"];
+
+var builder = Host.CreateApplicationBuilder(args);
+var services = builder.Services;
+
+services.AddSingleton<ITest, Test>();
+services.AddKeyedSingleton<ITest, KeyedTest>("Key");
+
+var app = builder.ToConsoleAppBuilder();
+app.Run(args);
+
+interface ITest
+{
+    int Value { get; set; }
+}
+
+class Test : ITest
+{
+    public int Value { get; set; } = 1;
+}
+
+class KeyedTest : ITest
+{
+    public int Value { get; set; } = 2;
+}
+
+[RegisterCommands(nameof(TestCommand))]
+class TestCommand([FromKeyedServices("Key")] ITest test)
+{
+    public void Run()
+    {
+        // This value should be 2 but 1 displayed
+        Console.WriteLine(test.Value);
+    }
+}
+
 
 
 
@@ -36,246 +67,277 @@ using System.Text.Json;
 
 // dotnet run --project foo.csproj -- --foo 100 --bar bazbaz
 
-var app = ConsoleApp.Create();
+//var app = ConsoleApp.Create();
 
-app.Add("run", ([FromKeyedServices("takoyaki")] List<int> testList, string project, ConsoleAppContext context) =>
-{
-    // run --project foo.csproj -- --foo 100 --bar bazbaz
-    Console.WriteLine(string.Join(" ", context.Arguments));
-
-    // --project foo.csproj
-    Console.WriteLine(string.Join(" ", context.CommandArguments!));
-
-    //IServiceProvider ServiceProvider = null!;
-    // ((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(Type, "");
-
-    // FromKeyedServicesAttribute
-    // IKeyedServiceProvider
-
-    // --foo 100 --bar bazbaz
-    Console.WriteLine(string.Join(" ", context.EscapedArguments!));
-});
-
-app.Run(args);
-
-
-
-//ConsoleApp.Run(args, (ConsoleAppContext ctx) => { });
-
-// inject options
-//public class MyCommand(IOptions<PositionOptions> options)
+//app.Add("run", ([FromKeyedServices("takoyaki")] List<int> testList, string project, ConsoleAppContext context) =>
 //{
-//    public void Echo(string msg)
-//    {
-//        ConsoleApp.Log($"Binded Option: {options.Value.Title} {options.Value.Name}");
-//    }
-//}
+//    // run --project foo.csproj -- --foo 100 --bar bazbaz
+//    Console.WriteLine(string.Join(" ", context.Arguments));
 
-//public class PositionOptions
-//{
-//    public string Title { get; set; } = "";
-//    public string Name { get; set; } = "";
-//}
+//    // --project foo.csproj
+//    Console.WriteLine(string.Join(" ", context.CommandArguments!));
 
-//internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
+//    //IServiceProvider ServiceProvider = null!;
+//    // ((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(Type, "");
+
+//    // FromKeyedServicesAttribute
+//    // IKeyedServiceProvider
+
+//    // --foo 100 --bar bazbaz
+//    Console.WriteLine(string.Join(" ", context.EscapedArguments!));
+//});
+
+//app.Add<MyCommands>("foo");
+
+//app.UseFilter<NopFilter2>();
+
+//app.Run(args);
+
+
+//internal class NopFilter2([FromKeyedServices("mykey")] List<int> xxxx, ConsoleAppFilter next) : ConsoleAppFilter(next)
 //{
 //    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
 //    {
-//        // create Microsoft.Extensions.DependencyInjection scope
-//        await using var scope = serviceProvider.CreateAsyncScope();
-
-//        var originalServiceProvider = ConsoleApp.ServiceProvider;
-//        ConsoleApp.ServiceProvider = scope.ServiceProvider;
 //        try
 //        {
-//            await Next.InvokeAsync(context, cancellationToken);
+//            /* on before */
+//            await Next.InvokeAsync(context, cancellationToken); // next
+//            /* on after */
+//        }
+//        catch
+//        {
+//            /* on error */
+//            throw;
 //        }
 //        finally
 //        {
-//            ConsoleApp.ServiceProvider = originalServiceProvider;
+//            /* on finally */
 //        }
 //    }
 //}
 
-// JsonSerializer.Deserialize<int>("foo");
 
-//// inject logger to filter
-//internal class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> logger)
-//    : ConsoleAppFilter(next)
+////ConsoleApp.Run(args, (ConsoleAppContext ctx) => { });
+
+//// inject options
+////public class MyCommand(IOptions<PositionOptions> options)
+////{
+////    public void Echo(string msg)
+////    {
+////        ConsoleApp.Log($"Binded Option: {options.Value.Title} {options.Value.Name}");
+////    }
+////}
+
+////public class PositionOptions
+////{
+////    public string Title { get; set; } = "";
+////    public string Name { get; set; } = "";
+////}
+
+////internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, ConsoleAppFilter next) : ConsoleAppFilter(next)
+////{
+////    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+////    {
+////        // create Microsoft.Extensions.DependencyInjection scope
+////        await using var scope = serviceProvider.CreateAsyncScope();
+
+////        var originalServiceProvider = ConsoleApp.ServiceProvider;
+////        ConsoleApp.ServiceProvider = scope.ServiceProvider;
+////        try
+////        {
+////            await Next.InvokeAsync(context, cancellationToken);
+////        }
+////        finally
+////        {
+////            ConsoleApp.ServiceProvider = originalServiceProvider;
+////        }
+////    }
+////}
+
+//// JsonSerializer.Deserialize<int>("foo");
+
+////// inject logger to filter
+////internal class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> logger)
+////    : ConsoleAppFilter(next)
+////{
+////    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+////    {
+////        ConsoleApp.Log = msg => logger.LogInformation(msg);
+////        ConsoleApp.LogError = msg => logger.LogError(msg);
+
+////        return Next.InvokeAsync(context, cancellationToken);
+////    }
+////}
+
+//class MyProvider : IServiceProvider, IAsyncDisposable
 //{
-//    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+//    public void Dispose()
 //    {
-//        ConsoleApp.Log = msg => logger.LogInformation(msg);
-//        ConsoleApp.LogError = msg => logger.LogError(msg);
+//        Console.WriteLine("disposed");
+//    }
 
-//        return Next.InvokeAsync(context, cancellationToken);
+//    public ValueTask DisposeAsync()
+//    {
+//        Console.WriteLine("dispose async");
+//        return default;
+//    }
+
+//    public object? GetService(Type serviceType)
+//    {
+//        return null;
 //    }
 //}
 
-class MyProvider : IServiceProvider, IAsyncDisposable
-{
-    public void Dispose()
-    {
-        Console.WriteLine("disposed");
-    }
+//public class MyService
+//{
 
-    public ValueTask DisposeAsync()
-    {
-        Console.WriteLine("dispose async");
-        return default;
-    }
-
-    public object? GetService(Type serviceType)
-    {
-        return null;
-    }
-}
-
-public class MyService
-{
-
-}
+//}
 
 
-public class MyCommands
-{
-    public void Cmd1(int x, int y, ConsoleAppContext ctx)
-    {
-    }
+//public class MyCommands
+//{
+//    public MyCommands([FromKeyedServices(10.9)] float kokonimo)
+//    {
 
-    public Task Cmd2(int x, int y)
-    {
-        return Task.CompletedTask;
-    }
-}
+//    }
 
-public class Tacommands
-{
-    public void HelloWorld(int hogeMoge)
-    {
-    }
-}
+//    public void Cmd1(int x, int y, ConsoleAppContext ctx)
+//    {
+//    }
 
-namespace ConsoleAppFramework
-{
-    internal static partial class ConsoleApp
-    {
-        static void Foo()
-        {
-            var options = JsonSerializerOptions ?? System.Text.Json.JsonSerializerOptions.Default;
-        }
+//    public Task Cmd2([FromKeyedServices(typeof(int))] List<int> l, int x, int y)
+//    {
+//        return Task.CompletedTask;
+//    }
+//}
 
-        //public static ConsoleAppBuilder Create(IServiceProvider serviceProvider)
-        //{
-        //    ConsoleApp.ServiceProvider = serviceProvider;
-        //    return ConsoleApp.Create();
-        //}
+//public class Tacommands
+//{
+//    public void HelloWorld(int hogeMoge)
+//    {
+//    }
+//}
 
-        //public static ConsoleAppBuilder Create(Action<IServiceCollection> configure)
-        //{
-        //    var services = new ServiceCollection();
-        //    configure(services);
-        //    ConsoleApp.ServiceProvider = services.BuildServiceProvider();
-        //    return ConsoleApp.Create();
-        //}
+//namespace ConsoleAppFramework
+//{
+//    internal static partial class ConsoleApp
+//    {
+//        static void Foo()
+//        {
+//            var options = JsonSerializerOptions ?? System.Text.Json.JsonSerializerOptions.Default;
+//        }
+
+//        //public static ConsoleAppBuilder Create(IServiceProvider serviceProvider)
+//        //{
+//        //    ConsoleApp.ServiceProvider = serviceProvider;
+//        //    return ConsoleApp.Create();
+//        //}
+
+//        //public static ConsoleAppBuilder Create(Action<IServiceCollection> configure)
+//        //{
+//        //    var services = new ServiceCollection();
+//        //    configure(services);
+//        //    ConsoleApp.ServiceProvider = services.BuildServiceProvider();
+//        //    return ConsoleApp.Create();
+//        //}
 
 
 
-        //internal partial class ConsoleAppBuilder
-        //{
-        //    bool requireConfiguration;
-        //    IConfiguration? configuration;
-        //    Action<IConfiguration, IServiceCollection>? configureServices;
-        //    Action<IConfiguration, ILoggingBuilder>? configureLogging;
+//        //internal partial class ConsoleAppBuilder
+//        //{
+//        //    bool requireConfiguration;
+//        //    IConfiguration? configuration;
+//        //    Action<IConfiguration, IServiceCollection>? configureServices;
+//        //    Action<IConfiguration, ILoggingBuilder>? configureLogging;
 
-        //    /// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile("appsettings.json").</summary>
-        //    public void ConfigureDefaultConfiguration(Action<IConfigurationBuilder> configure)
-        //    {
-        //        var config = new ConfigurationBuilder();
-        //        config.SetBasePath(System.IO.Directory.GetCurrentDirectory());
-        //        config.AddJsonFile("appsettings.json", optional: true);
-        //        configure(config);
-        //        configuration = config.Build();
-        //    }
+//        //    /// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile("appsettings.json").</summary>
+//        //    public void ConfigureDefaultConfiguration(Action<IConfigurationBuilder> configure)
+//        //    {
+//        //        var config = new ConfigurationBuilder();
+//        //        config.SetBasePath(System.IO.Directory.GetCurrentDirectory());
+//        //        config.AddJsonFile("appsettings.json", optional: true);
+//        //        configure(config);
+//        //        configuration = config.Build();
+//        //    }
 
-        //    public void ConfigureEmptyConfiguration(Action<IConfigurationBuilder> configure)
-        //    {
-        //        var config = new ConfigurationBuilder();
-        //        configure(config);
-        //        configuration = config.Build();
-        //    }
+//        //    public void ConfigureEmptyConfiguration(Action<IConfigurationBuilder> configure)
+//        //    {
+//        //        var config = new ConfigurationBuilder();
+//        //        configure(config);
+//        //        configuration = config.Build();
+//        //    }
 
-        //    public void ConfigureServices(Action<IServiceCollection> configure)
-        //    {
-        //        this.configureServices = (_, services) => configure(services);
-        //    }
+//        //    public void ConfigureServices(Action<IServiceCollection> configure)
+//        //    {
+//        //        this.configureServices = (_, services) => configure(services);
+//        //    }
 
-        //    public void ConfigureServices(Action<IConfiguration, IServiceCollection> configure)
-        //    {
-        //        this.requireConfiguration = true;
-        //        this.configureServices = configure;
-        //    }
+//        //    public void ConfigureServices(Action<IConfiguration, IServiceCollection> configure)
+//        //    {
+//        //        this.requireConfiguration = true;
+//        //        this.configureServices = configure;
+//        //    }
 
-        //    public void ConfigureLogging(Action<ILoggingBuilder> configure)
-        //    {
-        //        this.configureLogging = (_, builder) => configure(builder);
-        //    }
+//        //    public void ConfigureLogging(Action<ILoggingBuilder> configure)
+//        //    {
+//        //        this.configureLogging = (_, builder) => configure(builder);
+//        //    }
 
-        //    public void ConfigureLogging(Action<IConfiguration, ILoggingBuilder> configure)
-        //    {
-        //        this.requireConfiguration = true;
-        //        this.configureLogging = configure;
-        //    }
+//        //    public void ConfigureLogging(Action<IConfiguration, ILoggingBuilder> configure)
+//        //    {
+//        //        this.requireConfiguration = true;
+//        //        this.configureLogging = configure;
+//        //    }
 
-        //    public void BuildAndSetServiceProvider()
-        //    {
-        //        if (configureServices == null && configureLogging == null) return;
+//        //    public void BuildAndSetServiceProvider()
+//        //    {
+//        //        if (configureServices == null && configureLogging == null) return;
 
-        //        if (configureServices != null)
-        //        {
-        //            var services = new ServiceCollection();
-        //            configureServices?.Invoke(configuration!, services);
+//        //        if (configureServices != null)
+//        //        {
+//        //            var services = new ServiceCollection();
+//        //            configureServices?.Invoke(configuration!, services);
 
-        //            if (configureLogging != null)
-        //            {
-        //                var config = configuration;
-        //                if (requireConfiguration && config == null)
-        //                {
-        //                    config = new ConfigurationRoot(Array.Empty<IConfigurationProvider>());
-        //                }
+//        //            if (configureLogging != null)
+//        //            {
+//        //                var config = configuration;
+//        //                if (requireConfiguration && config == null)
+//        //                {
+//        //                    config = new ConfigurationRoot(Array.Empty<IConfigurationProvider>());
+//        //                }
 
-        //                var configure = configureLogging;
-        //                services.AddLogging(logging =>
-        //                {
-        //                    configure!(config!, logging);
-        //                });
-        //            }
+//        //                var configure = configureLogging;
+//        //                services.AddLogging(logging =>
+//        //                {
+//        //                    configure!(config!, logging);
+//        //                });
+//        //            }
 
-        //            ConsoleApp.ServiceProvider = services.BuildServiceProvider();
-        //        }
-        //    }
-        //}
-    }
+//        //            ConsoleApp.ServiceProvider = services.BuildServiceProvider();
+//        //        }
+//        //    }
+//        //}
+//    }
 
 
-}
+//}
 
 
 
 
-namespace HogeHoge
-{
+//namespace HogeHoge
+//{
 
 
 
-    public class BatchAttribute : Attribute
-    {
-    }
+//    public class BatchAttribute : Attribute
+//    {
+//    }
 
 
-    public class Batch2Attribute : BatchAttribute
-    {
-    }
+//    public class Batch2Attribute : BatchAttribute
+//    {
+//    }
 
 
-}
+//}

@@ -145,7 +145,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
             IsIDisposable = hasIDisposable,
             IsIAsyncDisposable = hasIAsyncDisposable,
-            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbol(x.Type)).ToArray(),
+            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbolWithKeyedServiceKey(x)).ToArray(),
             MethodName = "", // without method name
         };
 
@@ -330,7 +330,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                         {
                             name = qns.Right;
                         }
-                        
+
                         var identifier = name.ToString();
                         var result = identifier is "FromKeyedServices" or "FromKeyedServicesAttribute";
                         if (result)
@@ -557,7 +557,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 object? keyedServiceKey = null;
                 if (hasFromKeyedServices)
                 {
-                    // TODO: try to get keyedservicekey
+                    var attr = x.GetAttributes().First(x => x.AttributeClass?.Name == "FromKeyedServicesAttribute");
+                    keyedServiceKey = attr.ConstructorArguments[0].Value;
                 }
 
                 string description = "";
