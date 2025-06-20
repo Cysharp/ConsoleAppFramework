@@ -1,23 +1,15 @@
-// This benchmark project is based on CliFx.Benchmarks.
+﻿// This benchmark project is based on CliFx.Benchmarks.
 // https://github.com/Tyrrrz/CliFx/tree/master/CliFx.Benchmarks/
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Order;
 using CliFx;
 using Cocona.Benchmark.External.Commands;
-using CommandLine;
 using ConsoleAppFramework;
-using PowerArgs;
 using Spectre.Console.Cli;
-using System.ComponentModel.DataAnnotations.Schema;
-using BenchmarkDotNet.Columns;
 
 namespace Cocona.Benchmark.External;
 
-// use ColdStart strategy to measure startup time evaluation
-[SimpleJob(RunStrategy.ColdStart, launchCount: 1, warmupCount: 0, iterationCount: 1, invocationCount: 1)]
-[MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 public class Benchmark
 {
