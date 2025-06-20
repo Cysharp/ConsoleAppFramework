@@ -21,7 +21,7 @@ class Program
                                   .WithTimeUnit(TimeUnit.Millisecond));
 
         config.AddDiagnoser(MemoryDiagnoser.Default);
-        config.AddDiagnoser(ThreadingDiagnoser.Default);
+        config.AddDiagnoser(new ThreadingDiagnoser(new ThreadingDiagnoserConfig(displayLockContentionWhenZero: false, displayCompletedWorkItemCountWhenZero: false)));
 
         config.AddJob(Job.Default
                          .WithStrategy(RunStrategy.ColdStart)
