@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
@@ -122,6 +122,12 @@ internal class Emitter
                 {
                     var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
                     sb.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
+                }
+                else if (parameter.IsFromKeyedServices)
+                {
+                    var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
+                    var line = $"var arg{i} = ({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.GetFormattedKeyedServiceKey()})!;";
+                    sb.AppendLine(line);
                 }
             }
             sb.AppendLineIfExists(command.Parameters.AsSpan());
@@ -832,11 +838,21 @@ internal class Emitter
 internal static class ConsoleAppHostBuilderExtensions
 {
     class CompositeDisposableServiceProvider(IDisposable host, IServiceProvider serviceServiceProvider, IDisposable scope, IServiceProvider serviceProvider)
-        : IServiceProvider, IDisposable
+        : IServiceProvider, IKeyedServiceProvider, IDisposable
     {
         public object? GetService(Type serviceType)
         {
             return serviceProvider.GetService(serviceType);
+        }
+
+        public object? GetKeyedService(Type serviceType, object? serviceKey)
+        {
+            return ((IKeyedServiceProvider)serviceProvider).GetKeyedService(serviceType, serviceKey);
+        }
+
+        public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
+        {
+            return ((IKeyedServiceProvider)serviceProvider).GetRequiredKeyedService(serviceType, serviceKey);
         }
 
         public void Dispose()

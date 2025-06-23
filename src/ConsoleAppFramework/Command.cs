@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System.Text;
 
 namespace ConsoleAppFramework;
@@ -161,9 +161,11 @@ public record class CommandParameter
     public object? DefaultValue { get; init; }
     public required EquatableTypeSymbol? CustomParserType { get; init; }
     public required bool IsFromServices { get; init; }
+    public required bool IsFromKeyedServices { get; init; }
+    public required object? KeyedServiceKey { get; init; }
     public required bool IsConsoleAppContext { get; init; }
     public required bool IsCancellationToken { get; init; }
-    public bool IsParsable => !(IsFromServices || IsCancellationToken || IsConsoleAppContext);
+    public bool IsParsable => !(IsFromServices || IsFromKeyedServices || IsCancellationToken || IsConsoleAppContext);
     public bool IsFlag => Type.SpecialType == SpecialType.System_Boolean;
     public required bool HasValidation { get; init; }
     public required int ArgumentIndex { get; init; } // -1 is not Argument, other than marked as [Argument]
@@ -332,6 +334,25 @@ public record class CommandParameter
         return IsNullableReference ? $"{t}?" : t;
     }
 
+    public string GetFormattedKeyedServiceKey()
+    {
+        return GetFormattedKeyedServiceKey(KeyedServiceKey);
+    }
+
+    public static string GetFormattedKeyedServiceKey(object? keyedServiceKey)
+    {
+        if (keyedServiceKey == null) return "null";
+
+        if (keyedServiceKey is string) return $"\"{keyedServiceKey}\"";
+
+        if (keyedServiceKey is ITypeSymbol type)
+        {
+            return $"typeof({type.ToFullyQualifiedFormatDisplayString()})";
+        }
+
+        return $"({keyedServiceKey.GetType().FullName}){keyedServiceKey.ToString()}";
+    }
+
     public override string ToString()
     {
         var sb = new StringBuilder();
@@ -356,7 +377,7 @@ public record class CommandMethodInfo
 {
     public required string TypeFullName { get; init; }
     public required string MethodName { get; init; }
-    public required EquatableArray<EquatableTypeSymbol> ConstructorParameterTypes { get; init; }
+    public required EquatableArray<EquatableTypeSymbolWithKeyedServiceKey> ConstructorParameterTypes { get; init; }
     public required bool IsIDisposable { get; init; }
     public required bool IsIAsyncDisposable { get; init; }
 
@@ -365,7 +386,14 @@ public record class CommandMethodInfo
         var p = ConstructorParameterTypes.Select(parameter =>
         {
             var type = parameter.ToFullyQualifiedFormatDisplayString();
-            return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+            if (!parameter.IsKeyedService)
+            {
+                return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+            }
+            else
+            {
+                return $"({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.FormattedKeyedServiceKey})!";
+            }
         });
 
         return $"new {TypeFullName}({string.Join(", ", p)})";
@@ -375,7 +403,7 @@ public record class CommandMethodInfo
 public record class FilterInfo
 {
     public required string TypeFullName { get; init; }
-    public required EquatableArray<EquatableTypeSymbol> ConstructorParameterTypes { get; init; }
+    public required EquatableArray<EquatableTypeSymbolWithKeyedServiceKey> ConstructorParameterTypes { get; init; }
 
     FilterInfo()
     {
@@ -397,7 +425,12 @@ public record class FilterInfo
         var filter = new FilterInfo
         {
             TypeFullName = type.ToFullyQualifiedFormatDisplayString(),
-            ConstructorParameterTypes = publicConstructors[0].Parameters.Select(x => new EquatableTypeSymbol(x.Type)).ToArray()
+            ConstructorParameterTypes = publicConstructors[0].Parameters
+            .Select(x =>
+            {
+                return new EquatableTypeSymbolWithKeyedServiceKey(x);
+            })
+            .ToArray()
         };
 
         return filter;
@@ -414,7 +447,14 @@ public record class FilterInfo
             }
             else
             {
-                return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+                if (!parameter.IsKeyedService)
+                {
+                    return $"({type})ServiceProvider!.GetService(typeof({type}))!";
+                }
+                else
+                {
+                    return $"({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.FormattedKeyedServiceKey})!";
+                }
             }
         });
 

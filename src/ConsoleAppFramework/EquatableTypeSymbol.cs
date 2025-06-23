@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 
 namespace ConsoleAppFramework;
@@ -24,6 +24,37 @@ public class EquatableTypeSymbol(ITypeSymbol typeSymbol) : IEquatable<EquatableT
         if (this.TypeSymbol.Name != other.TypeSymbol.Name) return false;
 
         return this.TypeSymbol.EqualsNamespaceAndName(other.TypeSymbol);
+    }
+}
+
+// for filter
+public class EquatableTypeSymbolWithKeyedServiceKey
+    : EquatableTypeSymbol, IEquatable<EquatableTypeSymbolWithKeyedServiceKey>
+{
+    public bool IsKeyedService { get; }
+    public string? FormattedKeyedServiceKey { get; }
+
+    public EquatableTypeSymbolWithKeyedServiceKey(IParameterSymbol symbol)
+        : base(symbol.Type)
+    {
+        var keyedServciesAttr = symbol.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "FromKeyedServicesAttribute");
+        if (keyedServciesAttr != null)
+        {
+            this.IsKeyedService = true;
+            this.FormattedKeyedServiceKey = CommandParameter.GetFormattedKeyedServiceKey(keyedServciesAttr.ConstructorArguments[0].Value);
+        }
+    }
+
+    public bool Equals(EquatableTypeSymbolWithKeyedServiceKey other)
+    {
+        if (base.Equals(other))
+        {
+            if (IsKeyedService != other.IsKeyedService) return false;
+            if (FormattedKeyedServiceKey != other.FormattedKeyedServiceKey) return false;
+            return true;
+        }
+
+        return false;
     }
 }
 
