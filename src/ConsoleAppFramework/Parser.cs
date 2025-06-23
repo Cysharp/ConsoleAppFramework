@@ -285,6 +285,10 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
                 var hasParams = x.Modifiers.Any(x => x.IsKind(SyntaxKind.ParamsKeyword));
 
+                var isHidden = x.AttributeLists
+                                .SelectMany(x => x.Attributes)
+                                .Any(x => model.GetTypeInfo(x).Type?.Name == "HiddenAttribute");
+
                 var customParserType = x.AttributeLists.SelectMany(x => x.Attributes)
                     .Select(x =>
                     {
@@ -360,6 +364,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                     IsNullableReference = isNullableReference,
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = hasParams,
+                    IsHidden = isHidden,
                     Type = new EquatableTypeSymbol(type.Type!),
                     Location = x.GetLocation(),
                     HasDefaultValue = hasDefault,
@@ -381,6 +386,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             Name = commandName,
             IsAsync = isAsync,
             IsVoid = isVoid,
+            IsHidden = false, // Anonymous lambda don't support attribute.
             Parameters = parameters,
             MethodKind = MethodKind.Lambda,
             Description = "",
@@ -472,6 +478,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             return null;
         }
 
+        var isHiddenCommand = methodSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "HiddenAttribute");
+
         var methodFilters = methodSymbol.GetAttributes()
             .Where(x => x.AttributeClass?.Name == "ConsoleAppFilterAttribute")
             .Select(x =>
@@ -516,6 +524,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 var hasValidation = x.GetAttributes().Any(x => x.AttributeClass?.GetBaseTypes().Any(y => y.Name == "ValidationAttribute") ?? false);
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
                 var isConsoleAppContext = x.Type!.Name == "ConsoleAppContext";
+                var isHiddenParameter = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HiddenAttribute");
 
                 string description = "";
                 string[] aliases = [];
@@ -547,6 +556,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                     IsNullableReference = isNullableReference,
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = x.IsParams,
+                    IsHidden = isHiddenParameter,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
                     Type = new EquatableTypeSymbol(x.Type),
                     HasDefaultValue = x.HasExplicitDefaultValue,
@@ -567,6 +577,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             Name = commandName,
             IsAsync = isAsync,
             IsVoid = isVoid,
+            IsHidden = isHiddenCommand,
             Parameters = parameters,
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
             Description = summary,
