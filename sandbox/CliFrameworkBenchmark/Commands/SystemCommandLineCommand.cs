@@ -11,25 +11,37 @@ public class SystemCommandLineCommand
     {
         var command = new RootCommand
         {
-            new Option<string?>(new[] {"--str", "-s"}),
-            new Option<int>(new[] {"--int", "-i"}),
-            new Option<bool>(new[] {"--bool", "-b"}),
+            new Option<string?>("--str", ["-s"]),
+            new Option<int>("--int", ["-i"]),
+            new Option<bool>("--bool", ["-b"]),
         };
 
-        command.Handler = CommandHandler.Create(ExecuteHandler);
-        return command.Invoke(args);
+        command.SetAction(parseResult =>
+        {
+            var handler = CommandHandler.Create(ExecuteHandler);
+            return handler.InvokeAsync(parseResult);
+        });
+
+        ParseResult parseResult = command.Parse(args);
+        return parseResult.Invoke();
     }
 
     public static Task<int> ExecuteAsync(string[] args)
     {
         var command = new RootCommand
         {
-            new Option<string?>(new[] {"--str", "-s"}),
-            new Option<int>(new[] {"--int", "-i"}),
-            new Option<bool>(new[] {"--bool", "-b"}),
+            new Option<string?>("--str", ["-s"]),
+            new Option<int>("--int", ["-i"]),
+            new Option<bool>("--bool", ["-b"]),
         };
 
-        command.Handler = CommandHandler.Create(ExecuteHandler);
-        return command.InvokeAsync(args);
+        command.SetAction((parseResult, cancellationToken) =>
+        {
+            var handler = CommandHandler.Create(ExecuteHandler);
+            return handler.InvokeAsync(parseResult);
+        });
+
+        ParseResult parseResult = command.Parse(args);
+        return parseResult.InvokeAsync();
     }
 }
