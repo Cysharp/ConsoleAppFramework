@@ -32,7 +32,7 @@
     <!-- Roslyn for .NET 8 / C# 12 -->
     <!-- https://learn.microsoft.com/en-us/visualstudio/extensibility/roslyn-version-support -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
-    <PackageReference Include="PolySharp" Version="1.14.1">
+    <PackageReference Include="PolySharp" Version="1.15.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
