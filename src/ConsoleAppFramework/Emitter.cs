@@ -342,7 +342,7 @@ internal class Emitter
                     }
                     using (sb.BeginBlock("else"))
                     {
-                        sb.AppendLine("LogError(ex.ToString());");
+                        sb.AppendLine("LogException(ex);");
                     }
                 }
                 if (!emitForBuilder)
