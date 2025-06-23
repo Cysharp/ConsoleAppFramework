@@ -1,4 +1,4 @@
-namespace ConsoleAppFramework;
+﻿namespace ConsoleAppFramework;
 
 public readonly struct IgnoreEquality<T>(T value) : IEquatable<IgnoreEquality<T>>
 {

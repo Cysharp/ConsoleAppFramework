@@ -1,4 +1,4 @@
-using Spectre.Console.Cli;
+﻿using Spectre.Console.Cli;
 using System.ComponentModel;
 
 namespace Cocona.Benchmark.External.Commands;

@@ -1,4 +1,4 @@
-using PowerArgs;
+﻿using PowerArgs;
 
 namespace Cocona.Benchmark.External.Commands;
 

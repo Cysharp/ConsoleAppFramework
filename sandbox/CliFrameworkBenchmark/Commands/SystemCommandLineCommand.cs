@@ -1,4 +1,4 @@
-using System.CommandLine;
+﻿using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
 
 namespace Cocona.Benchmark.External.Commands;

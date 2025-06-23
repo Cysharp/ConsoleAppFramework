@@ -1,4 +1,4 @@
-namespace ConsoleAppFramework;
+﻿namespace ConsoleAppFramework;
 
 public static class ConsoleAppBaseCode
 {
