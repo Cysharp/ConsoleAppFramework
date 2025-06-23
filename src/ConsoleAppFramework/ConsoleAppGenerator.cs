@@ -151,11 +151,12 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 context.SemanticModel,
                 ct))
             .WithTrackingName("ConsoleApp.Builder.0_CreateSyntaxProvider")
-            .Where(x =>
+            .Select((x, ct) =>
             {
                 var model = x.Model.GetTypeInfo((x.Node.Expression as MemberAccessExpressionSyntax)!.Expression, x.CancellationToken);
-                return model.Type?.Name is "ConsoleAppBuilder" or "IHostBuilder" || model.Type?.Kind == SymbolKind.ErrorType; // allow ErrorType(ConsoleAppBuilder from Configure***(Source Generator generated method) is unknown in Source Generator)
+                return (x, model.Type?.Name, model.Type?.Kind);
             })
+            .Where(x => x.Name is "ConsoleAppBuilder" or "IHostBuilder" || x.Kind == SymbolKind.ErrorType) // allow ErrorType(ConsoleAppBuilder from Configure***(Source Generator generated method) is unknown in Source Generator)
             .WithTrackingName("ConsoleApp.Builder.1_Where")
             .Collect()
             .Combine(generatorOptions)
@@ -353,7 +354,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         FilterInfo[]? globalFilters { get; }
         ConsoleAppFrameworkGeneratorOptions generatorOptions { get; }
 
-        public CollectBuilderContext(ConsoleAppFrameworkGeneratorOptions generatorOptions, ImmutableArray<BuilderContext> contexts, CancellationToken cancellationToken)
+        public CollectBuilderContext(ConsoleAppFrameworkGeneratorOptions generatorOptions, ImmutableArray<(BuilderContext, string?, SymbolKind?)> contexts, CancellationToken cancellationToken)
         {
             this.DiagnosticReporter = new DiagnosticReporter();
             this.CancellationToken = cancellationToken;
@@ -362,19 +363,24 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             // validation, invoke in loop is not allowed.
             foreach (var item in contexts)
             {
-                if (item.Name is "Run" or "RunAsync") continue;
-                foreach (var n in item.Node.Ancestors())
+                var (ctx, name, kind) = item;
+                if (kind == SymbolKind.ErrorType) continue; // ErrorType can't distinguished from ConsoleAppFramework or others so ignore all.
+
+                if (ctx.Name is "Run" or "RunAsync") continue;
+                foreach (var n in ctx.Node.Ancestors())
                 {
                     if (n.Kind() is SyntaxKind.WhileStatement or SyntaxKind.DoStatement or SyntaxKind.ForStatement or SyntaxKind.ForEachStatement)
                     {
-                        DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.AddInLoopIsNotAllowed, item.Node.GetLocation());
+                        DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.AddInLoopIsNotAllowed, ctx.Node.GetLocation());
                         return;
                     }
                 }
             }
 
-            var methodGroup = contexts.ToLookup(x =>
+            var methodGroup = contexts.ToLookup(ctx =>
             {
+                var x = ctx.Item1;
+
                 if (x.Name == "Add" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
                 {
                     return "Add<T>";
@@ -384,6 +390,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             });
 
             globalFilters = methodGroup["UseFilter"]
+                .Select(x => x.Item1)
                 .OrderBy(x => x.Node.GetLocation().SourceSpan) // sort by line number
                 .Select(x =>
                 {
@@ -413,6 +420,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
             var names = new HashSet<string>();
             var commands1 = methodGroup["Add"]
+                .Select(x => x.Item1)
                 .Select(x =>
                 {
                     var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
@@ -432,6 +440,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 .ToArray(); // evaluate first.
 
             var commands2 = methodGroup["Add<T>"]
+                .Select(x => x.Item1)
                 .SelectMany(x =>
                 {
                     var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);

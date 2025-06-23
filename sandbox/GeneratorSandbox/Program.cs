@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using CommunityToolkit.Mvvm.ComponentModel;
 using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,7 +15,20 @@ var services = builder.Services;
 services.AddSingleton<ITest, Test>();
 services.AddKeyedSingleton<ITest, KeyedTest>("Key");
 
+
+MyObj obj = new();
+while (obj.Data.Count < 1)
+{
+    obj.Data.Add(0); // <-- CAF008 error here
+}
+
 var app = builder.ToConsoleAppBuilder();
+// var app = ConsoleApp.Create();
+//for (int i = 0; i < 10; i++)
+//{
+//    app.Add("foo", (int x) => { });
+//}
+
 app.Run(args);
 
 interface ITest
@@ -42,7 +56,11 @@ class TestCommand([FromKeyedServices("Key")] ITest test)
     }
 }
 
-
+public partial class MyObj : ObservableObject
+{
+    [ObservableProperty]
+    private List<int> data = [];
+}
 
 
 //args = ["echo", "--msg", "zzzz"];
