@@ -1,4 +1,4 @@
-using clipr;
+﻿using clipr;
 
 namespace Cocona.Benchmark.External.Commands;
 

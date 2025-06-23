@@ -1,4 +1,4 @@
-using CliFx.Attributes;
+﻿using CliFx.Attributes;
 using CliFx.Infrastructure;
 
 namespace Cocona.Benchmark.External.Commands;

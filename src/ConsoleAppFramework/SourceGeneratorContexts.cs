@@ -1,4 +1,4 @@
-namespace ConsoleAppFramework;
+﻿namespace ConsoleAppFramework;
 
 readonly record struct ConsoleAppFrameworkGeneratorOptions(bool DisableNamingConversion);
 

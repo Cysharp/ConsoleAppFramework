@@ -1,4 +1,4 @@
-namespace Cocona.Benchmark.External.Commands;
+﻿namespace Cocona.Benchmark.External.Commands;
 
 public class CoconaCommand
 {

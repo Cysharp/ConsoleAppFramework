@@ -1,4 +1,4 @@
-namespace ConsoleAppFramework;
+﻿namespace ConsoleAppFramework;
 
 internal static class StringExtensions
 {
