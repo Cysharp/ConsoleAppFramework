@@ -1,4 +1,4 @@
-namespace ConsoleAppFramework;
+﻿namespace ConsoleAppFramework;
 
 public static class ConsoleAppBaseCode
 {
@@ -149,6 +149,8 @@ public class ConsoleAppFrameworkGeneratorOptionsAttribute : Attribute
     public bool DisableNamingConversion { get; set; }
 }
 
+[UnconditionalSuppressMessage("Trimming", "IL2026")]
+[UnconditionalSuppressMessage("AOT", "IL3050")]
 internal static partial class ConsoleApp
 {
     public static IServiceProvider? ServiceProvider { get; set; }

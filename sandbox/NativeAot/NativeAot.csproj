@@ -9,6 +9,10 @@
 
     <PublishAot>true</PublishAot>
     <IsAotCompatible>true</IsAotCompatible>
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
