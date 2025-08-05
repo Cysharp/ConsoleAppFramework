@@ -838,7 +838,7 @@ internal class Emitter
 internal static class ConsoleAppHostBuilderExtensions
 {
     class CompositeDisposableServiceProvider(IDisposable host, IServiceProvider serviceServiceProvider, IDisposable scope, IServiceProvider serviceProvider)
-        : IServiceProvider, IKeyedServiceProvider, IDisposable
+        : IServiceProvider, IKeyedServiceProvider, IDisposable, IAsyncDisposable
     {
         public object? GetService(Type serviceType)
         {
@@ -867,6 +867,25 @@ internal static class ConsoleAppHostBuilderExtensions
                 d2.Dispose();
             }
             host.Dispose();
+        }
+        
+        public async ValueTask DisposeAsync()
+        {
+            await CastAndDispose(host);
+            await CastAndDispose(scope);
+            await CastAndDispose(serviceProvider);
+            await CastAndDispose(serviceServiceProvider);
+            GC.SuppressFinalize(this);
+            
+            return;
+            
+            static async ValueTask CastAndDispose<T>(T resource)
+            {
+                if (resource is IAsyncDisposable resourceAsyncDisposable)
+                    await resourceAsyncDisposable.DisposeAsync();
+                else if (resource is IDisposable resourceDisposable)
+                    resourceDisposable.Dispose();
+            }
         }
     }
 
