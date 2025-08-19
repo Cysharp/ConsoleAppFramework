@@ -6,10 +6,15 @@
     <Company>Cysharp</Company>
     <Copyright>© Cysharp, Inc.</Copyright>
     <PackageProjectUrl>https://github.com/Cysharp/ConsoleAppFramework</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>batch,console,cli,consoleappframework</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 </Project>
