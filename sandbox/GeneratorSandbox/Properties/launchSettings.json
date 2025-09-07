@@ -2,7 +2,7 @@
   "profiles": {
     "Default": {
       "commandName": "Project",
-      "commandLineArgs": "run --project foo.csproj -- --foo 100 --bar bazbaz"
+      "commandLineArgs": ""
     },
     "ShowVersion": {
       "commandName": "Project",

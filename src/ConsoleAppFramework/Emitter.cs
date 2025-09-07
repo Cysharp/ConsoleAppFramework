@@ -42,7 +42,9 @@ internal class Emitter
         }
 
         var commandDepthEscapeIndex = emitForBuilder ? ", int commandDepth, int escapeIndex" : "";
-        var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken" : "";
+        var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken"
+                                    : emitForBuilder ? ", CancellationToken __ExternalCancellationToken__"
+                                    : "";
 
         if (!emitForBuilder)
         {
@@ -83,7 +85,7 @@ internal class Emitter
             // prepare argument variables
             if (hasCancellationToken)
             {
-                sb.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout);");
+                sb.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout, __ExternalCancellationToken__);");
             }
             if (hasConsoleAppContext)
             {
@@ -412,7 +414,7 @@ internal class Emitter
             if (emitSync)
             {
                 sb.AppendLine();
-                using (sb.BeginBlock("partial void RunCore(string[] args)"))
+                using (sb.BeginBlock("partial void RunCore(string[] args, CancellationToken cancellationToken)"))
                 {
                     if (hasRootCommand)
                     {
@@ -431,7 +433,7 @@ internal class Emitter
             if (emitAsync)
             {
                 sb.AppendLine();
-                using (sb.BeginBlock("partial void RunAsyncCore(string[] args, ref Task result)"))
+                using (sb.BeginBlock("partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result)"))
                 {
                     if (hasRootCommand)
                     {
@@ -559,16 +561,16 @@ internal class Emitter
                     {
                         if (!isRunAsync)
                         {
-                            sb.AppendLine($"RunCommand{command.Id}(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs});");
+                            sb.AppendLine($"RunCommand{command.Id}(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs}, cancellationToken);");
                         }
                         else
                         {
-                            sb.AppendLine($"result = RunCommand{command.Id}Async(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs});");
+                            sb.AppendLine($"result = RunCommand{command.Id}Async(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs}, cancellationToken);");
                         }
                     }
                     else
                     {
-                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker({commandArgs.TrimStart(',', ' ')}).BuildFilter())";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker({commandArgs.TrimStart(',', ' ')}).BuildFilter(), cancellationToken)";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
