@@ -2,34 +2,64 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using ConsoleAppFramework;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+//using Microsoft.Extensions.DependencyInjection;
+//using Microsoft.Extensions.Hosting;
+using System.Transactions;
 
 [assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
 
 args = ["TestCommand", "Run"];
 
-var builder = Host.CreateApplicationBuilder(args);
-var services = builder.Services;
+//var builder = Host.CreateApplicationBuilder(args);
+//var services = builder.Services;
 
-services.AddSingleton<ITest, Test>();
-services.AddKeyedSingleton<ITest, KeyedTest>("Key");
+//services.AddSingleton<ITest, Test>();
+//services.AddKeyedSingleton<ITest, KeyedTest>("Key");
 
 
-MyObj obj = new();
-while (obj.Data.Count < 1)
-{
-    obj.Data.Add(0); // <-- CAF008 error here
-}
+//MyObj obj = new();
+//while (obj.Data.Count < 1)
+//{
+//    obj.Data.Add(0); // <-- CAF008 error here
+//}
 
-var app = builder.ToConsoleAppBuilder();
+
+////builder.Build();
+////IHost host;
+////host.Run();
+
+
+
+//var app = builder.ToConsoleAppBuilder();
 // var app = ConsoleApp.Create();
 //for (int i = 0; i < 10; i++)
 //{
 //    app.Add("foo", (int x) => { });
 //}
 
-app.Run(args);
+
+// var hsot = ConsoleApp.ServiceProvider.GetService(typeof(IHost));
+//public void Run(string[] args)
+//{
+//    BuildAndSetServiceProvider();
+//    try
+//    {
+//        RunCore(args);
+//    }
+//    finally
+//    {
+//        if (ServiceProvider is IDisposable d)
+//        {
+//            d.Dispose();
+//        }
+//    }
+//}
+
+var app = ConsoleApp.Create();
+
+await app.RunAsync(args);
+
+//await app.RunAsync(args);
 
 interface ITest
 {
@@ -46,15 +76,15 @@ class KeyedTest : ITest
     public int Value { get; set; } = 2;
 }
 
-[RegisterCommands(nameof(TestCommand))]
-class TestCommand([FromKeyedServices("Key")] ITest test)
-{
-    public void Run()
-    {
-        // This value should be 2 but 1 displayed
-        Console.WriteLine(test.Value);
-    }
-}
+//[RegisterCommands(nameof(TestCommand))]
+//class TestCommand([FromKeyedServices("Key")] ITest test)
+//{
+//    public void Run()
+//    {
+//        // This value should be 2 but 1 displayed
+//        Console.WriteLine(test.Value);
+//    }
+//}
 
 public partial class MyObj : ObservableObject
 {
@@ -359,3 +389,4 @@ public partial class MyObj : ObservableObject
 
 
 //}
+
