@@ -549,7 +549,7 @@ internal static partial class ConsoleApp
         public void Run(string[] args) => Run(args, true);
         public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, cancellationToken);
 
-        public void Run(string[] args, bool disposeService, CancellationToken cancellationToken = default)
+        public void Run(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             try
@@ -558,7 +558,7 @@ internal static partial class ConsoleApp
             }
             finally
             {
-                if (disposeService)
+                if (disposeServiceProvider)
                 {
                     if (ServiceProvider is IDisposable d)
                     {
@@ -571,7 +571,7 @@ internal static partial class ConsoleApp
         public Task RunAsync(string[] args) => RunAsync(args, true);
         public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, cancellationToken);
 
-        public async Task RunAsync(string[] args, bool disposeService, CancellationToken cancellationToken = default)
+        public async Task RunAsync(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             try
@@ -585,7 +585,7 @@ internal static partial class ConsoleApp
             }
             finally
             {
-                if (disposeService)
+                if (disposeServiceProvider)
                 {
                     if (ServiceProvider is IAsyncDisposable ad)
                     {
@@ -626,7 +626,7 @@ internal static partial class ConsoleApp
         public void Run(string[] args) => Run(args, true, true, true);
         public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, true, true, cancellationToken);
         
-        public void Run(string[] args, bool startHost, bool stopHost, bool disposeService, CancellationToken cancellationToken = default)
+        public void Run(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
@@ -644,7 +644,7 @@ internal static partial class ConsoleApp
                 {
                     host?.StopAsync().GetAwaiter().GetResult();
                 }
-                if (disposeService)
+                if (disposeServiceProvider)
                 {
                     if (ServiceProvider is IDisposable d)
                     {
@@ -657,7 +657,7 @@ internal static partial class ConsoleApp
         public Task RunAsync(string[] args) => RunAsync(args, true, true, true);
         public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, true, true, cancellationToken);
 
-        public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeService, CancellationToken cancellationToken = default)
+        public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
@@ -680,7 +680,7 @@ internal static partial class ConsoleApp
                 {
                     await host?.StopAsync();
                 }
-                if (disposeService)
+                if (disposeServiceProvider)
                 {
                     if (ServiceProvider is IAsyncDisposable ad)
                     {

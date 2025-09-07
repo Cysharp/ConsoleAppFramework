@@ -53,10 +53,8 @@ ConsoleApp.LogError = msg => consoleAppLoger.LogError(msg);
 
 app.UseFilter<CommandTracingFilter>();
 
-app.Add("", async ([FromServices] ILogger<Program> logger/*, CancellationToken cancellationToken*/) =>
+app.Add("", async ([FromServices] ILogger<Program> logger, CancellationToken cancellationToken) =>
 {
-    var cancellationToken = CancellationToken.None;
-
     using var httpClient = new HttpClient();
     var ms = await httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
     logger.LogInformation(ms);
@@ -73,7 +71,7 @@ app.Add("", async ([FromServices] ILogger<Program> logger/*, CancellationToken c
     logger.LogInformation("OK");
 });
 
-await app.RunAsync(args);
+await app.RunAsync(args); // Run
 
 public static class ConsoleAppFrameworkSampleActivitySource
 {
@@ -88,23 +86,22 @@ internal class CommandTracingFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
     public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
     {
         using var activity = ConsoleAppFrameworkSampleActivitySource.Instance.StartActivity("CommandStart");
-        if (activity != null)
-        {
-            activity.SetTag("console_app.command_name", context.CommandName);
-            activity.AddBaggage("console_app.command_args", string.Join(" ", context.EscapedArguments));
-        }
 
-        try
+        if (activity == null) // Telemtry is not listened
         {
             await Next.InvokeAsync(context, cancellationToken);
-            if (activity != null)
+        }
+        else
+        {
+            activity.SetTag("console_app.command_name", context.CommandName);
+            activity.SetTag("console_app.command_args", string.Join(" ", context.EscapedArguments));
+
+            try
             {
+                await Next.InvokeAsync(context, cancellationToken);
                 activity.SetStatus(ActivityStatusCode.Ok);
             }
-        }
-        catch (Exception ex)
-        {
-            if (activity != null)
+            catch (Exception ex)
             {
                 if (ex is OperationCanceledException)
                 {
@@ -115,8 +112,8 @@ internal class CommandTracingFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
                     activity.AddException(ex);
                     activity.SetStatus(ActivityStatusCode.Error);
                 }
+                throw;
             }
-            throw;
         }
     }
 }

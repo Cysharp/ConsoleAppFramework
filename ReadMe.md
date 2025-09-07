@@ -659,6 +659,21 @@ The default timeout is 5 seconds, but it can be changed using `ConsoleApp.Timeou
 
 The hooking behavior using `PosixSignalRegistration` is determined by the presence of a `CancellationToken` (or always takes effect if a filter is set). Therefore, even for synchronous methods, it is possible to change the behavior by including a `CancellationToken` as an argument.
 
+In the case of `Run/RunAsync` from `ConsoleAppBuilder`, you can also pass a CancellationToken. This is combined with PosixSignalRegistration and passed to each method. This makes it possible to cancel at any arbitrary timing.
+
+```csharp
+var cancellationTokenSource = new CancellationTokenSource();
+
+var app = ConsoleApp.Create();
+
+app.Add("", (CancellationToken cancellationToken) =>
+{
+    // do anything...
+});
+
+await app.RunAsync(args, cancellationTokenSource.Token); // pass external CancellationToken
+```
+
 Exit Code
 ---
 If the method returns `int` or `Task<int>`, `ConsoleAppFramework` will set the return value to the exit code. Due to the nature of code generation, when writing lambda expressions, you need to explicitly specify either `int` or `Task<int>`.
@@ -1107,7 +1122,167 @@ var app = Host.CreateApplicationBuilder()
 
 In this case, it builds the HostBuilder, creates a Scope for the ServiceProvider, and disposes of all of them after execution.
 
-ConsoleAppFramework has its own lifetime management (see the [CancellationToken(Gracefully Shutdown) and Timeout](#cancellationtokengracefully-shutdown-and-timeout) section), so Host's Start/Stop is not necessary.
+ConsoleAppFramework has its own lifetime management (see the [CancellationToken(Gracefully Shutdown) and Timeout](#cancellationtokengracefully-shutdown-and-timeout) section), therefore it is handled correctly even without using `ConsoleLifetime`.
+
+OpenTelemetry
+---
+It's important to be conscious of observability in console applications as well. Visualizing not just logging but also traces will be helpful for performance tuning and troubleshooting. In ConsoleAppFramework, you can use this smoothly by utilizing the OpenTelemetry support of HostApplicationBuilder.
+
+```xml
+<!-- csproj, reference OpenTelemetry packages -->
+<ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.6" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
+</ItemGroup>
+```
+
+For command tracing, you can set up the trace root by preparing a filter like the following. Also, when using multiple filters in an application, if you start all activities, it becomes very convenient as you can visualize the execution status of the filters.
+
+```csharp
+public static class ConsoleAppFrameworkSampleActivitySource
+{
+    public const string Name = "ConsoleAppFrameworkSample";
+
+    public static ActivitySource Instance { get; } = new ActivitySource(Name);
+}
+
+public class CommandTracingFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        using var activity = ConsoleAppFrameworkSampleActivitySource.Instance.StartActivity("CommandStart");
+
+        if (activity == null) // Telemtry is not listened
+        {
+            await Next.InvokeAsync(context, cancellationToken);
+        }
+        else
+        {
+            activity.SetTag("console_app.command_name", context.CommandName);
+            activity.SetTag("console_app.command_args", string.Join(" ", context.EscapedArguments));
+
+            try
+            {
+                await Next.InvokeAsync(context, cancellationToken);
+                activity.SetStatus(ActivityStatusCode.Ok);
+            }
+            catch (Exception ex)
+            {
+                if (ex is OperationCanceledException)
+                {
+                    activity.SetStatus(ActivityStatusCode.Error, "Canceled");
+                }
+                else
+                {
+                    activity.AddException(ex);
+                    activity.SetStatus(ActivityStatusCode.Error);
+                }
+                throw;
+            }
+        }
+    }
+}
+```
+
+For visualization, if your solution includes a web application, using .NET Aspire would be convenient during development. For production environments, there are solutions like Datadog and New Relic, as well as OSS tools from Grafana Labs. However, especially for local development, I think OpenTelemetry native all-in-one solutions are convenient. Here, let's look at tracing using the OSS [SigNoz](https://signoz.io/).
+
+```csharp
+using ConsoleAppFramework;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using System.Diagnostics;
+
+// git clone https://github.com/SigNoz/signoz.git
+// cd signoz/deploy/docker
+// docker compose up
+Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"); // 4317 or 4318
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+});
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource =>
+    {
+        resource.AddService("ConsoleAppFramework Telemetry Sample");
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics.AddRuntimeInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter();
+    })
+    .WithTracing(tracing =>
+    {
+        tracing.SetSampler(new AlwaysOnSampler())
+            .AddHttpClientInstrumentation()
+            .AddSource(ConsoleAppFrameworkSampleActivitySource.Name) // add trace source
+            .AddOtlpExporter();
+    })
+    .WithLogging(logging =>
+    {
+        logging.AddOtlpExporter();
+    });
+
+var app = builder.ToConsoleAppBuilder();
+
+var consoleAppLoger = ConsoleApp.ServiceProvider.GetRequiredService<ILogger<Program>>(); // already built service provider.
+ConsoleApp.Log = msg => consoleAppLoger.LogDebug(msg);
+ConsoleApp.LogError = msg => consoleAppLoger.LogError(msg);
+
+app.UseFilter<CommandTracingFilter>(); // use root Trace filter
+
+app.Add("", async ([FromServices] ILogger<Program> logger, CancellationToken cancellationToken) =>
+{
+    using var httpClient = new HttpClient();
+    var ms = await httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
+    logger.LogInformation(ms);
+    var google = await httpClient.GetStringAsync("https://www.google.com", cancellationToken);
+    logger.LogInformation(google);
+
+    var ms2 = httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
+    var google2 = httpClient.GetStringAsync("https://www.google.com", cancellationToken);
+    var apple2 = httpClient.GetStringAsync("https://www.apple.com", cancellationToken);
+    await Task.WhenAll(ms2, google2, apple2);
+
+    logger.LogInformation(apple2.Result);
+
+    logger.LogInformation("OK");
+});
+
+await app.RunAsync(args); // Run
+```
+
+When you launch `SigNoz` with docker, the view will be available at `http://localhost:8080/` and the collector at `http://localhost:4317`.
+
+If you configure OpenTelemetry-related settings with `Host.CreateApplicationBuilder` and convert it with `ToConsoleAppBuilder`, `ConsoleAppFramework` will naturally support OpenTelemetry. In the example above, HTTP communications are performed sequentially, then executed in 3 parallel operations.
+
+![](https://github.com/user-attachments/assets/51009748-28f1-46c6-a70a-7300e825ae5e)
+
+In `SigNoz`, besides Trace, Logs and Metrics can also be visualized in an easy-to-read manner.
+
+Prevent ServiceProvider auto dispose
+---
+When executing commands with `Run/RunAsync`, the ServiceProvider is automatically disposed. This becomes a problem when executing commands multiple times or when you want to use the ServiceProvider after the command finishes. In Run/RunAsync from ConsoleAppBuilder, you can stop the automatic disposal of ServiceProvider by setting `bool disposeServiceProvider` to `false`.
+
+```csharp
+var app = ConsoleApp.Create();
+await app.RunAsync(args, disposeServiceProvider: false); // default is true
+```
+
+When `Microsoft.Extensions.Hosting` is referenced, `bool startHost, bool stopHost, bool disposeServiceProvider` become controllable. The defaults are all `true`.
 
 Colorize
 ---
