@@ -178,7 +178,10 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             })
             .WithTrackingName("ConsoleApp.Builder.4_CombineSelected");
 
-        context.RegisterSourceOutput(combined, EmitConsoleAppBuilder);
+        var finalCombined = combined.Combine(hasReferences)
+            .WithTrackingName("ConsoleApp.Builder.5_WithReferences");
+
+        context.RegisterSourceOutput(finalCombined, EmitConsoleAppBuilder);
     }
 
     static void EmitConsoleAppTemplateSource(IncrementalGeneratorPostInitializationContext context)
@@ -222,8 +225,20 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString().ReplaceLineEndings());
     }
 
-    static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, CollectBuilderContext collectBuilderContext)
+    static void EmitConsoleAppBuilder(SourceProductionContext sourceProductionContext, (CollectBuilderContext, DllReference) builderContext)
     {
+        (CollectBuilderContext collectBuilderContext, DllReference dllReference) = builderContext;
+
+        // build static Run
+        if (dllReference.HasHost)
+        {
+            sourceProductionContext.AddSource("ConsoleApp.Builder.Run.g.cs", ConsoleAppBaseCode.ConsoleAppBuilderRunWithHost.ReplaceLineEndings());
+        }
+        else
+        {
+            sourceProductionContext.AddSource("ConsoleApp.Builder.Run.g.cs", ConsoleAppBaseCode.ConsoleAppBuilderRunStandard.ReplaceLineEndings());
+        }
+
         var reporter = collectBuilderContext.DiagnosticReporter;
         var hasRun = collectBuilderContext.HasRun;
         var hasRunAsync = collectBuilderContext.HasRunAsync;
