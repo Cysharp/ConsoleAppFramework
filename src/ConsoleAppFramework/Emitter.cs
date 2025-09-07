@@ -871,20 +871,21 @@ internal static class ConsoleAppHostBuilderExtensions
         
         public async ValueTask DisposeAsync()
         {
-            await CastAndDispose(host);
-            await CastAndDispose(scope);
             await CastAndDispose(serviceProvider);
+            await CastAndDispose(scope);
             await CastAndDispose(serviceServiceProvider);
-            GC.SuppressFinalize(this);
-            
-            return;
+            await CastAndDispose(host);
             
             static async ValueTask CastAndDispose<T>(T resource)
             {
                 if (resource is IAsyncDisposable resourceAsyncDisposable)
+                {
                     await resourceAsyncDisposable.DisposeAsync();
+                }
                 else if (resource is IDisposable resourceDisposable)
+                {
                     resourceDisposable.Dispose();
+                }
             }
         }
     }
