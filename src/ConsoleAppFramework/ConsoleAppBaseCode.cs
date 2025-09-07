@@ -545,7 +545,11 @@ internal static partial class ConsoleApp
 {
     internal partial class ConsoleAppBuilder
     {
-        public void Run(string[] args)
+        public void Run(string[] args) => Run(args, true);
+
+        public Task RunAsync(string[] args) => RunAsync(args, true);
+
+        public void Run(string[] args, bool disposeService)
         {
             BuildAndSetServiceProvider();
             try
@@ -554,14 +558,17 @@ internal static partial class ConsoleApp
             }
             finally
             {
-                if (ServiceProvider is IDisposable d)
+                if (disposeService)
                 {
-                    d.Dispose();
+                    if (ServiceProvider is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
         }
 
-        public async Task RunAsync(string[] args)
+        public async Task RunAsync(string[] args, bool disposeService)
         {
             BuildAndSetServiceProvider();
             try
@@ -575,13 +582,16 @@ internal static partial class ConsoleApp
             }
             finally
             {
-                if (ServiceProvider is IAsyncDisposable ad)
+                if (disposeService)
                 {
-                    await ad.DisposeAsync();
-                }
-                else if (ServiceProvider is IDisposable d)
-                {
-                    d.Dispose();
+                    if (ServiceProvider is IAsyncDisposable ad)
+                    {
+                        await ad.DisposeAsync();
+                    }
+                    else if (ServiceProvider is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
         }
@@ -610,32 +620,48 @@ internal static partial class ConsoleApp
 {
     internal partial class ConsoleAppBuilder
     {
-        public void Run(string[] args)
+        public void Run(string[] args) => Run(args, true, true, true);
+        
+        public void Run(string[] args, bool startHost, bool stopHost, bool disposeService)
         {
             BuildAndSetServiceProvider();
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
             try
             {
-                host?.StartAsync().GetAwaiter().GetResult();
+                if (startHost)
+                {
+                    host?.StartAsync().GetAwaiter().GetResult();
+                }
                 RunCore(args);
             }
             finally
             {
-                host?.StopAsync().GetAwaiter().GetResult();
-                if (ServiceProvider is IDisposable d)
+                if (stopHost)
                 {
-                    d.Dispose();
+                    host?.StopAsync().GetAwaiter().GetResult();
+                }
+                if (disposeService)
+                {
+                    if (ServiceProvider is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
         }
 
-        public async Task RunAsync(string[] args)
+        public Task RunAsync(string[] args) => RunAsync(args, true, true, true);
+
+        public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeService)
         {
             BuildAndSetServiceProvider();
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
             try
             {
-                await host?.StartAsync();
+                if (startHost)
+                {
+                    await host?.StartAsync();
+                }
                 Task? task = null;
                 RunAsyncCore(args, ref task!);
                 if (task != null)
@@ -645,14 +671,20 @@ internal static partial class ConsoleApp
             }
             finally
             {
-                await host?.StopAsync();
-                if (ServiceProvider is IAsyncDisposable ad)
+                if (stopHost)
                 {
-                    await ad.DisposeAsync();
+                    await host?.StopAsync();
                 }
-                else if (ServiceProvider is IDisposable d)
+                if (disposeService)
                 {
-                    d.Dispose();
+                    if (ServiceProvider is IAsyncDisposable ad)
+                    {
+                        await ad.DisposeAsync();
+                    }
+                    else if (ServiceProvider is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
         }
