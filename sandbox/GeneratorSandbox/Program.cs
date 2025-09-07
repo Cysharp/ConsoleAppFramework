@@ -47,19 +47,25 @@ builder.Services.AddOpenTelemetry()
 
 var app = builder.ToConsoleAppBuilder();
 
+var consoleAppLoger = ConsoleApp.ServiceProvider.GetRequiredService<ILogger<Program>>(); // already built service provider.
+ConsoleApp.Log = msg => consoleAppLoger.LogDebug(msg);
+ConsoleApp.LogError = msg => consoleAppLoger.LogError(msg);
+
 app.UseFilter<CommandTracingFilter>();
 
-app.Add("", async ([FromServices] ILogger<Program> logger) =>
+app.Add("", async ([FromServices] ILogger<Program> logger/*, CancellationToken cancellationToken*/) =>
 {
+    var cancellationToken = CancellationToken.None;
+
     using var httpClient = new HttpClient();
-    var ms = await httpClient.GetStringAsync("https://www.microsoft.com");
+    var ms = await httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
     logger.LogInformation(ms);
-    var google = await httpClient.GetStringAsync("https://www.google.com");
+    var google = await httpClient.GetStringAsync("https://www.google.com", cancellationToken);
     logger.LogInformation(google);
 
-    var ms2 = httpClient.GetStringAsync("https://www.microsoft.com");
-    var google2 = httpClient.GetStringAsync("https://www.google.com");
-    var apple2 = httpClient.GetStringAsync("https://www.apple.com");
+    var ms2 = httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
+    var google2 = httpClient.GetStringAsync("https://www.google.com", cancellationToken);
+    var apple2 = httpClient.GetStringAsync("https://www.apple.com", cancellationToken);
     await Task.WhenAll(ms2, google2, apple2);
 
     logger.LogInformation(apple2.Result);
@@ -100,8 +106,15 @@ internal class CommandTracingFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
         {
             if (activity != null)
             {
-                activity.AddException(ex);
-                activity.SetStatus(ActivityStatusCode.Error);
+                if (ex is OperationCanceledException)
+                {
+                    activity.SetStatus(ActivityStatusCode.Error, "Canceled");
+                }
+                else
+                {
+                    activity.AddException(ex);
+                    activity.SetStatus(ActivityStatusCode.Error);
+                }
             }
             throw;
         }

@@ -371,9 +371,9 @@ internal static partial class ConsoleApp
 
     static partial void ShowHelp(int helpId);
 
-    static async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, int escapeIndex, ConsoleAppFilter invoker)
+    static async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, int escapeIndex, ConsoleAppFilter invoker, CancellationToken cancellationToken)
     {
-        using var posixSignalHandler = PosixSignalHandler.Register(Timeout);
+        using var posixSignalHandler = PosixSignalHandler.Register(Timeout, cancellationToken);
         try
         {
             await Task.Run(() => invoker.InvokeAsync(new ConsoleAppContext(commandName, args, null, commandDepth, escapeIndex), posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
@@ -411,16 +411,16 @@ internal static partial class ConsoleApp
         PosixSignalRegistration? sigQuit;
         PosixSignalRegistration? sigTerm;
 
-        PosixSignalHandler(TimeSpan timeout)
+        PosixSignalHandler(TimeSpan timeout, CancellationToken cancellationToken)
         {
-            this.cancellationTokenSource = new CancellationTokenSource();
+            this.cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             this.timeoutCancellationTokenSource = new CancellationTokenSource();
             this.timeout = timeout;
         }
 
-        public static PosixSignalHandler Register(TimeSpan timeout)
+        public static PosixSignalHandler Register(TimeSpan timeout, CancellationToken cancellationToken)
         {
-            var handler = new PosixSignalHandler(timeout);
+            var handler = new PosixSignalHandler(timeout, cancellationToken);
 
             Action<PosixSignalContext> handleSignal = handler.HandlePosixSignal;
 
@@ -443,6 +443,7 @@ internal static partial class ConsoleApp
             sigInt?.Dispose();
             sigQuit?.Dispose();
             sigTerm?.Dispose();
+            cancellationTokenSource.Dispose();
             timeoutCancellationTokenSource.Dispose();
         }
     }
@@ -482,10 +483,10 @@ internal static partial class ConsoleApp
         partial void AddCore(string commandName, Delegate command);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        partial void RunCore(string[] args);
+        partial void RunCore(string[] args, CancellationToken cancellationToken);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        partial void RunAsyncCore(string[] args, ref Task result);
+        partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result);
 
         partial void BuildAndSetServiceProvider();
 
@@ -546,15 +547,14 @@ internal static partial class ConsoleApp
     internal partial class ConsoleAppBuilder
     {
         public void Run(string[] args) => Run(args, true);
+        public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, cancellationToken);
 
-        public Task RunAsync(string[] args) => RunAsync(args, true);
-
-        public void Run(string[] args, bool disposeService)
+        public void Run(string[] args, bool disposeService, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             try
             {
-                RunCore(args);
+                RunCore(args, cancellationToken);
             }
             finally
             {
@@ -568,13 +568,16 @@ internal static partial class ConsoleApp
             }
         }
 
-        public async Task RunAsync(string[] args, bool disposeService)
+        public Task RunAsync(string[] args) => RunAsync(args, true);
+        public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, cancellationToken);
+
+        public async Task RunAsync(string[] args, bool disposeService, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             try
             {
                 Task? task = null;
-                RunAsyncCore(args, ref task!);
+                RunAsyncCore(args, cancellationToken, ref task!);
                 if (task != null)
                 {
                     await task;
@@ -621,8 +624,9 @@ internal static partial class ConsoleApp
     internal partial class ConsoleAppBuilder
     {
         public void Run(string[] args) => Run(args, true, true, true);
+        public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, true, true, cancellationToken);
         
-        public void Run(string[] args, bool startHost, bool stopHost, bool disposeService)
+        public void Run(string[] args, bool startHost, bool stopHost, bool disposeService, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
@@ -632,7 +636,7 @@ internal static partial class ConsoleApp
                 {
                     host?.StartAsync().GetAwaiter().GetResult();
                 }
-                RunCore(args);
+                RunCore(args, cancellationToken);
             }
             finally
             {
@@ -651,8 +655,9 @@ internal static partial class ConsoleApp
         }
 
         public Task RunAsync(string[] args) => RunAsync(args, true, true, true);
+        public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, true, true, cancellationToken);
 
-        public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeService)
+        public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeService, CancellationToken cancellationToken = default)
         {
             BuildAndSetServiceProvider();
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
@@ -663,7 +668,7 @@ internal static partial class ConsoleApp
                     await host?.StartAsync();
                 }
                 Task? task = null;
-                RunAsyncCore(args, ref task!);
+                RunAsyncCore(args, cancellationToken, ref task!);
                 if (task != null)
                 {
                     await task;
