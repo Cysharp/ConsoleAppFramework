@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -14,6 +15,7 @@ using System.Diagnostics;
 // docker compose up
 Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"); // 4317 or 4318
 
+// crate builder from Microsoft.Extensions.Hosting.Host
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Logging.AddOpenTelemetry(logging =>
@@ -23,55 +25,60 @@ builder.Logging.AddOpenTelemetry(logging =>
 });
 
 builder.Services.AddOpenTelemetry()
+    .UseOtlpExporter()
     .ConfigureResource(resource =>
     {
         resource.AddService("ConsoleAppFramework Telemetry Sample");
     })
     .WithMetrics(metrics =>
     {
+        // configure for metrics
         metrics.AddRuntimeInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddOtlpExporter();
+            .AddHttpClientInstrumentation();
     })
     .WithTracing(tracing =>
     {
+        // configure for tracing
         tracing.SetSampler(new AlwaysOnSampler())
             .AddHttpClientInstrumentation()
-            .AddSource(ConsoleAppFrameworkSampleActivitySource.Name)
-            .AddOtlpExporter();
+            .AddSource(ConsoleAppFrameworkSampleActivitySource.Name);
     })
     .WithLogging(logging =>
     {
-        logging.AddOtlpExporter();
+        // configure for logging
     });
 
 var app = builder.ToConsoleAppBuilder();
 
-var consoleAppLoger = ConsoleApp.ServiceProvider.GetRequiredService<ILogger<Program>>(); // already built service provider.
-ConsoleApp.Log = msg => consoleAppLoger.LogDebug(msg);
-ConsoleApp.LogError = msg => consoleAppLoger.LogError(msg);
+app.Add<SampleCommand>();
 
+// setup filter
 app.UseFilter<CommandTracingFilter>();
 
-app.Add("", async ([FromServices] ILogger<Program> logger, CancellationToken cancellationToken) =>
-{
-    using var httpClient = new HttpClient();
-    var ms = await httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
-    logger.LogInformation(ms);
-    var google = await httpClient.GetStringAsync("https://www.google.com", cancellationToken);
-    logger.LogInformation(google);
-
-    var ms2 = httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
-    var google2 = httpClient.GetStringAsync("https://www.google.com", cancellationToken);
-    var apple2 = httpClient.GetStringAsync("https://www.apple.com", cancellationToken);
-    await Task.WhenAll(ms2, google2, apple2);
-
-    logger.LogInformation(apple2.Result);
-
-    logger.LogInformation("OK");
-});
-
 await app.RunAsync(args); // Run
+
+public class SampleCommand(ILogger<SampleCommand> logger)
+{
+    [Command("")]
+    public async Task Run(CancellationToken cancellationToken)
+    {
+        using var httpClient = new HttpClient();
+
+        var ms = await httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
+        var google = await httpClient.GetStringAsync("https://www.google.com", cancellationToken);
+
+        logger.LogInformation("Sequential Query done.");
+
+        var ms2 = httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
+        var google2 = httpClient.GetStringAsync("https://www.google.com", cancellationToken);
+        var apple2 = httpClient.GetStringAsync("https://www.apple.com", cancellationToken);
+        await Task.WhenAll(ms2, google2, apple2);
+
+        logger.LogInformation("Parallel Query done.");
+    }
+}
+
+
 
 public static class ConsoleAppFrameworkSampleActivitySource
 {

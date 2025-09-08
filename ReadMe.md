@@ -1190,21 +1190,12 @@ public class CommandTracingFilter(ConsoleAppFilter next) : ConsoleAppFilter(next
 For visualization, if your solution includes a web application, using .NET Aspire would be convenient during development. For production environments, there are solutions like Datadog and New Relic, as well as OSS tools from Grafana Labs. However, especially for local development, I think OpenTelemetry native all-in-one solutions are convenient. Here, let's look at tracing using the OSS [SigNoz](https://signoz.io/).
 
 ```csharp
-using ConsoleAppFramework;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-using System.Diagnostics;
-
 // git clone https://github.com/SigNoz/signoz.git
 // cd signoz/deploy/docker
 // docker compose up
 Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"); // 4317 or 4318
 
+// crate builder from Microsoft.Extensions.Hosting.Host
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Logging.AddOpenTelemetry(logging =>
@@ -1214,55 +1205,58 @@ builder.Logging.AddOpenTelemetry(logging =>
 });
 
 builder.Services.AddOpenTelemetry()
+    .UseOtlpExporter()
     .ConfigureResource(resource =>
     {
         resource.AddService("ConsoleAppFramework Telemetry Sample");
     })
     .WithMetrics(metrics =>
     {
+        // configure for metrics
         metrics.AddRuntimeInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddOtlpExporter();
+            .AddHttpClientInstrumentation();
     })
     .WithTracing(tracing =>
     {
+        // configure for tracing
         tracing.SetSampler(new AlwaysOnSampler())
             .AddHttpClientInstrumentation()
-            .AddSource(ConsoleAppFrameworkSampleActivitySource.Name) // add trace source
-            .AddOtlpExporter();
+            .AddSource(ConsoleAppFrameworkSampleActivitySource.Name);
     })
     .WithLogging(logging =>
     {
-        logging.AddOtlpExporter();
+        // configure for logging
     });
 
 var app = builder.ToConsoleAppBuilder();
 
-var consoleAppLoger = ConsoleApp.ServiceProvider.GetRequiredService<ILogger<Program>>(); // already built service provider.
-ConsoleApp.Log = msg => consoleAppLoger.LogDebug(msg);
-ConsoleApp.LogError = msg => consoleAppLoger.LogError(msg);
+app.Add<SampleCommand>();
 
-app.UseFilter<CommandTracingFilter>(); // use root Trace filter
-
-app.Add("", async ([FromServices] ILogger<Program> logger, CancellationToken cancellationToken) =>
-{
-    using var httpClient = new HttpClient();
-    var ms = await httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
-    logger.LogInformation(ms);
-    var google = await httpClient.GetStringAsync("https://www.google.com", cancellationToken);
-    logger.LogInformation(google);
-
-    var ms2 = httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
-    var google2 = httpClient.GetStringAsync("https://www.google.com", cancellationToken);
-    var apple2 = httpClient.GetStringAsync("https://www.apple.com", cancellationToken);
-    await Task.WhenAll(ms2, google2, apple2);
-
-    logger.LogInformation(apple2.Result);
-
-    logger.LogInformation("OK");
-});
+// setup filter
+app.UseFilter<CommandTracingFilter>();
 
 await app.RunAsync(args); // Run
+
+public class SampleCommand(ILogger<SampleCommand> logger)
+{
+    [Command("")]
+    public async Task Run(CancellationToken cancellationToken)
+    {
+        using var httpClient = new HttpClient();
+
+        var ms = await httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
+        var google = await httpClient.GetStringAsync("https://www.google.com", cancellationToken);
+
+        logger.LogInformation("Sequential Query done.");
+
+        var ms2 = httpClient.GetStringAsync("https://www.microsoft.com", cancellationToken);
+        var google2 = httpClient.GetStringAsync("https://www.google.com", cancellationToken);
+        var apple2 = httpClient.GetStringAsync("https://www.apple.com", cancellationToken);
+        await Task.WhenAll(ms2, google2, apple2);
+
+        logger.LogInformation("Parallel Query done.");
+    }
+}
 ```
 
 When you launch `SigNoz` with docker, the view will be available at `http://localhost:8080/` and the collector at `http://localhost:4317`.
