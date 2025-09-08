@@ -632,17 +632,17 @@ internal static partial class ConsoleApp
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
             try
             {
-                if (startHost)
+                if (startHost && host != null)
                 {
-                    host?.StartAsync().GetAwaiter().GetResult();
+                    host.StartAsync().GetAwaiter().GetResult();
                 }
                 RunCore(args, cancellationToken);
             }
             finally
             {
-                if (stopHost)
+                if (stopHost && host != null)
                 {
-                    host?.StopAsync().GetAwaiter().GetResult();
+                    host.StopAsync().GetAwaiter().GetResult();
                 }
                 if (disposeServiceProvider)
                 {
@@ -663,9 +663,9 @@ internal static partial class ConsoleApp
             Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
             try
             {
-                if (startHost)
+                if (startHost && host != null)
                 {
-                    await host?.StartAsync();
+                    await host.StartAsync();
                 }
                 Task? task = null;
                 RunAsyncCore(args, cancellationToken, ref task!);
@@ -676,9 +676,9 @@ internal static partial class ConsoleApp
             }
             finally
             {
-                if (stopHost)
+                if (stopHost && host != null)
                 {
-                    await host?.StopAsync();
+                    await host.StopAsync();
                 }
                 if (disposeServiceProvider)
                 {
