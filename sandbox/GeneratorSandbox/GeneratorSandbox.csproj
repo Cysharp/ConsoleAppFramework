@@ -9,7 +9,6 @@
     <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1701;1702;CS8321</NoWarn>
-    <IsPackable>false</IsPackable>
 
     <DefineConstants>USE_EXTERNAL_CONSOLEAPP_ABSTRACTIONS</DefineConstants>
 
