@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <nullable>annotations</nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <IsPackable>false</IsPackable>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 

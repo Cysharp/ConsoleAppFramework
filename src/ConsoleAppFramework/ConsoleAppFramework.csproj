@@ -17,6 +17,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
     <!-- NuGet -->
+    <IsPackable>true</IsPackable>
     <PackageId>ConsoleAppFramework</PackageId>
     <Description>Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator.</Description>
     <Configurations>Debug;Release</Configurations>
@@ -43,8 +44,4 @@
     <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="../../Icon.png" Pack="true" PackagePath="/" />
-  </ItemGroup>
 </Project>
-
