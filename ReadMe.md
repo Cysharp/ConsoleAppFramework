@@ -1311,7 +1311,7 @@ ConsoleApp.ServiceProvider = scope.ServiceProvider;
 * `app.AddSubCommands<T>` -> `app.Add<T>(string commandPath)`
 * `app.AddAllCommandType` -> `NotSupported`(use `Add<T>` manually)
 * `[Option(int index)]` -> `[Argument]`
-* `[Option(string shortName, string description)]` -> `Xml Document Comment`
+* `[Option(string shortName, string description)]` -> `Xml Document Comment`(Define short names as parameter aliases in the <param> description)
 * `ConsoleAppFilter.Order` -> `NotSupported`(global -> class -> method declarative order)
 * `ConsoleAppOptions.GlobalFilters` -> `app.UseFilter<T>`
 * `ConsoleAppBase` -> inject `ConsoleAppContext`, `CancellationToken` to method

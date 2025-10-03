@@ -160,4 +160,47 @@ ConsoleApp.Run(args, (string msg = "\\") => Console.Write(msg));
 ConsoleApp.Run(args, (string msg = @"\\") => Console.Write(msg));
 """, "", @"\\");
     }
+
+    [Fact]
+    public void ShortNameAlias()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<FileCommand>();
+app.Run(args);
+
+public class FileCommand
+{
+    /// <summary>Outputs the provided file name.</summary>
+    /// <param name="inputFile">-i, InputFile</param>
+    [Command("")]
+    public void Run(string inputFile) => Console.Write(inputFile);
+}
+""";
+
+        verifier.Execute(code, "--input-file sample.txt", "sample.txt");
+        verifier.Execute(code, "-i sample.txt", "sample.txt");
+    }
+
+    [Fact]
+    public void ShortNameAndLongNameAlias()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add<FileCommand>();
+app.Run(args);
+
+public class FileCommand
+{
+    /// <summary>Outputs the provided file name.</summary>
+    /// <param name="inputFile">-i|--input, InputFile</param>
+    [Command("")]
+    public void Run(string inputFile) => Console.Write(inputFile);
+}
+""";
+
+        verifier.Execute(code, "--input-file sample.txt", "sample.txt");
+        verifier.Execute(code, "--input sample.txt", "sample.txt");
+        verifier.Execute(code, "-i sample.txt", "sample.txt");
+    }
 }
