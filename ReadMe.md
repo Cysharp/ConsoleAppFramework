@@ -1280,7 +1280,7 @@ When `Microsoft.Extensions.Hosting` is referenced, `bool startHost, bool stopHos
 
 Colorize
 ---
-The framework doesn't support colorization directly; however, utilities like [Cysharp/Kokuban](https://github.com/Cysharp/Kokuban) make console colorization easy.
+The framework doesn't support colorization directly; however, utilities like [Cysharp/Kokuban](https://github.com/Cysharp/Kokuban) make console colorization easy. Additionally, if you need spinners or updates single-line displays, you can also use it in combination with [mayuki/Kurukuru](https://github.com/mayuki/Kurukuru).
 
 Publish to executable file
 ---
@@ -1296,12 +1296,11 @@ Also, to run with Native AOT, please refer to the [Native AOT deployment overvie
 
 v4 -> v5 Migration Guide
 ---
-v4 was running on top of `Microsoft.Extensions.Hosting`, so build a Host in the same way and set up a ServiceProvider.
+v4 was running on top of `Microsoft.Extensions.Hosting`, so build a Host in the same way and need to convert ConsoleAppBuilder.
 
 ```csharp
-using var host = Host.CreateDefaultBuilder().Build(); // use using for host lifetime
-using var scope = host.Services.CreateScope(); // create execution scope
-ConsoleApp.ServiceProvider = scope.ServiceProvider;
+var app = Host.CreateApplicationBuilder()
+    .ToConsoleAppBuilder();
 ```
 
 * `var app = ConsoleApp.Create(args); app.Run();` -> `var app = ConsoleApp.Create(); app.Run(args);`
