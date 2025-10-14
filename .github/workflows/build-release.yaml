@@ -31,18 +31,24 @@ jobs:
           path: ./publish
           retention-days: 1
 
+  # dummy:
+  #   permissions:
+  #     contents: write
+  #     id-token: write # required for NuGet Trusted Publish
+  #   runs-on: ubuntu-24.04
+  #   timeout-minutes: 10
+  #   steps:
+  #     - name: NuGet login (OIDC → temp API key)
+  #       uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
+  #       id: login
+  #       with:
+  #         user: cysharp-infra
+
   dummy:
     permissions:
       contents: write
       id-token: write # required for NuGet Trusted Publish
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: NuGet login (OIDC → temp API key)
-        uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
-        id: login
-        with:
-          user: cysharp-infra
+    uses: Cysharp/Actions/.github/workflows/build-release.yaml@main
 
   # release
   create-release:
