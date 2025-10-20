@@ -144,8 +144,14 @@ internal class Emitter
                 using (sb.BeginBlock("for (int i = 0; i < commandArgs.Length; i++)"))
                 {
                     sb.AppendLine("var name = commandArgs[i];");
-                    sb.AppendLine("var optionMatched = false;");
-                    sb.AppendLine("var optionCandidate = name.Length > 1 && name[0] == '-' && !char.IsDigit(name[1]);");
+                    if (hasArgument)
+                    {
+                        sb.AppendLine("var optionCandidate = name.Length > 1 && name[0] == '-' && !char.IsDigit(name[1]);");
+                    }
+                    else
+                    {
+                        sb.AppendLine("var optionCandidate = name.Length > 1 && name[0] == '-';");
+                    }
                     sb.AppendLine();
 
                     if (!command.Parameters.All(p => !p.IsParsable || p.IsArgument))
@@ -173,8 +179,7 @@ internal class Emitter
                                         {
                                             sb.AppendLine($"arg{i}Parsed = true;");
                                         }
-                                        sb.AppendLine("optionMatched = true;");
-                                        sb.AppendLine("break;");
+                                        sb.AppendLine("continue;");
                                     }
                                 }
 
@@ -200,20 +205,13 @@ internal class Emitter
                                             {
                                                 sb.AppendLine($"arg{i}Parsed = true;");
                                             }
-                                            sb.AppendLine("optionMatched = true;");
-                                            sb.AppendLine($"break;");
+                                            sb.AppendLine("continue;");
                                         }
                                     }
 
                                     sb.AppendLine("ThrowArgumentNameNotFound(name);");
                                     sb.AppendLine("break;");
                                 }
-                            }
-
-                            sb.AppendLine("if (optionMatched)");
-                            using (sb.BeginBlock())
-                            {
-                                sb.AppendLine("continue;");
                             }
                         }
                     }
@@ -241,7 +239,10 @@ internal class Emitter
                         sb.AppendLine();
                     }
 
-                    sb.AppendLine("ThrowArgumentNameNotFound(name);");
+                    if (hasArgument)
+                    {
+                        sb.AppendLine("ThrowArgumentNameNotFound(name);");
+                    }
                 }
 
                 // validate parsed

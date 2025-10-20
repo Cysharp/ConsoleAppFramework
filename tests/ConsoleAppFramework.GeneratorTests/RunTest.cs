@@ -67,6 +67,20 @@ ConsoleApp.Run(args, ([Argument] string path, bool dryRun, params string[] extra
     }
 
     [Fact]
+    public void ArgumentAllowsLeadingDashValue()
+    {
+        var code = """
+ConsoleApp.Run(args, ([Argument] int count, bool dryRun) =>
+{
+    Console.Write((count, dryRun).ToString());
+});
+""";
+
+        verifier.Execute(code, "-5 --dry-run", "(-5, True)");
+        verifier.Execute(code, "-5", "(-5, False)");
+    }
+
+    [Fact]
     public void SyncRunShouldFailed()
     {
         verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x").ShouldContain("Argument 'x' failed to parse");
@@ -75,7 +89,7 @@ ConsoleApp.Run(args, ([Argument] string path, bool dryRun, params string[] extra
     [Fact]
     public void MissingArgument()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Argument 'y' is not recognized.");
+        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Required argument 'y' was not specified.");
 
         Environment.ExitCode.ShouldBe(1);
         Environment.ExitCode = 0;
