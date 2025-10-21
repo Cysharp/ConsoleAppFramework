@@ -148,15 +148,11 @@ internal class Emitter
                     {
                         sb.AppendLine("var optionCandidate = name.Length > 1 && name[0] == '-' && !char.IsDigit(name[1]);");
                     }
-                    else
-                    {
-                        sb.AppendLine("var optionCandidate = name.Length > 1 && name[0] == '-';");
-                    }
                     sb.AppendLine();
 
                     if (!command.Parameters.All(p => !p.IsParsable || p.IsArgument))
                     {
-                        using (sb.BeginBlock("if (optionCandidate)"))
+                        using (hasArgument ? sb.BeginBlock("if (optionCandidate)") : sb.Nop)
                         {
                             using (sb.BeginBlock("switch (name)"))
                             {

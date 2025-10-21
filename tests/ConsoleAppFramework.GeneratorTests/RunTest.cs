@@ -89,7 +89,7 @@ ConsoleApp.Run(args, ([Argument] int count, bool dryRun) =>
     [Fact]
     public void MissingArgument()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Required argument 'y' was not specified.");
+        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Argument 'y' is not recognized.");
 
         Environment.ExitCode.ShouldBe(1);
         Environment.ExitCode = 0;
