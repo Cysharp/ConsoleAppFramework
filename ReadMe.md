@@ -1282,6 +1282,8 @@ Colorize
 ---
 The framework doesn't support colorization directly; however, utilities like [Cysharp/Kokuban](https://github.com/Cysharp/Kokuban) make console colorization easy. Additionally, if you need spinners or updates single-line displays, you can also use it in combination with [mayuki/Kurukuru](https://github.com/mayuki/Kurukuru).
 
+For more powerful Console UI support, you can also use it in combination with [Spectre.Console](https://spectreconsole.net/).
+
 Publish to executable file
 ---
 There are multiple ways to run a CLI application in .NET:
