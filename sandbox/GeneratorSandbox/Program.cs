@@ -1,7 +1,25 @@
 ﻿using ConsoleAppFramework;
+using GeneratorSandbox;
 
-args = ["--x", "10", "y", "20"]; // missing argument
-ConsoleApp.Run(args, (int x, int y) =>
+// fail
+//await ConsoleApp.RunAsync(args, Commands.Save);
+
+// fail
+await ConsoleApp.RunAsync(args, async () => await Task.Delay(1000, CancellationToken.None));
+
+
+public class Commands
 {
-    Console.WriteLine(new { x, y });
-});
+    /// <summary>
+    /// Some sort of save command.
+    /// </summary>
+    public async Task<int> Save(CancellationToken ct)
+    {
+
+        await Task.Delay(1000);
+        return 0;
+    }
+}
+
+
+// `using var posixSignalHandler = PosixSignalHandler.Register(Timeout);`

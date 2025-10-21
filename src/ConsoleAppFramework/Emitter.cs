@@ -85,7 +85,8 @@ internal class Emitter
             // prepare argument variables
             if (hasCancellationToken)
             {
-                sb.AppendLine("using var posixSignalHandler = PosixSignalHandler.Register(Timeout, __ExternalCancellationToken__);");
+                var token = command.HasFilter ? "cancellationToken" : emitForBuilder ? "__ExternalCancellationToken__" : "CancellationToken.None";
+                sb.AppendLine($"using var posixSignalHandler = PosixSignalHandler.Register(Timeout, {token});");
             }
             if (hasConsoleAppContext)
             {
