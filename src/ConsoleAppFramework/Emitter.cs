@@ -136,8 +136,86 @@ internal class Emitter
 
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
+                if (hasArgument)
+                {
+                    sb.AppendLine("var argumentPosition = 0;");
+                }
+
                 using (sb.BeginBlock("for (int i = 0; i < commandArgs.Length; i++)"))
                 {
+                    sb.AppendLine("var name = commandArgs[i];");
+                    if (hasArgument)
+                    {
+                        sb.AppendLine("var optionCandidate = name.Length > 1 && name[0] == '-' && !char.IsDigit(name[1]);");
+                    }
+                    else
+                    {
+                        sb.AppendLine("var optionCandidate = name.Length > 1 && name[0] == '-';");
+                    }
+                    sb.AppendLine();
+
+                    if (!command.Parameters.All(p => !p.IsParsable || p.IsArgument))
+                    {
+                        using (sb.BeginBlock("if (optionCandidate)"))
+                        {
+                            using (sb.BeginBlock("switch (name)"))
+                            {
+                                // parse argument(fast, switch directly)
+                                for (int i = 0; i < command.Parameters.Length; i++)
+                                {
+                                    var parameter = command.Parameters[i];
+                                    if (!parameter.IsParsable) continue;
+                                    if (parameter.IsArgument) continue;
+
+                                    sb.AppendLine($"case \"--{parameter.Name}\":");
+                                    foreach (var alias in parameter.Aliases)
+                                    {
+                                        sb.AppendLine($"case \"{alias}\":");
+                                    }
+                                    using (sb.BeginBlock())
+                                    {
+                                        sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
+                                        if (parameter.RequireCheckArgumentParsed)
+                                        {
+                                            sb.AppendLine($"arg{i}Parsed = true;");
+                                        }
+                                        sb.AppendLine("continue;");
+                                    }
+                                }
+
+                                using (sb.BeginIndent("default:"))
+                                {
+                                    // parse argument(slow, ignorecase)
+                                    for (int i = 0; i < command.Parameters.Length; i++)
+                                    {
+                                        var parameter = command.Parameters[i];
+                                        if (!parameter.IsParsable) continue;
+                                        if (parameter.IsArgument) continue;
+
+                                        sb.AppendLine($"if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
+                                        for (int j = 0; j < parameter.Aliases.Length; j++)
+                                        {
+                                            var alias = parameter.Aliases[j];
+                                            sb.AppendLine($" || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
+                                        }
+                                        using (sb.BeginBlock())
+                                        {
+                                            sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
+                                            if (parameter.RequireCheckArgumentParsed)
+                                            {
+                                                sb.AppendLine($"arg{i}Parsed = true;");
+                                            }
+                                            sb.AppendLine("continue;");
+                                        }
+                                    }
+
+                                    sb.AppendLine("ThrowArgumentNameNotFound(name);");
+                                    sb.AppendLine("break;");
+                                }
+                            }
+                        }
+                    }
+
                     // parse indexed argument([Argument] parameter)
                     if (hasArgument)
                     {
@@ -146,7 +224,7 @@ internal class Emitter
                             var parameter = command.Parameters[i];
                             if (!parameter.IsArgument) continue;
 
-                            sb.AppendLine($"if (i == {parameter.ArgumentIndex})");
+                            sb.AppendLine($"if (argumentPosition == {parameter.ArgumentIndex})");
                             using (sb.BeginBlock())
                             {
                                 sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: false)}");
@@ -154,69 +232,16 @@ internal class Emitter
                                 {
                                     sb.AppendLine($"arg{i}Parsed = true;");
                                 }
+                                sb.AppendLine("argumentPosition++;");
                                 sb.AppendLine("continue;");
                             }
                         }
                         sb.AppendLine();
                     }
 
-                    sb.AppendLine("var name = commandArgs[i];");
-                    sb.AppendLine();
-
-                    using (sb.BeginBlock("switch (name)"))
+                    if (hasArgument)
                     {
-                        // parse argument(fast, switch directly)
-                        for (int i = 0; i < command.Parameters.Length; i++)
-                        {
-                            var parameter = command.Parameters[i];
-                            if (!parameter.IsParsable) continue;
-                            if (parameter.IsArgument) continue;
-
-                            sb.AppendLine($"case \"--{parameter.Name}\":");
-                            foreach (var alias in parameter.Aliases)
-                            {
-                                sb.AppendLine($"case \"{alias}\":");
-                            }
-                            using (sb.BeginBlock())
-                            {
-                                sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
-                                if (parameter.RequireCheckArgumentParsed)
-                                {
-                                    sb.AppendLine($"arg{i}Parsed = true;");
-                                }
-                                sb.AppendLine("break;");
-                            }
-                        }
-
-                        using (sb.BeginIndent("default:"))
-                        {
-                            // parse argument(slow, ignorecase)
-                            for (int i = 0; i < command.Parameters.Length; i++)
-                            {
-                                var parameter = command.Parameters[i];
-                                if (!parameter.IsParsable) continue;
-                                if (parameter.IsArgument) continue;
-
-                                sb.AppendLine($"if (string.Equals(name, \"--{parameter.Name}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == 0 ? ")" : "")}");
-                                for (int j = 0; j < parameter.Aliases.Length; j++)
-                                {
-                                    var alias = parameter.Aliases[j];
-                                    sb.AppendLine($" || string.Equals(name, \"{alias}\", StringComparison.OrdinalIgnoreCase){(parameter.Aliases.Length == j + 1 ? ")" : "")}");
-                                }
-                                using (sb.BeginBlock())
-                                {
-                                    sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
-                                    if (parameter.RequireCheckArgumentParsed)
-                                    {
-                                        sb.AppendLine($"arg{i}Parsed = true;");
-                                    }
-                                    sb.AppendLine($"break;");
-                                }
-                            }
-
-                            sb.AppendLine("ThrowArgumentNameNotFound(name);");
-                            sb.AppendLine("break;");
-                        }
+                        sb.AppendLine("ThrowArgumentNameNotFound(name);");
                     }
                 }
 

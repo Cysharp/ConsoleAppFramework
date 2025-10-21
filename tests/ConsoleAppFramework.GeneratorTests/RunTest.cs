@@ -13,6 +13,74 @@ public class Test(ITestOutputHelper output) : IDisposable
     }
 
     [Fact]
+    public void OptionTokenShouldNotFillArgumentSlot()
+    {
+        var code = """
+ConsoleApp.Run(args, ([Argument] string path, bool dryRun) =>
+{
+    Console.Write((dryRun, path).ToString());
+});
+""";
+
+        verifier.Error(code, "--dry-run").ShouldContain("Required argument 'path' was not specified.");
+        verifier.Execute(code, "--dry-run sample.txt", "(True, sample.txt)");
+    }
+
+    [Fact]
+    public void OptionTokenAllowsMultipleArguments()
+    {
+        var code = """
+ConsoleApp.Run(args, ([Argument] string source, [Argument] string destination, bool dryRun) =>
+{
+    Console.Write((dryRun, source, destination).ToString());
+});
+""";
+
+        verifier.Execute(code, "--dry-run input.json output.json", "(True, input.json, output.json)");
+    }
+
+    [Fact]
+    public void OptionTokenRespectsArgumentDefaultValue()
+    {
+        var code = """
+ConsoleApp.Run(args, ([Argument] string path = "default-path", bool dryRun = false) =>
+{
+    Console.Write((dryRun, path).ToString());
+});
+""";
+
+        verifier.Execute(code, "--dry-run", "(True, default-path)");
+    }
+
+    [Fact]
+    public void OptionTokenHandlesParamsArguments()
+    {
+        var code = """
+ConsoleApp.Run(args, ([Argument] string path, bool dryRun, params string[] extras) =>
+{
+    Console.Write($"{dryRun}:{path}:{string.Join("|", extras)}");
+});
+""";
+
+        verifier.Execute(code, "--dry-run path.txt --extras src.txt dst.txt", "True:path.txt:src.txt|dst.txt");
+        verifier.Execute(code, "--dry-run path.txt", "True:path.txt:");
+    }
+
+    [Fact]
+    public void ArgumentAllowsLeadingDashValue()
+    {
+        var code = """
+ConsoleApp.Run(args, ([Argument] int count, bool dryRun) =>
+{
+    Console.Write((count, dryRun).ToString());
+});
+""";
+
+        verifier.Execute(code, "-5 --dry-run", "(-5, True)");
+        verifier.Execute(code, "-5", "(-5, False)");
+    }
+
+    [Fact]
     public void SyncRunShouldFailed()
     {
         verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x").ShouldContain("Argument 'x' failed to parse");
@@ -21,7 +89,7 @@ public class Test(ITestOutputHelper output) : IDisposable
     [Fact]
     public void MissingArgument()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Argument 'y' is not recognized.");
+        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Required argument 'y' was not specified.");
 
         Environment.ExitCode.ShouldBe(1);
         Environment.ExitCode = 0;
