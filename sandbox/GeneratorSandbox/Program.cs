@@ -4,8 +4,15 @@ using GeneratorSandbox;
 // fail
 //await ConsoleApp.RunAsync(args, Commands.Save);
 
+
+var app = ConsoleApp.Create();
+
+
+app.Run(args, true, true, true);
+
+
 // fail
-await ConsoleApp.RunAsync(args, async () => await Task.Delay(1000, CancellationToken.None));
+// await ConsoleApp.RunAsync(args, async () => await Task.Delay(1000, CancellationToken.None));
 
 
 public class Commands
