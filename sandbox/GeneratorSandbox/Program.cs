@@ -12,10 +12,10 @@ using System.Drawing;
 var app = ConsoleApp.Create();
 
 // parse immediately
-var verbose = app.AddGlobalOptions<bool>(ref args, "-v|--verbose");
-var noColor = app.AddGlobalOptions<bool>(ref args, "--no-color", "Don't colorize output.");
-var dryRun = app.AddGlobalOptions<bool>(ref args, "--dry-run");
-var prefixOutput = app.AddRequiredGlobalOptions<string>(ref args, "--prefix-output", "Prefix output with level.");
+var verbose = app.AddGlobalOption<bool>(ref args, "-v|--verbose");
+var noColor = app.AddGlobalOption<bool>(ref args, "--no-color", "Don't colorize output.");
+var dryRun = app.AddGlobalOption<bool>(ref args, "--dry-run");
+var prefixOutput = app.AddRequiredGlobalOption<string>(ref args, "--prefix-output", "Prefix output with level.");
 
 app.ConfigureServices(x =>
 {
@@ -62,13 +62,13 @@ namespace ConsoleAppFramework
     {
         internal partial class ConsoleAppBuilder
         {
-            public T AddGlobalOptions<T>(ref string[] args, string name, string description = "", T defaultValue = default(T))
+            public T AddGlobalOption<T>(ref string[] args, string name, string description = "", T defaultValue = default(T))
                 where T : IParsable<T>
             {
                 return default(T);
             }
 
-            public T AddRequiredGlobalOptions<T>(ref string[] args, [ConstantExpected] string name, [ConstantExpected] string description = "")
+            public T AddRequiredGlobalOption<T>(ref string[] args, [ConstantExpected] string name, [ConstantExpected] string description = "")
                 where T : IParsable<T>
             {
                 if (typeof(T) == typeof(bool)) throw new ArgumentException();
