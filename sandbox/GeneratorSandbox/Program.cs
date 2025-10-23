@@ -12,15 +12,15 @@ using System.Drawing;
 var app = ConsoleApp.Create();
 
 // parse immediately
-var verbose = app.AddOptionalGlobalOptions<bool>(ref args, "-v|--verbose");
-var noColor = app.AddOptionalGlobalOptions<bool>(ref args, "--no-color", "Don't colorize output.");
+var verbose = app.AddGlobalOptions<bool>(ref args, "-v|--verbose");
+var noColor = app.AddGlobalOptions<bool>(ref args, "--no-color", "Don't colorize output.");
+var dryRun = app.AddGlobalOptions<bool>(ref args, "--dry-run");
 var prefixOutput = app.AddRequiredGlobalOptions<string>(ref args, "--prefix-output", "Prefix output with level.");
-var dryRun = app.AddOptionalGlobalOptions<bool>(ref args, "--dry-run");
 
 app.ConfigureServices(x =>
 {
     // to use command body
-    x.AddSingleton<GlobalOptions>(new GlobalOptions(verbose, noColor, prefixOutput, dryRun));
+    x.AddSingleton<GlobalOptions>(new GlobalOptions(verbose, noColor, dryRun, prefixOutput));
 
     // variable for setup other DI
     x.AddLogging(l =>
@@ -37,7 +37,7 @@ app.Add<Commands>("");
 
 app.Run(args);
 
-record GlobalOptions(bool Verbose, bool NoColor, string PrefixOutput, bool DryRun);
+record GlobalOptions(bool Verbose, bool NoColor, bool DryRun, string PrefixOutput);
 
 
 public class Commands
@@ -62,9 +62,17 @@ namespace ConsoleAppFramework
     {
         internal partial class ConsoleAppBuilder
         {
+            public T AddGlobalOptions<T>(ref string[] args, string name, string description = "", T defaultValue = default(T))
+                where T : IParsable<T>
+            {
+                return default(T);
+            }
+
             public T AddRequiredGlobalOptions<T>(ref string[] args, [ConstantExpected] string name, [ConstantExpected] string description = "")
                 where T : IParsable<T>
             {
+                if (typeof(T) == typeof(bool)) throw new ArgumentException();
+
                 var aliasCount = name.AsSpan().Count("|") + 1;
                 if (aliasCount == 1)
                 {
@@ -87,12 +95,6 @@ namespace ConsoleAppFramework
 
 
 
-                return default(T);
-            }
-
-            public T AddOptionalGlobalOptions<T>(ref string[] args, string name, string description = "", T defaultValue = default(T))
-                where T : IParsable<T>
-            {
                 return default(T);
             }
         }
