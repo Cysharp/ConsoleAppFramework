@@ -3,7 +3,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.ComponentModel.Design;
+using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ConsoleAppFramework;
 
@@ -136,7 +138,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
                     var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync")
+                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync" or "AddGlobalOption" or "AddRequiredGlobalOption")
                     {
                         return true;
                     }
@@ -292,6 +294,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         using (help.BeginBlock("internal partial class ConsoleAppBuilder"))
         {
+            // TODO: collectBuilderContext.GlobalOptions
+
             var emitter = new Emitter();
             emitter.EmitHelp(help, commandIds!);
         }
@@ -368,6 +372,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
         FilterInfo[]? globalFilters { get; }
         ConsoleAppFrameworkGeneratorOptions generatorOptions { get; }
+
+        public GlobalOptionInfo[] GlobalOptions { get; } = [];
 
         public CollectBuilderContext(ConsoleAppFrameworkGeneratorOptions generatorOptions, ImmutableArray<(BuilderContext, string?, SymbolKind?)> contexts, CancellationToken cancellationToken)
         {
@@ -474,6 +480,82 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     return commands;
                 });
+
+            GlobalOptions = methodGroup["AddGlobalOption"].Select(x => (context: x.Item1, required: false))
+                .Concat(methodGroup["AddRequiredGlobalOption"].Select(x => (context: x.Item1, required: true)))
+                .Select(x =>
+                {
+                    var node = x.context.Node;
+                    var model = x.context.Model;
+
+                    EquatableTypeSymbol typeSymbol = default!;
+                    string name = "";
+                    string description = "";
+                    bool isRequired = x.required;
+                    object? defaultValue = null;
+
+                    if (node.Expression is MemberAccessExpressionSyntax memberAccess && memberAccess.Name is GenericNameSyntax genericName)
+                    {
+                        var typeArgument = genericName.TypeArgumentList.Arguments[0];
+                        typeSymbol = new(model.GetTypeInfo(typeArgument).Type!); // TODO: not !
+                    }
+                    
+                    var arguments = node.ArgumentList.Arguments;
+                    if (arguments.Count >= 2) // string name
+                    {
+                        var constant = model.GetConstantValue(arguments[1].Expression); // TODO: check
+                        name = constant.Value!.ToString();
+                    }
+
+
+                    // TODO: use named argument???
+
+                    if (arguments.Count >= 3) // string description = ""
+                    {
+                        // is defaultValue???
+
+
+                        var constant = model.GetConstantValue(arguments[2].Expression);
+                        description = constant.Value!.ToString();
+                    }
+
+                    if (!isRequired)
+                    {
+                        if (arguments.Count >= 4) // T defaultValue = default(T)
+                        {
+                            var constant = model.GetConstantValue(arguments[3].Expression);
+                            defaultValue = constant.Value!;
+                        }
+                        else
+                        {
+                            // set defaultValue from
+                            var symbol = model.GetSymbolInfo(node).Symbol;
+                            if (symbol is IMethodSymbol methodSymbol)
+                            {
+                                var parameter = methodSymbol.Parameters[3];
+                                if (parameter.HasExplicitDefaultValue)
+                                {
+                                    defaultValue = parameter.ExplicitDefaultValue;
+                                }
+                                else
+                                {
+
+                                }
+                            }
+                        }
+                    }
+
+                    return new GlobalOptionInfo
+                    {
+                        Type = typeSymbol,
+                        IsRequired = isRequired,
+                        Name = name,
+                        Description = description,
+                        DefaultValue = defaultValue
+                    };
+                })
+                .Where(x => x != null)
+                .ToArray();
 
             if (DiagnosticReporter.HasDiagnostics)
             {

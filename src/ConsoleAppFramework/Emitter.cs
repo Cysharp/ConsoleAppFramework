@@ -646,6 +646,7 @@ internal class Emitter
         }
     }
 
+    // for multiple commands(Builder)
     public void EmitHelp(SourceBuilder sb, CommandWithId[] commands)
     {
         using (sb.BeginBlock("static partial void ShowHelp(int helpId)"))
