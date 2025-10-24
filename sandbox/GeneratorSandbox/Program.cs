@@ -23,7 +23,7 @@ var f = app.AddGlobalOption<Fruit>(ref args, "-f", "", defaultValue: Fruit.Apple
 
 
 
-var verbose = app.AddGlobalOption<bool>(ref args, $"takoyaki", description: "", defaultValue: true, );
+var verbose = app.AddGlobalOption<bool>(ref args, $"takoyaki", description: "", defaultValue: true);
 var noColor = app.AddGlobalOption<bool>(ref args, "--no-color", "Don't colorize output.");
 var dryRun = app.AddGlobalOption<bool>(ref args, "--dry-run");
 var prefixOutput = app.AddRequiredGlobalOption<string>(ref args, "--prefix-output|-pp|-po", "Prefix output with level.");
