@@ -521,6 +521,352 @@ internal static partial class ConsoleApp
 
             return false;
         }
+
+        public T AddGlobalOption<T>(ref string[] args, [ConstantExpected] string name, [ConstantExpected] string description = "", T defaultValue = default(T))
+        {
+            var aliasCount = name.AsSpan().Count("|") + 1;
+            if (aliasCount == 1)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i].Equals(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ParseArgument<T>(ref args, i);
+                    }
+                }
+            }
+            else
+            {
+                Span<Range> aliases = stackalloc Range[aliasCount];
+                if (name.AsSpan().Split(aliases, '|') == 2)
+                {
+                    var name1 = name.AsSpan()[aliases[0]].Trim();
+                    var name2 = name.AsSpan()[aliases[1]].Trim();
+
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        if (args[i].AsSpan().Equals(name1, StringComparison.OrdinalIgnoreCase) || args[i].AsSpan().Equals(name2, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return ParseArgument<T>(ref args, i);
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        if (Contains(name, aliases, args[i]))
+                        {
+                            return ParseArgument<T>(ref args, i);
+                        }
+                    }
+                }
+            }
+
+            return defaultValue;
+        }
+
+        public T AddRequiredGlobalOption<T>(ref string[] args, [ConstantExpected] string name, [ConstantExpected] string description = "")
+        {
+            if (typeof(T) == typeof(bool)) throw new InvalidOperationException("<bool> can not use in AddRequiredGlobalOption. use AddGlobalOption instead.");
+
+            var aliasCount = name.AsSpan().Count("|") + 1;
+            if (aliasCount == 1)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i].Equals(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ParseArgument<T>(ref args, i);
+                    }
+                }
+            }
+            else
+            {
+                Span<Range> aliases = stackalloc Range[aliasCount];
+                if (name.AsSpan().Split(aliases, '|') == 2)
+                {
+                    var name1 = name.AsSpan()[aliases[0]].Trim();
+                    var name2 = name.AsSpan()[aliases[1]].Trim();
+
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        if (args[i].AsSpan().Equals(name1, StringComparison.OrdinalIgnoreCase) || args[i].AsSpan().Equals(name2, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return ParseArgument<T>(ref args, i);
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        if (Contains(name, aliases, args[i]))
+                        {
+                            return ParseArgument<T>(ref args, i);
+                        }
+                    }
+                }
+            }
+
+            ThrowRequiredArgumentNotParsed(name);
+            return default;
+        }
+
+        static T ParseArgument<T>(ref string[] args, int i)
+        {
+            if (typeof(T) == typeof(bool))
+            {
+                RemoveRange(ref args, i, 1);
+                var t = true;
+                return Unsafe.As<bool, T>(ref t);
+            }
+            else
+            {
+                if ((i + 1) < args.Length)
+                {
+                    if (TryParse<T>(args[i + 1], out var value))
+                    {
+                        RemoveRange(ref args, i, 2);
+                        return value;
+                    }
+
+                    ThrowArgumentParseFailed(args[i], args[i + 1]);
+                }
+                else
+                {
+                    ThrowArgumentParseFailed(args[i], "");
+                }
+            }
+
+            return default;
+        }
+
+        static bool TryParse<T>(string s, out T result)
+        {
+            if (typeof(T) == typeof(string))
+            {
+                result = Unsafe.As<string, T>(ref s);
+                return true;
+            }
+            else if (typeof(T) == typeof(char))
+            {
+                if (char.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<char, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(sbyte))
+            {
+                if (sbyte.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<sbyte, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(byte))
+            {
+                if (byte.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<byte, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(short))
+            {
+                if (short.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<short, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(ushort))
+            {
+                if (ushort.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<ushort, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(int))
+            {
+                if (int.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<int, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(long))
+            {
+                if (long.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<long, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(uint))
+            {
+                if (uint.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<uint, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(ulong))
+            {
+                if (ulong.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<ulong, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(decimal))
+            {
+                if (decimal.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<decimal, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(float))
+            {
+                if (float.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<float, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(double))
+            {
+                if (double.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<double, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(DateTime))
+            {
+                if (DateTime.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<DateTime, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(DateTimeOffset))
+            {
+                if (DateTimeOffset.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<DateTimeOffset, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(TimeOnly))
+            {
+                if (TimeOnly.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<TimeOnly, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(DateOnly))
+            {
+                if (DateOnly.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<DateOnly, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(Version))
+            {
+                if (System.Version.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<Version, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(Guid))
+            {
+                if (Guid.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<Guid, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else
+            {
+                if (typeof(T).IsEnum)
+                {
+                    if (Enum.TryParse(typeof(T), s, ignoreCase: true, out var v))
+                    {
+                        result = (T)v;
+                        return true;
+                    }
+                }
+                result = default;
+                return false;
+            }
+        }
+
+        static void RemoveRange(ref string[] args, int index, int length)
+        {
+            if (length == 0) return;
+
+            var temp = new string[args.Length - length];
+            Array.Copy(args, temp, index);
+            Array.Copy(args, index + length, temp, index, args.Length - index - length);
+
+            args = temp;
+        }
+
+        static bool Contains(ReadOnlySpan<char> nameToSlice, Span<Range> ranges, string target)
+        {
+            for (int i = 0; i < ranges.Length; i++)
+            {
+                var name = nameToSlice[ranges[i]].Trim();
+                if (name.Equals(target, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
 """;

@@ -335,7 +335,6 @@ public static class CommandHelpBuilder
         public string? DefaultValue { get; }
         public string ValueTypeName { get; }
         public int? Index { get; }
-
         public bool IsRequired => DefaultValue == null && !IsParams;
         public bool IsFlag { get; }
         public bool IsParams { get; }
