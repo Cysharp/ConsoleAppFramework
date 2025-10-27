@@ -212,9 +212,9 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         sb.AppendLine(ConsoleAppBaseCode.GeneratedCodeHeader);
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter();
+            var emitter = new Emitter(null);
             var withId = new Emitter.CommandWithId(null, command, -1);
-            emitter.EmitRun(sb, withId, command.IsAsync);
+            emitter.EmitRun(sb, withId, command.IsAsync, null);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString().ReplaceLineEndings());
 
@@ -222,7 +222,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         help.AppendLine(ConsoleAppBaseCode.GeneratedCodeHeader);
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         {
-            var emitter = new Emitter();
+            var emitter = new Emitter(null);
             emitter.EmitHelp(help, command);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString().ReplaceLineEndings());
@@ -283,7 +283,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 sb.AppendLine(d);
             }
 
-            var emitter = new Emitter();
+            var emitter = new Emitter(dllReference);
             emitter.EmitBuilder(sb, commandIds, hasRun, hasRunAsync);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString().ReplaceLineEndings());
@@ -297,7 +297,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         {
             // TODO: collectBuilderContext.GlobalOptions
 
-            var emitter = new Emitter();
+            var emitter = new Emitter(dllReference);
             emitter.EmitHelp(help, commandIds!);
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString().ReplaceLineEndings());
@@ -330,7 +330,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         {
             var sb2 = sb.Clone();
             sb2.AppendLine("using Microsoft.Extensions.Hosting;");
-            var emitter = new Emitter();
+            var emitter = new Emitter(dllReference);
             emitter.EmitAsConsoleAppBuilder(sb2, dllReference);
             sourceProductionContext.AddSource("ConsoleAppHostBuilderExtensions.g.cs", sb2.ToString().ReplaceLineEndings());
         }
@@ -338,7 +338,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         using (sb.BeginBlock("internal partial class ConsoleAppBuilder"))
         {
-            var emitter = new Emitter();
+            var emitter = new Emitter(dllReference);
             emitter.EmitConfigure(sb, dllReference);
         }
 

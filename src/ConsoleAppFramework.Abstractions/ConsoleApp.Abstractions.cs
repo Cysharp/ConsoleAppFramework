@@ -12,12 +12,16 @@ public record ConsoleAppContext
     public string CommandName { get; init; }
     public string[] Arguments { get; init; }
     public object? State { get; init; }
+    public object? GlobalOptions { get; init; }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public int CommandDepth { get; }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public int EscapeIndex { get; }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public string[] InternalCommandArgs { get; }
 
     public ReadOnlySpan<string> CommandArguments
     {
@@ -33,11 +37,13 @@ public record ConsoleAppContext
             : Arguments.AsSpan(EscapeIndex + 1);
     }
 
-    public ConsoleAppContext(string commandName, string[] arguments, object? state, int commandDepth, int escapeIndex)
+    public ConsoleAppContext(string commandName, string[] arguments, string[] commandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
     {
         this.CommandName = commandName;
         this.Arguments = arguments;
+        this.InternalCommandArgs = commandArgs;
         this.State = state;
+        this.GlobalOptions = globalOptions;
         this.CommandDepth = commandDepth;
         this.EscapeIndex = escapeIndex;
     }

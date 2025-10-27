@@ -50,8 +50,10 @@ internal record ConsoleAppContext
     public string CommandName { get; init; }
     public string[] Arguments { get; init; }
     public object? State { get; init; }
+    public object? GlobalOptions { get; init; }
     internal int CommandDepth { get; }
     internal int EscapeIndex  { get; }
+    internal string[] InternalCommandArgs { get; }
 
     public ReadOnlySpan<string> CommandArguments
     {
@@ -67,11 +69,13 @@ internal record ConsoleAppContext
             : Arguments.AsSpan(EscapeIndex + 1);
     }
 
-    public ConsoleAppContext(string commandName, string[] arguments, object? state, int commandDepth, int escapeIndex)
+    public ConsoleAppContext(string commandName, string[] arguments, string[] commandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
     {
         this.CommandName = commandName;
         this.Arguments = arguments;
+        this.InternalCommandArgs = commandArgs;
         this.State = state;
+        this.GlobalOptions = globalOptions;
         this.CommandDepth = commandDepth;
         this.EscapeIndex = escapeIndex;
     }
@@ -373,33 +377,6 @@ internal static partial class ConsoleApp
 
     static partial void ShowHelp(int helpId);
 
-    static async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, int escapeIndex, ConsoleAppFilter invoker, CancellationToken cancellationToken)
-    {
-        using var posixSignalHandler = PosixSignalHandler.Register(Timeout, cancellationToken);
-        try
-        {
-            await Task.Run(() => invoker.InvokeAsync(new ConsoleAppContext(commandName, args, null, commandDepth, escapeIndex), posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
-        }
-        catch (Exception ex)
-        {
-            if (ex is OperationCanceledException)
-            {
-                Environment.ExitCode = 130;
-                return;
-            }
-
-            Environment.ExitCode = 1;
-            if (ex is ValidationException or ArgumentParseFailedException)
-            {
-                LogError(ex.Message);
-            }
-            else
-            {
-                LogError(ex.ToString());
-            }
-        }
-    }
-
     sealed class PosixSignalHandler : IDisposable
     {
         public CancellationToken Token => cancellationTokenSource.Token;
@@ -492,7 +469,9 @@ internal static partial class ConsoleApp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result);
 
-        partial void BuildAndSetServiceProvider();
+        partial void BuildAndSetServiceProvider(ConsoleAppContext context);
+
+        partial void StartHostAsyncIfNeeded(CancellationToken cancellationToken, ref Task task);
 
         static partial void ShowHelp(int helpId);
 
@@ -531,15 +510,62 @@ internal static partial class ConsoleApp
             this.configureGlobalOptions = configure;
             return this;
         }
+
+        async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, int escapeIndex, ConsoleAppFilter invoker, CancellationToken cancellationToken)
+        {
+            using var posixSignalHandler = PosixSignalHandler.Register(Timeout, cancellationToken);
+            try
+            {
+                ConsoleAppContext context;
+                if (configureGlobalOptions == null)
+                {
+                    context = new ConsoleAppContext(commandName, args, args, null, null, commandDepth, escapeIndex);
+                }
+                else
+                {
+                    var builder = new GlobalOptionsBuilder(args);
+                    var globalOptions = configureGlobalOptions(ref builder);
+                    context = new ConsoleAppContext(commandName, args, builder.RemainingArgs.ToArray(), null, globalOptions, commandDepth, escapeIndex);
+                }
+                BuildAndSetServiceProvider(context);
+
+                Task? startHostTask = null;
+                StartHostAsyncIfNeeded(posixSignalHandler.Token, ref startHostTask);
+                if (startHostTask != null)
+                {
+                    await startHostTask;
+                }
+
+                await Task.Run(() => invoker.InvokeAsync(context, posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
+            }
+            catch (Exception ex)
+            {
+                if (ex is OperationCanceledException)
+                {
+                    Environment.ExitCode = 130;
+                    return;
+                }
+
+                Environment.ExitCode = 1;
+                if (ex is ValidationException or ArgumentParseFailedException)
+                {
+                    LogError(ex.Message);
+                }
+                else
+                {
+                    LogError(ex.ToString());
+                }
+            }
+        }
     }
 
     internal ref struct GlobalOptionsBuilder
     {
         Span<string> args;
 
-        ReadOnlySpan<string> Args => args;
+        public Span<string> RemainingArgs => args;
 
-        public GlobalOptionsBuilder(string[] args)
+        public GlobalOptionsBuilder(Span<string> args)
         {
             this.args = args;
         }
@@ -931,7 +957,6 @@ internal static partial class ConsoleApp
 
         public void Run(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
-            BuildAndSetServiceProvider();
             try
             {
                 RunCore(args, cancellationToken);
@@ -953,7 +978,6 @@ internal static partial class ConsoleApp
 
         public async Task RunAsync(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
-            BuildAndSetServiceProvider();
             try
             {
                 Task? task = null;
@@ -1003,19 +1027,17 @@ internal static partial class ConsoleApp
 {
     internal partial class ConsoleAppBuilder
     {
+        Microsoft.Extensions.Hosting.IHost? host;
+        bool startHost;
+
         public void Run(string[] args) => Run(args, true, true, true);
         public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, true, true, cancellationToken);
         
         public void Run(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
-            BuildAndSetServiceProvider();
-            Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
+            this.startHost = startHost;
             try
             {
-                if (startHost && host != null)
-                {
-                    host.StartAsync(cancellationToken).GetAwaiter().GetResult();
-                }
                 RunCore(args, cancellationToken);
             }
             finally
@@ -1023,6 +1045,7 @@ internal static partial class ConsoleApp
                 if (stopHost && host != null)
                 {
                     host.StopAsync(cancellationToken).GetAwaiter().GetResult();
+                    host = null;
                 }
                 if (disposeServiceProvider)
                 {
@@ -1039,14 +1062,9 @@ internal static partial class ConsoleApp
 
         public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
-            BuildAndSetServiceProvider();
-            Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;
+            this.startHost = startHost;
             try
             {
-                if (startHost && host != null)
-                {
-                    await host.StartAsync(cancellationToken);
-                }
                 Task? task = null;
                 RunAsyncCore(args, cancellationToken, ref task!);
                 if (task != null)
@@ -1059,6 +1077,7 @@ internal static partial class ConsoleApp
                 if (stopHost && host != null)
                 {
                     await host.StopAsync(cancellationToken);
+                    host = null;
                 }
                 if (disposeServiceProvider)
                 {

@@ -1,6 +1,8 @@
 ﻿using ConsoleAppFramework;
+using GeneratorSandbox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -12,7 +14,7 @@ using System.Runtime.CompilerServices;
 //var app = ConsoleApp.Create();
 
 
-//args = ["--x", "10", "--y", "20", "-f", "Orange", "-v", "--prefix-output", "takoyakix"];
+args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
 
 
 //// Enum.TryParse<Fruit>("", true,
@@ -62,7 +64,7 @@ var app = ConsoleApp.Create();
 
 app.ConfigureGlobalOptions((ref builder) =>
 {
-    var verbose = builder.AddGlobalOption<bool>($"takoyaki", "", true);
+    var verbose = builder.AddGlobalOption<bool>($"-v", "", true);
     var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
     var dryRun = builder.AddGlobalOption<bool>("--dry-run");
     var prefixOutput = builder.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
@@ -71,9 +73,11 @@ app.ConfigureGlobalOptions((ref builder) =>
 });
 
 
-app.Add("", (int x, int y, ConsoleAppContext context) =>
+app.Add("", async (int x, int y, ConsoleAppContext context, CancellationToken cancellationToken) =>
 {
-    Console.WriteLine(context.CommandName);
+    Console.WriteLine("OK");
+    await Task.Delay(TimeSpan.FromSeconds(1));
+    Console.WriteLine(context.CommandName + ":" + (x, y));
 });
 
 app.Add("tako", (int x, int y, ConsoleAppContext context) =>
@@ -81,8 +85,9 @@ app.Add("tako", (int x, int y, ConsoleAppContext context) =>
     Console.WriteLine(context.CommandName);
 });
 
+app.UseFilter<NopFilter>();
 
-app.Run(args);
+await app.RunAsync(args);
 
 
 
@@ -150,7 +155,97 @@ namespace ConsoleAppFramework
         internal partial class ConsoleAppBuilder
         {
 
+
+
+
+
+
+
+            private void RunCommand0_2(string[] args, int commandDepth, int escapeIndex, Action<int, int, global::ConsoleAppFramework.ConsoleAppContext> command, CancellationToken __ExternalCancellationToken__)
+            {
+                var commandArgs = (escapeIndex == -1) ? args.AsSpan(commandDepth) : args.AsSpan(commandDepth, escapeIndex - commandDepth);
+                if (TryShowHelpOrVersion(commandArgs, 2, 0)) return;
+
+                ConsoleAppContext context = default!;
+                //if (configureGlobalOptions == null)
+                //{
+                //    context = new ConsoleAppContext("", args, null, null, commandDepth, escapeIndex);
+                //}
+                //else
+                //{
+                //    var builder = new GlobalOptionsBuilder(commandArgs);
+                //    var globalOptions = configureGlobalOptions(ref builder);
+                //    context = new ConsoleAppContext("", args, null, globalOptions, commandDepth, escapeIndex);
+                //    commandArgs = builder.RemainingArgs;
+                //}
+                //BuildAndSetServiceProvider(context);
+
+                var arg0 = default(int);
+                var arg0Parsed = false;
+                var arg1 = default(int);
+                var arg1Parsed = false;
+                var arg2 = context;
+
+                try
+                {
+                    for (int i = 0; i < commandArgs.Length; i++)
+                    {
+                        var name = commandArgs[i];
+
+                        switch (name)
+                        {
+                            case "--x":
+                                {
+                                    if (!TryIncrementIndex(ref i, commandArgs.Length) || !int.TryParse(commandArgs[i], out arg0)) { ThrowArgumentParseFailed("x", commandArgs[i]); }
+                                    arg0Parsed = true;
+                                    continue;
+                                }
+                            case "--y":
+                                {
+                                    if (!TryIncrementIndex(ref i, commandArgs.Length) || !int.TryParse(commandArgs[i], out arg1)) { ThrowArgumentParseFailed("y", commandArgs[i]); }
+                                    arg1Parsed = true;
+                                    continue;
+                                }
+                            default:
+                                if (string.Equals(name, "--x", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (!TryIncrementIndex(ref i, commandArgs.Length) || !int.TryParse(commandArgs[i], out arg0)) { ThrowArgumentParseFailed("x", commandArgs[i]); }
+                                    arg0Parsed = true;
+                                    continue;
+                                }
+                                if (string.Equals(name, "--y", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (!TryIncrementIndex(ref i, commandArgs.Length) || !int.TryParse(commandArgs[i], out arg1)) { ThrowArgumentParseFailed("y", commandArgs[i]); }
+                                    arg1Parsed = true;
+                                    continue;
+                                }
+                                ThrowArgumentNameNotFound(name);
+                                break;
+                        }
+                    }
+                    if (!arg0Parsed) ThrowRequiredArgumentNotParsed("x");
+                    if (!arg1Parsed) ThrowRequiredArgumentNotParsed("y");
+
+                    command(arg0!, arg1!, arg2!);
+                }
+                catch (Exception ex)
+                {
+                    Environment.ExitCode = 1;
+                    if (ex is ValidationException or ArgumentParseFailedException)
+                    {
+                        LogError(ex.Message);
+                    }
+                    else
+                    {
+                        LogError(ex.ToString());
+                    }
+                }
+            }
+
+
         }
+
+
 
     }
 }

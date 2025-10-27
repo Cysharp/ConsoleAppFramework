@@ -3,9 +3,9 @@ using System.Reflection.Metadata;
 
 namespace ConsoleAppFramework;
 
-internal class Emitter
+internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, null.
 {
-    public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName = null)
+    public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName)
     {
         var command = commandWithId.Command;
 
@@ -24,7 +24,7 @@ internal class Emitter
             hasConsoleAppContext = false;
         }
         var returnType = isRunAsync ? "async Task" : "void";
-        var accessibility = !emitForBuilder ? "public" : "private";
+        var accessibility = !emitForBuilder ? "public static" : "private";
         methodName = methodName ?? (isRunAsync ? "RunAsync" : "Run");
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
@@ -45,6 +45,9 @@ internal class Emitter
         var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken"
                                     : emitForBuilder ? ", CancellationToken __ExternalCancellationToken__"
                                     : "";
+        var cancellationTokenName = command.HasFilter ? "cancellationToken"
+                                    : emitForBuilder ? "__ExternalCancellationToken__"
+                                    : "CancellationToken.None";
 
         if (!emitForBuilder)
         {
@@ -60,7 +63,7 @@ internal class Emitter
         }
 
         // method signature
-        using (sb.BeginBlock($"{accessibility} static {unsafeCode}{returnType} {methodName}(string[] args{commandDepthEscapeIndex}{commandMethodType}{filterCancellationToken})"))
+        using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}(string[] args{commandDepthEscapeIndex}{commandMethodType}{filterCancellationToken})"))
         {
             if (emitForBuilder)
             {
@@ -85,13 +88,52 @@ internal class Emitter
             // prepare argument variables
             if (hasCancellationToken)
             {
-                var token = command.HasFilter ? "cancellationToken" : emitForBuilder ? "__ExternalCancellationToken__" : "CancellationToken.None";
-                sb.AppendLine($"using var posixSignalHandler = PosixSignalHandler.Register(Timeout, {token});");
+                sb.AppendLine($"using var posixSignalHandler = PosixSignalHandler.Register(Timeout, {cancellationTokenName});");
+                sb.AppendLine();
+                cancellationTokenName = "posixSignalHandler.Token";
             }
+
             if (hasConsoleAppContext)
             {
-                sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", args, null, {(emitForBuilder ? "commandDepth" : "0")}, escapeIndex);");
+                if (emitForBuilder)
+                {
+                    sb.AppendLine("ConsoleAppContext context;");
+                    using (sb.BeginBlock("if (configureGlobalOptions == null)"))
+                    {
+                        sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, commandDepth, escapeIndex);");
+                    }
+                    using (sb.BeginBlock("else"))
+                    {
+                        sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgs);");
+                        sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
+                        sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, globalOptions, commandDepth, escapeIndex);");
+                        sb.AppendLine("commandArgs = builder.RemainingArgs;");
+                    }
+                    sb.AppendLine("BuildAndSetServiceProvider(context);");
+
+                    if (dllReference != null && dllReference.Value.HasHost)
+                    {
+                        sb.AppendLine("host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;");
+                        using (sb.BeginBlock("if (startHost && host != null)"))
+                        {
+                            if (isRunAsync)
+                            {
+                                sb.AppendLine($"await host.StartAsync({cancellationTokenName});");
+                            }
+                            else
+                            {
+                                sb.AppendLine($"host.StartAsync({cancellationTokenName}).GetAwaiter().GetResult();");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, 0, escapeIndex);");
+                }
+                sb.AppendLine();
             }
+
             for (var i = 0; i < command.Parameters.Length; i++)
             {
                 var parameter = command.Parameters[i];
@@ -592,7 +634,7 @@ internal class Emitter
                     }
                     else
                     {
-                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker({commandArgs.TrimStart(',', ' ')}).BuildFilter(), cancellationToken)";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker(this, {commandArgs.TrimStart(',', ' ')}).BuildFilter(), cancellationToken)";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
@@ -612,7 +654,7 @@ internal class Emitter
             var needsCommand = commandType != null;
             if (needsCommand) commandType = $"{commandType} command";
 
-            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker({commandType}) : ConsoleAppFilter(null!)"))
+            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker(ConsoleAppBuilder builder, {commandType}) : ConsoleAppFilter(null!)"))
             {
                 using (sb.BeginBlock($"public ConsoleAppFilter BuildFilter()"))
                 {
@@ -629,7 +671,7 @@ internal class Emitter
                 using (sb.BeginBlock($"public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)"))
                 {
                     var cmdArgs = needsCommand ? ", command" : "";
-                    sb.AppendLine($"return RunCommand{command.Id}Async(context.Arguments, context.CommandDepth, context.EscapeIndex{cmdArgs}, context, cancellationToken);");
+                    sb.AppendLine($"return builder.RunCommand{command.Id}Async(context.InternalCommandArgs, context.CommandDepth, context.EscapeIndex{cmdArgs}, context, cancellationToken);");
                 }
             }
         }
@@ -799,7 +841,7 @@ internal class Emitter
         }
 
         // Build
-        using (sb.BeginBlock("partial void BuildAndSetServiceProvider()"))
+        using (sb.BeginBlock("partial void BuildAndSetServiceProvider(ConsoleAppContext context)"))
         {
             if (dllReference.HasDependencyInjection && dllReference.HasLogging)
             {
@@ -852,6 +894,20 @@ internal class Emitter
                 }
 
                 sb.AppendLine("ConsoleApp.ServiceProvider = services.BuildServiceProvider();");
+            }
+        }
+
+        // HostStart(for filter)
+        if (dllReference.HasHost)
+        {
+            sb.AppendLine();
+            using (sb.BeginBlock("partial void StartHostAsyncIfNeeded(CancellationToken cancellationToken, ref Task task)"))
+            {
+                sb.AppendLine("Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;");
+                using(sb.BeginBlock("if (startHost && host != null)"))
+                {
+                    sb.AppendLine("task = host.StartAsync(cancellationToken);");
+                }
             }
         }
     }
