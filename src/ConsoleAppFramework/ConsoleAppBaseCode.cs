@@ -144,10 +144,12 @@ internal sealed class RegisterCommandsAttribute : Attribute
 }
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false, Inherited = false)]
-public class ConsoleAppFrameworkGeneratorOptionsAttribute : Attribute
+internal class ConsoleAppFrameworkGeneratorOptionsAttribute : Attribute
 {
     public bool DisableNamingConversion { get; set; }
 }
+
+internal delegate object FuncGlobalOptionsBuilderObject(ref ConsoleApp.GlobalOptionsBuilder builder);
 
 [UnconditionalSuppressMessage("Trimming", "IL2026")]
 [UnconditionalSuppressMessage("AOT", "IL3050")]
@@ -461,6 +463,8 @@ internal static partial class ConsoleApp
 
     internal partial class ConsoleAppBuilder
     {
+        FuncGlobalOptionsBuilderObject? configureGlobalOptions;
+
         public ConsoleAppBuilder()
         {
         }
@@ -522,18 +526,18 @@ internal static partial class ConsoleApp
             return false;
         }
 
-        object? configureGlobalOption;
-
-        public ConsoleAppBuilder ConfigureGlobalOption<T>(Func<GlobalOptionsBuilder, T> configure)
+        public ConsoleAppBuilder ConfigureGlobalOptions(FuncGlobalOptionsBuilderObject configure)
         {
-            this.configureGlobalOption = configure;
+            this.configureGlobalOptions = configure;
             return this;
         }
     }
 
-    internal class GlobalOptionsBuilder
+    internal ref struct GlobalOptionsBuilder
     {
-        string[] args;
+        Span<string> args;
+
+        ReadOnlySpan<string> Args => args;
 
         public GlobalOptionsBuilder(string[] args)
         {
@@ -631,7 +635,7 @@ internal static partial class ConsoleApp
             return default;
         }
 
-        static T ParseArgument<T>(ref string[] args, int i)
+        static T ParseArgument<T>(ref Span<string> args, int i)
         {
             if (typeof(T) == typeof(bool))
             {
@@ -862,14 +866,26 @@ internal static partial class ConsoleApp
             }
         }
 
-        static void RemoveRange(ref string[] args, int index, int length)
+        static void RemoveRange(ref Span<string> args, int index, int length)
         {
-            if (length == 0) return;
+            if (length <= 0) return;
 
+            // Fast path(removing from start/end) no need copy
+            if (index == 0)
+            {
+                args = args.Slice(length);
+                return;
+            }
+            else if (index + length == args.Length)
+            {
+                args = args.Slice(0, index);
+                return;
+            }
+
+            // Otherwise, need to copy
             var temp = new string[args.Length - length];
-            Array.Copy(args, temp, index);
-            Array.Copy(args, index + length, temp, index, args.Length - index - length);
-
+            args.Slice(0, index).CopyTo(temp);
+            args.Slice(index + length).CopyTo(temp.AsSpan(index));
             args = temp;
         }
 

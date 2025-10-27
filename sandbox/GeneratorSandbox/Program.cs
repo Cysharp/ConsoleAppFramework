@@ -9,54 +9,82 @@ using System.Runtime.CompilerServices;
 
 
 
+//var app = ConsoleApp.Create();
+
+
+//args = ["--x", "10", "--y", "20", "-f", "Orange", "-v", "--prefix-output", "takoyakix"];
+
+
+//// Enum.TryParse<Fruit>("", true,
+//// parse immediately
+
+
+//app.ConfigureGlobalOption(x =>
+//{
+//    var verbose = x.AddGlobalOption<bool>($"takoyaki", "", true);
+//    var noColor = x.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
+//    var dryRun = x.AddGlobalOption<bool>("--dry-run");
+//    var prefixOutput = x.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
+
+//    return new GlobalOptions(verbose, noColor, dryRun, prefixOutput);
+//});
+
+//app.ConfigureServices(x =>
+//{
+
+//    // new ConsoleAppContext("",
+
+
+
+
+
+
+//    // to use command body
+//    //x.AddSingleton<GlobalOptions>(new GlobalOptions(verbose, noColor, dryRun, prefixOutput));
+
+//    //// variable for setup other DI
+//    //x.AddLogging(l =>
+//    //{
+//    //    var console = l.AddSimpleConsole();
+//    //    if (verbose)
+//    //    {
+//    //        console.SetMinimumLevel(LogLevel.Trace);
+//    //    }
+//    //});
+//});
+
+//app.Add<Commands>("");
+
+//app.Run(args);
+
 var app = ConsoleApp.Create();
 
 
-args = ["--x", "10", "--y", "20", "-f", "Orange", "-v", "--prefix-output", "takoyakix"];
-
-
-// Enum.TryParse<Fruit>("", true,
-// parse immediately
-
-
-
-app.ConfigureGlobalOption(x =>
+app.ConfigureGlobalOptions((ref builder) =>
 {
-    var verbose = x.AddGlobalOption<bool>($"takoyaki", "", true);
-    var noColor = x.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
-    var dryRun = x.AddGlobalOption<bool>("--dry-run");
-    var prefixOutput = x.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
+    var verbose = builder.AddGlobalOption<bool>($"takoyaki", "", true);
+    var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
+    var dryRun = builder.AddGlobalOption<bool>("--dry-run");
+    var prefixOutput = builder.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
 
-    return (verbose, noColor, dryRun, prefixOutput);
+    return new GlobalOptions(verbose, noColor, dryRun, prefixOutput);
 });
 
-app.ConfigureServices(x =>
+
+app.Add("", (int x, int y, ConsoleAppContext context) =>
 {
-
-    // new ConsoleAppContext("",
-
-
-
-
-
-
-    // to use command body
-    //x.AddSingleton<GlobalOptions>(new GlobalOptions(verbose, noColor, dryRun, prefixOutput));
-
-    //// variable for setup other DI
-    //x.AddLogging(l =>
-    //{
-    //    var console = l.AddSimpleConsole();
-    //    if (verbose)
-    //    {
-    //        console.SetMinimumLevel(LogLevel.Trace);
-    //    }
-    //});
+    Console.WriteLine(context.CommandName);
 });
 
-app.Add<Commands>("");
+app.Add("tako", (int x, int y, ConsoleAppContext context) =>
+{
+    Console.WriteLine(context.CommandName);
+});
+
 
 app.Run(args);
+
+
 
 
 static T ParseArgumentEnum<T>(ref string[] args, int i)
@@ -83,9 +111,19 @@ static T ParseArgumentEnum<T>(ref string[] args, int i)
 public record GlobalOptions(bool Verbose, bool NoColor, bool DryRun, string PrefixOutput);
 
 
+internal delegate object TakoyakiX(FooStruct builder);
+
+
 public enum Fruit
 {
     Orange, Apple, Grape
+}
+
+
+
+
+public ref struct FooStruct
+{
 }
 
 
