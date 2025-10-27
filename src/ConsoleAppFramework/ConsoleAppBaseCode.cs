@@ -522,7 +522,25 @@ internal static partial class ConsoleApp
             return false;
         }
 
-        public T AddGlobalOption<T>(ref string[] args, [ConstantExpected] string name, [ConstantExpected] string description = "", T defaultValue = default(T))
+        object? configureGlobalOption;
+
+        public ConsoleAppBuilder ConfigureGlobalOption<T>(Func<GlobalOptionsBuilder, T> configure)
+        {
+            this.configureGlobalOption = configure;
+            return this;
+        }
+    }
+
+    internal class GlobalOptionsBuilder
+    {
+        string[] args;
+
+        public GlobalOptionsBuilder(string[] args)
+        {
+            this.args = args;
+        }
+
+        public T AddGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "", T defaultValue = default(T))
         {
             var aliasCount = name.AsSpan().Count("|") + 1;
             if (aliasCount == 1)
@@ -566,7 +584,7 @@ internal static partial class ConsoleApp
             return defaultValue;
         }
 
-        public T AddRequiredGlobalOption<T>(ref string[] args, [ConstantExpected] string name, [ConstantExpected] string description = "")
+        public T AddRequiredGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "")
         {
             if (typeof(T) == typeof(bool)) throw new InvalidOperationException("<bool> can not use in AddRequiredGlobalOption. use AddGlobalOption instead.");
 

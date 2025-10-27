@@ -6,6 +6,7 @@ using System.ComponentModel.Design;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -138,7 +139,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
                     var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync" or "AddGlobalOption" or "AddRequiredGlobalOption")
+                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync" or "ConfigureGlobalOption")
                     {
                         return true;
                     }
@@ -481,81 +482,130 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     return commands;
                 });
 
-            GlobalOptions = methodGroup["AddGlobalOption"].Select(x => (context: x.Item1, required: false))
-                .Concat(methodGroup["AddRequiredGlobalOption"].Select(x => (context: x.Item1, required: true)))
-                .Select(x =>
+            var configureGlobalOptionsGroup = methodGroup["ConfigureGlobalOption"];
+            if (configureGlobalOptionsGroup.Count() >= 2)
+            {
+                // TODO: Diagnostics
+            }
+
+            if (configureGlobalOptionsGroup.Count() == 1)
+            {
+
+                var configureGlobalOptions = configureGlobalOptionsGroup.First();
+
+                var lambdaExpr = (configureGlobalOptions.Item1.Node as InvocationExpressionSyntax);
+
+                var symbolInfo = configureGlobalOptions.Item1.Model.GetSymbolInfo(lambdaExpr);
+                if (symbolInfo.Symbol is IMethodSymbol methodSymbol)
                 {
-                    var node = x.context.Node;
-                    var model = x.context.Model;
+                    ImmutableArray<ITypeSymbol> typeArguments = methodSymbol.TypeArguments;
 
-                    EquatableTypeSymbol typeSymbol = default!;
-                    string name = "";
-                    string description = "";
-                    bool isRequired = x.required;
-                    object? defaultValue = null;
-
-                    if (node.Expression is MemberAccessExpressionSyntax memberAccess && memberAccess.Name is GenericNameSyntax genericName)
+                    if (typeArguments.Length > 0)
                     {
-                        var typeArgument = genericName.TypeArgumentList.Arguments[0];
-                        typeSymbol = new(model.GetTypeInfo(typeArgument).Type!); // TODO: not !
+                        ITypeSymbol typeT = typeArguments[0];
+                        string typeName = typeT.ToDisplayString(); // TODO: get <T>.
                     }
-                    
-                    var arguments = node.ArgumentList.Arguments;
-                    if (arguments.Count >= 2) // string name
+                }
+
+                var addOptions = configureGlobalOptions.Item1.Node
+                    .DescendantNodes()
+                    .OfType<InvocationExpressionSyntax>()
+                    .Select(x =>
                     {
-                        var constant = model.GetConstantValue(arguments[1].Expression); // TODO: check
-                        name = constant.Value!.ToString();
-                    }
-
-
-                    // TODO: use named argument???
-
-                    if (arguments.Count >= 3) // string description = ""
-                    {
-                        // is defaultValue???
-
-
-                        var constant = model.GetConstantValue(arguments[2].Expression);
-                        description = constant.Value!.ToString();
-                    }
-
-                    if (!isRequired)
-                    {
-                        if (arguments.Count >= 4) // T defaultValue = default(T)
+                        var expr = x.Expression as MemberAccessExpressionSyntax;
+                        var methodName = expr?.Name.Identifier.Text;
+                        if (methodName is "AddGlobalOption")
                         {
-                            var constant = model.GetConstantValue(arguments[3].Expression);
-                            defaultValue = constant.Value!;
+                            return new { node = x, expr, required = false };
                         }
-                        else
+                        else if (methodName is "AddRequiredGlobalOption")
                         {
-                            // set defaultValue from
-                            var symbol = model.GetSymbolInfo(node).Symbol;
-                            if (symbol is IMethodSymbol methodSymbol)
-                            {
-                                var parameter = methodSymbol.Parameters[3];
-                                if (parameter.HasExplicitDefaultValue)
-                                {
-                                    defaultValue = parameter.ExplicitDefaultValue;
-                                }
-                                else
-                                {
+                            return new { node = x, expr, required = true };
+                        }
 
-                                }
+                        return null;
+                    })
+                    .Where(x => x != null);
+
+                GlobalOptions = addOptions
+                    .Select(x =>
+                    {
+                        var node = x!.node;
+                        var memberAccess = x.expr!;
+                        var model = configureGlobalOptions.Item1.Model;
+
+                        EquatableTypeSymbol typeSymbol = default!;
+                        string name = "";
+                        string description = "";
+                        bool isRequired = x.required;
+                        object? defaultValue = null;
+
+                        if (memberAccess.Name is GenericNameSyntax genericName)
+                        {
+                            var typeArgument = genericName.TypeArgumentList.Arguments[0];
+                            typeSymbol = new(model.GetTypeInfo(typeArgument).Type!); // TODO: not !
+                        }
+
+                        var arguments = node.ArgumentList.Arguments;
+                        if (arguments.Count >= 2) // string name
+                        {
+                            var constant = model.GetConstantValue(arguments[1].Expression); // TODO: check
+                            name = constant.Value!.ToString();
+                        }
+
+
+                        // TODO: use named argument???
+
+                        if (arguments.Count >= 3) // string description = ""
+                        {
+                            // is defaultValue???
+
+
+                            var constant = model.GetConstantValue(arguments[2].Expression);
+                            description = constant.Value!.ToString();
+                        }
+
+                        if (!isRequired)
+                        {
+                            if (arguments.Count >= 4) // T defaultValue = default(T)
+                            {
+                                var constant = model.GetConstantValue(arguments[3].Expression);
+                                defaultValue = constant.Value!;
+                            }
+                            else
+                            {
+                                // set defaultValue from
+                                //var symbol = model.GetSymbolInfo(node).Symbol;
+                                //if (symbol is IMethodSymbol methodSymbol)
+                                //{
+                                //    var parameter = methodSymbol.Parameters[3];
+                                //    if (parameter.HasExplicitDefaultValue)
+                                //    {
+                                //        defaultValue = parameter.ExplicitDefaultValue;
+                                //    }
+                                //    else
+                                //    {
+
+                                //    }
+                                //}
                             }
                         }
-                    }
 
-                    return new GlobalOptionInfo
-                    {
-                        Type = typeSymbol,
-                        IsRequired = isRequired,
-                        Name = name,
-                        Description = description,
-                        DefaultValue = defaultValue
-                    };
-                })
-                .Where(x => x != null)
-                .ToArray();
+                        return new GlobalOptionInfo
+                        {
+                            Type = typeSymbol,
+                            IsRequired = isRequired,
+                            Name = name,
+                            Description = description,
+                            DefaultValue = defaultValue
+                        };
+                    })
+                    .Where(x => x != null)
+                    .ToArray();
+            }
+
+
+
 
             if (DiagnosticReporter.HasDiagnostics)
             {
