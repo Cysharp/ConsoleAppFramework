@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 //var app = ConsoleApp.Create();
 
 
-args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
+//args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
 
 
 //// Enum.TryParse<Fruit>("", true,
@@ -59,59 +59,117 @@ args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
 
 //app.Run(args);
 
-var app = ConsoleApp.Create();
+//var app = ConsoleApp.Create();
 
 
-app.ConfigureGlobalOptions((ref builder) =>
+//app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+//{
+//    var verbose = builder.AddGlobalOption<bool>($"-v", "", true);
+//    var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
+//    var dryRun = builder.AddGlobalOption<bool>("--dry-run");
+//    var prefixOutput = builder.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
+
+//    return new GlobalOptions(verbose, noColor, dryRun, prefixOutput);
+//});
+
+
+//app.Add("", async (int x, int y, ConsoleAppContext context, CancellationToken cancellationToken) =>
+//{
+//    Console.WriteLine("OK");
+//    await Task.Delay(TimeSpan.FromSeconds(1));
+//    Console.WriteLine(context.CommandName + ":" + (x, y));
+//});
+
+//app.Add("tako", (int x, int y, ConsoleAppContext context) =>
+//{
+//    Console.WriteLine(context.CommandName);
+//});
+
+//app.UseFilter<NopFilter>();
+
+//await app.RunAsync(args);
+
+var builder = ConsoleApp.Create();
+
+builder.UseFilter<NopFilter1>();
+builder.UseFilter<NopFilter2>();
+
+builder.Add<MyClass>();
+
+await builder.RunAsync(args);
+
+[ConsoleAppFilter<NopFilter3>]
+[ConsoleAppFilter<NopFilter4>]
+public class MyClass
 {
-    var verbose = builder.AddGlobalOption<bool>($"-v", "", true);
-    var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
-    var dryRun = builder.AddGlobalOption<bool>("--dry-run");
-    var prefixOutput = builder.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
-
-    return new GlobalOptions(verbose, noColor, dryRun, prefixOutput);
-});
-
-
-app.Add("", async (int x, int y, ConsoleAppContext context, CancellationToken cancellationToken) =>
-{
-    Console.WriteLine("OK");
-    await Task.Delay(TimeSpan.FromSeconds(1));
-    Console.WriteLine(context.CommandName + ":" + (x, y));
-});
-
-app.Add("tako", (int x, int y, ConsoleAppContext context) =>
-{
-    Console.WriteLine(context.CommandName);
-});
-
-app.UseFilter<NopFilter>();
-
-await app.RunAsync(args);
-
-
-
-
-static T ParseArgumentEnum<T>(ref string[] args, int i)
-    where T : struct, Enum
-{
-    if ((i + 1) < args.Length)
+    [ConsoleAppFilter<NopFilter5>]
+    [ConsoleAppFilter<NopFilter6>]
+    public void Hello()
     {
-        if (Enum.TryParse<T>(args[i + 1], out var value))
-        {
-            //RemoveRange(ref args, i, 2);
-            return value;
-        }
-
-        //ThrowArgumentParseFailed(args[i], args[i + 1]);
+        Console.Write("abcde");
     }
-    else
-    {
-        // ThrowArgumentParseFailed(args[i], "");
-    }
-
-    return default;
 }
+
+internal class NopFilter1(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        Console.Write(1);
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+
+internal class NopFilter2(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        Console.Write(2);
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+
+internal class NopFilter3(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        Console.Write(3);
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+
+internal class NopFilter4(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        Console.Write(4);
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+
+internal class NopFilter5(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        Console.Write(5);
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+
+internal class NopFilter6(ConsoleAppFilter next)
+    : ConsoleAppFilter(next)
+{
+    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        Console.Write(6);
+        return Next.InvokeAsync(context, cancellationToken);
+    }
+}
+
 
 public record GlobalOptions(bool Verbose, bool NoColor, bool DryRun, string PrefixOutput);
 

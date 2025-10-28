@@ -65,120 +65,120 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         // method signature
         using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}(string[] args{commandDepthEscapeIndex}{commandMethodType}{filterCancellationToken})"))
         {
-            if (emitForBuilder)
-            {
-                sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan(commandDepth) : args.AsSpan(commandDepth, escapeIndex - commandDepth);");
-            }
-            else
-            {
-                if (hasConsoleAppContext)
-                {
-                    sb.AppendLine("var escapeIndex = args.AsSpan().IndexOf(\"--\");");
-                    sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan() : args.AsSpan(0, escapeIndex);");
-                }
-                else
-                {
-                    sb.AppendLine("var commandArgs = args.AsSpan();");
-                }
-            }
-
-            sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
-            sb.AppendLine();
-
-            // prepare argument variables
-            if (hasCancellationToken)
-            {
-                sb.AppendLine($"using var posixSignalHandler = PosixSignalHandler.Register(Timeout, {cancellationTokenName});");
-                sb.AppendLine();
-                cancellationTokenName = "posixSignalHandler.Token";
-            }
-
-            if (hasConsoleAppContext)
+            using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
                 if (emitForBuilder)
                 {
-                    sb.AppendLine("ConsoleAppContext context;");
-                    using (sb.BeginBlock("if (configureGlobalOptions == null)"))
-                    {
-                        sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, commandDepth, escapeIndex);");
-                    }
-                    using (sb.BeginBlock("else"))
-                    {
-                        sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgs);");
-                        sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
-                        sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, globalOptions, commandDepth, escapeIndex);");
-                        sb.AppendLine("commandArgs = builder.RemainingArgs;");
-                    }
-                    sb.AppendLine("BuildAndSetServiceProvider(context);");
-
-                    if (dllReference != null && dllReference.Value.HasHost)
-                    {
-                        sb.AppendLine("host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;");
-                        using (sb.BeginBlock("if (startHost && host != null)"))
-                        {
-                            if (isRunAsync)
-                            {
-                                sb.AppendLine($"await host.StartAsync({cancellationTokenName});");
-                            }
-                            else
-                            {
-                                sb.AppendLine($"host.StartAsync({cancellationTokenName}).GetAwaiter().GetResult();");
-                            }
-                        }
-                    }
+                    sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan(commandDepth) : args.AsSpan(commandDepth, escapeIndex - commandDepth);");
                 }
                 else
                 {
-                    sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, 0, escapeIndex);");
-                }
-                sb.AppendLine();
-            }
-
-            for (var i = 0; i < command.Parameters.Length; i++)
-            {
-                var parameter = command.Parameters[i];
-                if (parameter.IsParsable)
-                {
-                    var defaultValue = parameter.IsParams ? $"({parameter.ToTypeDisplayString()})[]"
-                                     : parameter.HasDefaultValue ? parameter.DefaultValueToString()
-                                     : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
-                    sb.AppendLine($"var arg{i} = {defaultValue};");
-                    if (parameter.RequireCheckArgumentParsed)
+                    if (hasConsoleAppContext)
                     {
-                        sb.AppendLine($"var arg{i}Parsed = false;");
-                    }
-                }
-                else if (parameter.IsCancellationToken)
-                {
-                    if (command.HasFilter)
-                    {
-                        sb.AppendLine($"var arg{i} = cancellationToken;");
+                        sb.AppendLine("var escapeIndex = args.AsSpan().IndexOf(\"--\");");
+                        sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan() : args.AsSpan(0, escapeIndex);");
                     }
                     else
                     {
-                        sb.AppendLine($"var arg{i} = posixSignalHandler.Token;");
+                        sb.AppendLine("var commandArgs = args.AsSpan();");
                     }
                 }
-                else if (parameter.IsConsoleAppContext)
-                {
-                    sb.AppendLine($"var arg{i} = context;");
-                }
-                else if (parameter.IsFromServices)
-                {
-                    var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
-                    sb.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
-                }
-                else if (parameter.IsFromKeyedServices)
-                {
-                    var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
-                    var line = $"var arg{i} = ({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.GetFormattedKeyedServiceKey()})!;";
-                    sb.AppendLine(line);
-                }
-            }
-            sb.AppendLineIfExists(command.Parameters.AsSpan());
 
-            using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
-            {
+                sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
+                sb.AppendLine();
+
+                // prepare argument variables
+                if (hasCancellationToken)
+                {
+                    sb.AppendLine($"using var posixSignalHandler = PosixSignalHandler.Register(Timeout, {cancellationTokenName});");
+                    sb.AppendLine();
+                    cancellationTokenName = "posixSignalHandler.Token";
+                }
+
+                if (hasConsoleAppContext)
+                {
+                    if (emitForBuilder)
+                    {
+                        sb.AppendLine("ConsoleAppContext context;");
+                        using (sb.BeginBlock("if (configureGlobalOptions == null)"))
+                        {
+                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, commandDepth, escapeIndex);");
+                        }
+                        using (sb.BeginBlock("else"))
+                        {
+                            sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgs);");
+                            sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
+                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, globalOptions, commandDepth, escapeIndex);");
+                            sb.AppendLine("commandArgs = builder.RemainingArgs;");
+                        }
+                        sb.AppendLine("BuildAndSetServiceProvider(context);");
+
+                        if (dllReference != null && dllReference.Value.HasHost)
+                        {
+                            sb.AppendLine("host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;");
+                            using (sb.BeginBlock("if (startHost && host != null)"))
+                            {
+                                if (isRunAsync)
+                                {
+                                    sb.AppendLine($"await host.StartAsync({cancellationTokenName});");
+                                }
+                                else
+                                {
+                                    sb.AppendLine($"host.StartAsync({cancellationTokenName}).GetAwaiter().GetResult();");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, 0, escapeIndex);");
+                    }
+                    sb.AppendLine();
+                }
+
+                for (var i = 0; i < command.Parameters.Length; i++)
+                {
+                    var parameter = command.Parameters[i];
+                    if (parameter.IsParsable)
+                    {
+                        var defaultValue = parameter.IsParams ? $"({parameter.ToTypeDisplayString()})[]"
+                                         : parameter.HasDefaultValue ? parameter.DefaultValueToString()
+                                         : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
+                        sb.AppendLine($"var arg{i} = {defaultValue};");
+                        if (parameter.RequireCheckArgumentParsed)
+                        {
+                            sb.AppendLine($"var arg{i}Parsed = false;");
+                        }
+                    }
+                    else if (parameter.IsCancellationToken)
+                    {
+                        if (command.HasFilter)
+                        {
+                            sb.AppendLine($"var arg{i} = cancellationToken;");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"var arg{i} = posixSignalHandler.Token;");
+                        }
+                    }
+                    else if (parameter.IsConsoleAppContext)
+                    {
+                        sb.AppendLine($"var arg{i} = context;");
+                    }
+                    else if (parameter.IsFromServices)
+                    {
+                        var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
+                        sb.AppendLine($"var arg{i} = ({type})ServiceProvider!.GetService(typeof({type}))!;");
+                    }
+                    else if (parameter.IsFromKeyedServices)
+                    {
+                        var type = parameter.Type.ToFullyQualifiedFormatDisplayString();
+                        var line = $"var arg{i} = ({type})((Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider)ServiceProvider).GetKeyedService(typeof({type}), {parameter.GetFormattedKeyedServiceKey()})!;";
+                        sb.AppendLine(line);
+                    }
+                }
+                sb.AppendLineIfExists(command.Parameters.AsSpan());
+
                 if (hasArgument)
                 {
                     sb.AppendLine("var argumentPosition = 0;");
@@ -904,7 +904,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             using (sb.BeginBlock("partial void StartHostAsyncIfNeeded(CancellationToken cancellationToken, ref Task task)"))
             {
                 sb.AppendLine("Microsoft.Extensions.Hosting.IHost? host = ConsoleApp.ServiceProvider?.GetService(typeof(Microsoft.Extensions.Hosting.IHost)) as Microsoft.Extensions.Hosting.IHost;");
-                using(sb.BeginBlock("if (startHost && host != null)"))
+                using (sb.BeginBlock("if (startHost && host != null)"))
                 {
                     sb.AppendLine("task = host.StartAsync(cancellationToken);");
                 }
