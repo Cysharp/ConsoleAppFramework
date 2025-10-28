@@ -91,6 +91,13 @@ using System.Runtime.CompilerServices;
 
 var builder = ConsoleApp.Create();
 
+
+builder.ConfigureDefaultConfiguration()
+    .ConfigureServices((c, x) =>
+    {
+
+    });
+
 builder.UseFilter<NopFilter1>();
 builder.UseFilter<NopFilter2>();
 

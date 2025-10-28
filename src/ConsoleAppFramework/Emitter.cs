@@ -768,78 +768,119 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         // DependencyInjection
         if (dllReference.HasDependencyInjection)
         {
+            // field
             if (dllReference.HasConfiguration)
             {
-                sb.AppendLine("Action<IConfiguration, IServiceCollection>? configureServices;");
+                sb.AppendLine("Action<ConsoleAppContext, IConfiguration, IServiceCollection>? configureServices;");
             }
             else
             {
-                sb.AppendLine("Action<IServiceCollection>? configureServices;");
+                sb.AppendLine("Action<ConsoleAppContext, IServiceCollection>? configureServices;");
             }
 
-            sb.AppendLine();
-            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
-            {
-                if (dllReference.HasConfiguration)
-                {
-                    sb.AppendLine("this.configureServices = (_, services) => configure(services);");
-                }
-                else
-                {
-                    sb.AppendLine("this.configureServices = configure;");
-                }
-                sb.AppendLine("return this;");
-            }
-
+            // methods
             if (dllReference.HasConfiguration)
             {
                 sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
+                {
+                    sb.AppendLine("this.configureServices = (_, _, services) => configure(services);");
+                    sb.AppendLine("return this;");
+                }
+
+                sb.AppendLine();
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IConfiguration, IServiceCollection> configure)"))
+                {
+                    // for backward-compatiblity, we chooce (IConfiguration, IServiceCollection) for two arguments overload
+                    sb.AppendLine("this.requireConfiguration = true;");
+                    sb.AppendLine("this.configureServices = (_, configuration, services) => configure(configuration, services);");
+                    sb.AppendLine("return this;");
+                }
+
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<ConsoleAppContext, IConfiguration, IServiceCollection> configure)"))
                 {
                     sb.AppendLine("this.requireConfiguration = true;");
                     sb.AppendLine("this.configureServices = configure;");
                     sb.AppendLine("return this;");
                 }
             }
+            else
+            {
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
+                {
+                    sb.AppendLine("this.configureServices = (_, _, services) => configure(services);");
+                    sb.AppendLine("return this;");
+                }
+
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<ConsoleAppContext, IServiceCollection> configure)"))
+                {
+                    sb.AppendLine("this.configureServices = configure;");
+                    sb.AppendLine("return this;");
+                }
+            }
+
             sb.AppendLine();
         }
 
         // Logging
         if (dllReference.HasLogging)
         {
+            // field
             if (dllReference.HasConfiguration)
             {
-                sb.AppendLine("Action<IConfiguration, ILoggingBuilder>? configureLogging;");
+                sb.AppendLine("Action<ConsoleAppContext, IConfiguration, ILoggingBuilder>? configureLogging;");
             }
             else
             {
-                sb.AppendLine("Action<ILoggingBuilder>? configureLogging;");
+                sb.AppendLine("Action<ConsoleAppContext, ILoggingBuilder>? configureLogging;");
             }
 
-            sb.AppendLine();
-            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ILoggingBuilder> configure)"))
-            {
-                if (dllReference.HasConfiguration)
-                {
-                    sb.AppendLine("this.configureLogging = (_, logging) => configure(logging);");
-                }
-                else
-                {
-                    sb.AppendLine("this.configureLogging = configure;");
-                }
-                sb.AppendLine("return this;");
-            }
-
+            // methods
             if (dllReference.HasConfiguration)
             {
                 sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ILoggingBuilder> configure)"))
+                {
+                    sb.AppendLine("this.configureLogging = (_, _, logging) => configure(logging);");
+                    sb.AppendLine("return this;");
+                }
+
+                sb.AppendLine();
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<IConfiguration, ILoggingBuilder> configure)"))
+                {
+                    sb.AppendLine("this.requireConfiguration = true;");
+                    sb.AppendLine("this.configureLogging = (_, configuration, logging) => configure(configuration, logging);");
+                    sb.AppendLine("return this;");
+                }
+
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ConsoleAppContext, IConfiguration, ILoggingBuilder> configure)"))
                 {
                     sb.AppendLine("this.requireConfiguration = true;");
                     sb.AppendLine("this.configureLogging = configure;");
                     sb.AppendLine("return this;");
                 }
             }
+            else
+            {
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ILoggingBuilder> configure)"))
+                {
+                    sb.AppendLine("this.configureLogging = (_, logging) => configure(logging);");
+                    sb.AppendLine("return this;");
+                }
+
+                sb.AppendLine();
+                using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ConsoleAppContext, ILoggingBuilder> configure)"))
+                {
+                    sb.AppendLine("this.configureLogging = configure;");
+                    sb.AppendLine("return this;");
+                }
+            }
+
             sb.AppendLine();
         }
 
@@ -869,11 +910,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine("var services = new ServiceCollection();");
                 if (dllReference.HasConfiguration)
                 {
-                    sb.AppendLine("configureServices?.Invoke(configuration!, services);");
+                    sb.AppendLine("configureServices?.Invoke(context, config!, services);");
                 }
                 else
                 {
-                    sb.AppendLine("configureServices?.Invoke(services);");
+                    sb.AppendLine("configureServices?.Invoke(context, services);");
                 }
 
                 if (dllReference.HasLogging)
@@ -885,11 +926,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                         {
                             if (dllReference.HasConfiguration)
                             {
-                                sb.AppendLine("configure!(config!, logging);");
+                                sb.AppendLine("configure!(context, config!, logging);");
                             }
                             else
                             {
-                                sb.AppendLine("configure!(logging);");
+                                sb.AppendLine("configure!(context, logging);");
                             }
                         }
                         sb.AppendLine("});");
