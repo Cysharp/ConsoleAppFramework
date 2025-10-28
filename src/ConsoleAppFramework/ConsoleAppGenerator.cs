@@ -139,7 +139,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
                     var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
                     var methodName = expr?.Name.Identifier.Text;
-                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync" or "ConfigureGlobalOption")
+                    if (methodName is "Add" or "UseFilter" or "Run" or "RunAsync" or "ConfigureGlobalOptions")
                     {
                         return true;
                     }
@@ -295,7 +295,17 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         using (help.BeginBlock("internal partial class ConsoleAppBuilder"))
         {
-            // TODO: collectBuilderContext.GlobalOptions
+            if (collectBuilderContext.GlobalOptions.Length != 0)
+            {
+                // override commandIds
+                var globalOptionParameters = collectBuilderContext.GlobalOptions.Select(x => x.ToDummyCommandParameter());
+                commandIds = commandIds.Select(x =>
+                    {
+                        var newCommand = x.Command with { Parameters = new(x.Command.Parameters.Concat(globalOptionParameters).ToArray()) };
+                        return x with { Command = newCommand };
+                    })
+                    .ToArray();
+            }
 
             var emitter = new Emitter(dllReference);
             emitter.EmitHelp(help, commandIds!);
@@ -482,7 +492,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     return commands;
                 });
 
-            var configureGlobalOptionsGroup = methodGroup["ConfigureGlobalOption"];
+            var configureGlobalOptionsGroup = methodGroup["ConfigureGlobalOptions"];
             if (configureGlobalOptionsGroup.Count() >= 2)
             {
                 // TODO: Diagnostics
@@ -547,29 +557,29 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                         }
 
                         var arguments = node.ArgumentList.Arguments;
-                        if (arguments.Count >= 2) // string name
+                        if (arguments.Count >= 1) // string name
                         {
-                            var constant = model.GetConstantValue(arguments[1].Expression); // TODO: check
+                            var constant = model.GetConstantValue(arguments[0].Expression); // TODO: check
                             name = constant.Value!.ToString();
                         }
 
 
                         // TODO: use named argument???
 
-                        if (arguments.Count >= 3) // string description = ""
+                        if (arguments.Count >= 2) // string description = ""
                         {
                             // is defaultValue???
 
 
-                            var constant = model.GetConstantValue(arguments[2].Expression);
+                            var constant = model.GetConstantValue(arguments[1].Expression);
                             description = constant.Value!.ToString();
                         }
 
                         if (!isRequired)
                         {
-                            if (arguments.Count >= 4) // T defaultValue = default(T)
+                            if (arguments.Count >= 3) // T defaultValue = default(T)
                             {
-                                var constant = model.GetConstantValue(arguments[3].Expression);
+                                var constant = model.GetConstantValue(arguments[2].Expression); // ???
                                 defaultValue = constant.Value!;
                             }
                             else

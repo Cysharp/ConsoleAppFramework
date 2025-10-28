@@ -472,11 +472,36 @@ public record class GlobalOptionInfo
 
     public CommandParameter ToDummyCommandParameter()
     {
-        //return new CommandParameter
-        {
-            /// DefaultValue
-        }
+        // see: CommandHelpBuilder.CreateCommandHelpDefinition / BuildOptionsMessage
 
-        throw new NotImplementedException();
+        // IsParsable, name + aliases, description, HasDefaultValue/DefaultValue, IsHidden, IsParams
+
+        // TODO: IsRequired => DefaultValue == null && !IsParams
+
+        return new CommandParameter
+        {
+            // no need
+            Location = default,
+            WellKnownTypes = default,
+            IsNullableReference = false, // not supported
+            IsParams = false,
+            IsHidden = false,
+            OriginalParameterName = "",
+            CustomParserType = null,
+            IsFromServices = false,
+            IsFromKeyedServices = false,
+            KeyedServiceKey = null,
+            IsConsoleAppContext = false,
+            IsCancellationToken = false,
+            HasValidation = false,
+            ArgumentIndex = -1,
+
+            Type = Type,
+            HasDefaultValue = DefaultValue != null, // TODO
+            DefaultValue = DefaultValue,
+            Description = Description,
+            Name = Name, // TODO: convert with aliase
+            Aliases = []
+        };
     }
 }

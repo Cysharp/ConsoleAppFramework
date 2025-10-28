@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
+//args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
 
 var app = ConsoleApp.Create();
 
