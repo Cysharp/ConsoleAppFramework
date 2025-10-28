@@ -634,7 +634,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     }
                     else
                     {
-                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker(this, {commandArgs.TrimStart(',', ' ')}).BuildFilter(), cancellationToken)";
+                        var invokerArgument = commandArgs.TrimStart(',', ' ');
+                        invokerArgument = (invokerArgument != "") ? $"this, {invokerArgument}" : "this";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker({invokerArgument}).BuildFilter(), cancellationToken)";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
@@ -653,8 +655,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             var commandType = command.Command.BuildDelegateSignature(command.BuildCustomDelegateTypeName(), out _);
             var needsCommand = commandType != null;
             if (needsCommand) commandType = $"{commandType} command";
+            if (!string.IsNullOrEmpty(commandType)) commandType = ", " + commandType;
 
-            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker(ConsoleAppBuilder builder, {commandType}) : ConsoleAppFilter(null!)"))
+            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker(ConsoleAppBuilder builder{commandType}) : ConsoleAppFilter(null!)"))
             {
                 using (sb.BeginBlock($"public ConsoleAppFilter BuildFilter()"))
                 {
