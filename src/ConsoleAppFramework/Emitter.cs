@@ -95,7 +95,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     cancellationTokenName = "posixSignalHandler.Token";
                 }
 
-                if (hasConsoleAppContext)
+                if (hasConsoleAppContext || emitForBuilder)
                 {
                     if (emitForBuilder)
                     {
