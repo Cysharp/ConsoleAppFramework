@@ -473,7 +473,6 @@ public record class GlobalOptionInfo
     public CommandParameter ToDummyCommandParameter()
     {
         // see: CommandHelpBuilder.CreateCommandHelpDefinition / BuildOptionsMessage
-
         // IsParsable, name + aliases, description, HasDefaultValue/DefaultValue, IsHidden, IsParams
 
         // TODO: IsRequired => DefaultValue == null && !IsParams
@@ -500,8 +499,8 @@ public record class GlobalOptionInfo
             HasDefaultValue = DefaultValue != null, // TODO
             DefaultValue = DefaultValue,
             Description = Description,
-            Name = Name, // TODO: convert with aliase
-            Aliases = []
+            Name = null!, // allows null in CreateCommandHelpDefinition
+            Aliases = Name.Split(['|'], StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray()
         };
     }
 }

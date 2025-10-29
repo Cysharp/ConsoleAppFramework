@@ -13,6 +13,15 @@ public class WellKnownTypes(Compilation compilation)
     INamedTypeSymbol? version;
     public INamedTypeSymbol Version => version ??= GetTypeByMetadataName("System.Version");
 
+    INamedTypeSymbol? dateTime;
+    public INamedTypeSymbol DateTime => dateTime ??= GetTypeByMetadataName("System.DateTime");
+
+    INamedTypeSymbol? timeOnly;
+    public INamedTypeSymbol TimeOnly => timeOnly ??= GetTypeByMetadataName("System.TimeOnly");
+
+    INamedTypeSymbol? dateOnly;
+    public INamedTypeSymbol DateOnly => dateOnly ??= GetTypeByMetadataName("System.DateOnly");
+
     INamedTypeSymbol? spanParsable;
     public INamedTypeSymbol? ISpanParsable => spanParsable ??= compilation.GetTypeByMetadataName("System.ISpanParsable`1");
 
@@ -35,6 +44,9 @@ public class WellKnownTypes(Compilation compilation)
     {
         if (SymbolEqualityComparer.Default.Equals(type, DateTimeOffset)
          || SymbolEqualityComparer.Default.Equals(type, Guid)
+         || SymbolEqualityComparer.Default.Equals(type, DateTime)
+         || SymbolEqualityComparer.Default.Equals(type, DateOnly)
+         || SymbolEqualityComparer.Default.Equals(type, TimeOnly)
          || SymbolEqualityComparer.Default.Equals(type, Version)
             )
         {

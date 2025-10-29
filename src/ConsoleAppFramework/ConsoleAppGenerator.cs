@@ -297,7 +297,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         {
             if (collectBuilderContext.GlobalOptions.Length != 0)
             {
-                // override commandIds
+                // quick-hack to override commandIds
                 var globalOptionParameters = collectBuilderContext.GlobalOptions.Select(x => x.ToDummyCommandParameter());
                 commandIds = commandIds.Select(x =>
                     {
@@ -500,7 +500,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
             if (configureGlobalOptionsGroup.Count() == 1)
             {
-
+                // TODO: move to Parser
                 var configureGlobalOptions = configureGlobalOptionsGroup.First();
 
                 var lambdaExpr = (configureGlobalOptions.Item1.Node as InvocationExpressionSyntax);
@@ -549,56 +549,28 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                         string description = "";
                         bool isRequired = x.required;
                         object? defaultValue = null;
+                        bool isBool = false;
 
                         if (memberAccess.Name is GenericNameSyntax genericName)
                         {
                             var typeArgument = genericName.TypeArgumentList.Arguments[0];
                             typeSymbol = new(model.GetTypeInfo(typeArgument).Type!); // TODO: not !
                         }
+                        else
+                        {
+                            // maybe bool
+                            typeSymbol = new(model.Compilation.GetSpecialType(SpecialType.System_Boolean));
+                            isBool = true;
+                        }
 
                         var arguments = node.ArgumentList.Arguments;
-                        if (arguments.Count >= 1) // string name
+                        name = model.GetConstantValue(arguments[0].Expression).Value!.ToString();
+                        description = model.GetConstantValue(arguments[1].Expression).Value!.ToString();
+
+                        if (!isRequired && !isBool)
                         {
-                            var constant = model.GetConstantValue(arguments[0].Expression); // TODO: check
-                            name = constant.Value!.ToString();
-                        }
-
-
-                        // TODO: use named argument???
-
-                        if (arguments.Count >= 2) // string description = ""
-                        {
-                            // is defaultValue???
-
-
-                            var constant = model.GetConstantValue(arguments[1].Expression);
-                            description = constant.Value!.ToString();
-                        }
-
-                        if (!isRequired)
-                        {
-                            if (arguments.Count >= 3) // T defaultValue = default(T)
-                            {
-                                var constant = model.GetConstantValue(arguments[2].Expression); // ???
-                                defaultValue = constant.Value!;
-                            }
-                            else
-                            {
-                                // set defaultValue from
-                                //var symbol = model.GetSymbolInfo(node).Symbol;
-                                //if (symbol is IMethodSymbol methodSymbol)
-                                //{
-                                //    var parameter = methodSymbol.Parameters[3];
-                                //    if (parameter.HasExplicitDefaultValue)
-                                //    {
-                                //        defaultValue = parameter.ExplicitDefaultValue;
-                                //    }
-                                //    else
-                                //    {
-
-                                //    }
-                                //}
-                            }
+                            var constant = model.GetConstantValue(arguments[2].Expression);
+                            defaultValue = constant.Value!;
                         }
 
                         return new GlobalOptionInfo

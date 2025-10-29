@@ -275,7 +275,10 @@ public static class CommandHelpBuilder
                 {
                     options.Add(alias);
                 }
-                options.Add("--" + item.Name);
+                if (item.Name != null)
+                {
+                    options.Add("--" + item.Name);
+                }
             }
 
             var description = item.Description;

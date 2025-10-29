@@ -17,7 +17,7 @@ public class GlobalOptionTest(ITestOutputHelper output)
         {
             return $$"""
 var app = ConsoleApp.Create();
-app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) => builder.AddGlobalOption<bool>("{{parameter}}"));
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) => builder.AddGlobalOption("{{parameter}}", ""));
 app.Add("", (ConsoleAppContext context) => Console.Write(context.GlobalOptions));
 app.Run(args);
 """;
@@ -40,7 +40,7 @@ app.Run(args);
 var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
-    var p = builder.AddGlobalOption<int>("--parameter");
+    var p = builder.AddGlobalOption("--parameter", "", 0);
     return p;
 });
 app.Add("", (int x, int y, ConsoleAppContext context) =>
@@ -67,9 +67,9 @@ app.Run(args);
 var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
-    var p = builder.AddGlobalOption<int>("--parameter");
-    var d = builder.AddGlobalOption<bool>("--dry-run");
-    var f = builder.AddGlobalOption<Fruit>("--fruit");
+    var p = builder.AddGlobalOption("--parameter", "", 0);
+    var d = builder.AddGlobalOption("--dry-run", "");
+    var f = builder.AddGlobalOption("--fruit", "", Fruit.Orange);
     return (p, d, f);
 });
 app.Add("", (int x, int y, ConsoleAppContext context) =>
@@ -93,8 +93,8 @@ var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
     var p = builder.AddGlobalOption<int>("--parameter", "", -10);
-    var d = builder.AddGlobalOption<bool>("--dry-run");
-    var f = builder.AddGlobalOption<Fruit>("--fruit", "", Fruit.Apple);
+    var d = builder.AddGlobalOption("--dry-run", "");
+    var f = builder.AddGlobalOption("--fruit", "", Fruit.Apple);
     return (p, d, f);
 });
 app.Add("", (int x, int y, ConsoleAppContext context) =>
@@ -119,7 +119,7 @@ var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
     var p = builder.AddRequiredGlobalOption<int>("--parameter", "");
-    var d = builder.AddGlobalOption<bool>("--dry-run");
+    var d = builder.AddGlobalOption("--dry-run", "");
     return (p, d);
 });
 app.Add("", (int x, int y, ConsoleAppContext context) =>

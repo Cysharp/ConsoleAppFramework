@@ -172,6 +172,114 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             .ToArray();
     }
 
+    public void ParseGlobalOptions()
+    {
+
+        // GlobalOptions allow type is limited. see ConsoleAppBaseCode.TryParse
+        bool IsParsableType(ITypeSymbol type, Compilation compilation, WellKnownTypes wellKnownTypes)
+        {
+            if (type is INamedTypeSymbol { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } namedType)
+            {
+                return false;
+            }
+
+            switch (type.SpecialType)
+            {
+                case SpecialType.System_String:
+                case SpecialType.System_Char:
+                case SpecialType.System_SByte:
+                case SpecialType.System_Byte:
+                case SpecialType.System_Int16:
+                case SpecialType.System_UInt16:
+                case SpecialType.System_Int32:
+                case SpecialType.System_UInt32:
+                case SpecialType.System_Int64:
+                case SpecialType.System_UInt64:
+                case SpecialType.System_Single:
+                case SpecialType.System_Double:
+                case SpecialType.System_Decimal:
+                    return true;
+            }
+
+            if (type.TypeKind == TypeKind.Enum)
+            {
+                return true;
+            }
+
+            var comparer = SymbolEqualityComparer.Default;
+            if (comparer.Equals(type, wellKnownTypes.Guid)) return true;
+            if (comparer.Equals(type, wellKnownTypes.DateTime)) return true;
+            if (comparer.Equals(type, wellKnownTypes.DateTimeOffset)) return true;
+            if (comparer.Equals(type, wellKnownTypes.TimeOnly)) return true;
+            if (comparer.Equals(type, wellKnownTypes.DateOnly)) return true;
+            if (comparer.Equals(type, wellKnownTypes.Version)) return true;
+
+            return false;
+        }
+
+        object? GetDefaultValue(ITypeSymbol type)
+        {
+            if (type is INamedTypeSymbol { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } namedType)
+            {
+                return null;
+            }
+
+            if (type.TypeKind == TypeKind.Enum)
+            {
+                var enumType = (INamedTypeSymbol)type;
+                var underlyingType = enumType.EnumUnderlyingType;
+                return underlyingType?.SpecialType switch
+                {
+                    SpecialType.System_Byte => (byte)0,
+                    SpecialType.System_SByte => (sbyte)0,
+                    SpecialType.System_Int16 => (short)0,
+                    SpecialType.System_UInt16 => (ushort)0,
+                    SpecialType.System_Int32 => 0,
+                    SpecialType.System_UInt32 => 0u,
+                    SpecialType.System_Int64 => 0L,
+                    SpecialType.System_UInt64 => 0UL,
+                    _ => 0
+                };
+            }
+
+            var fullName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            switch (fullName)
+            {
+                case "global::System.DateTime":
+                    return default(DateTime); // new DateTime(0)
+                case "global::System.DateTimeOffset":
+                    return default(DateTimeOffset);
+                case "global::System.TimeSpan":
+                    return default(TimeSpan);
+                case "global::System.Guid":
+                    return default(Guid); // Guid.Empty
+                                          //case "global::System.DateOnly":
+                                          //    return default(DateOnly);
+                                          //case "global::System.TimeOnly":
+                                          //    return default(TimeOnly);
+            }
+
+            switch (type.SpecialType)
+            {
+                case SpecialType.System_Boolean: return false;
+                case SpecialType.System_Byte: return (byte)0;
+                case SpecialType.System_SByte: return (sbyte)0;
+                case SpecialType.System_Int16: return (short)0;
+                case SpecialType.System_UInt16: return (ushort)0;
+                case SpecialType.System_Int32: return 0;
+                case SpecialType.System_UInt32: return 0u;
+                case SpecialType.System_Int64: return 0L;
+                case SpecialType.System_UInt64: return 0UL;
+                case SpecialType.System_Single: return 0f;
+                case SpecialType.System_Double: return 0d;
+                case SpecialType.System_Decimal: return 0m;
+                case SpecialType.System_Char: return '\0';
+                default:
+                    return null;
+            }
+        }
+    }
+
     Command? ExpressionToCommand(ExpressionSyntax expression, string commandName)
     {
         var lambda = expression as ParenthesizedLambdaExpressionSyntax;
