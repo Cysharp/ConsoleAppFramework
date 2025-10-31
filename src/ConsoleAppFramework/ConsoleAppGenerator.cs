@@ -495,99 +495,20 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             var configureGlobalOptionsGroup = methodGroup["ConfigureGlobalOptions"];
             if (configureGlobalOptionsGroup.Count() >= 2)
             {
-                // TODO: Diagnostics
+                // TODO: Diagnostics, not allows multiple configureglobaloptions.
             }
 
             if (configureGlobalOptionsGroup.Count() == 1)
             {
-                // TODO: move to Parser
                 var configureGlobalOptions = configureGlobalOptionsGroup.First();
 
-                var lambdaExpr = (configureGlobalOptions.Item1.Node as InvocationExpressionSyntax);
+                var node = configureGlobalOptions.Item1.Node;
+                var model = configureGlobalOptions.Item1.Model;
+                var wellKnownTypes = new WellKnownTypes(model.Compilation);
 
-                var symbolInfo = configureGlobalOptions.Item1.Model.GetSymbolInfo(lambdaExpr);
-                if (symbolInfo.Symbol is IMethodSymbol methodSymbol)
-                {
-                    ImmutableArray<ITypeSymbol> typeArguments = methodSymbol.TypeArguments;
-
-                    if (typeArguments.Length > 0)
-                    {
-                        ITypeSymbol typeT = typeArguments[0];
-                        string typeName = typeT.ToDisplayString(); // TODO: get <T>.
-                    }
-                }
-
-                var addOptions = configureGlobalOptions.Item1.Node
-                    .DescendantNodes()
-                    .OfType<InvocationExpressionSyntax>()
-                    .Select(x =>
-                    {
-                        var expr = x.Expression as MemberAccessExpressionSyntax;
-                        var methodName = expr?.Name.Identifier.Text;
-                        if (methodName is "AddGlobalOption")
-                        {
-                            return new { node = x, expr, required = false };
-                        }
-                        else if (methodName is "AddRequiredGlobalOption")
-                        {
-                            return new { node = x, expr, required = true };
-                        }
-
-                        return null;
-                    })
-                    .Where(x => x != null);
-
-                GlobalOptions = addOptions
-                    .Select(x =>
-                    {
-                        var node = x!.node;
-                        var memberAccess = x.expr!;
-                        var model = configureGlobalOptions.Item1.Model;
-
-                        EquatableTypeSymbol typeSymbol = default!;
-                        string name = "";
-                        string description = "";
-                        bool isRequired = x.required;
-                        object? defaultValue = null;
-                        bool isBool = false;
-
-                        if (memberAccess.Name is GenericNameSyntax genericName)
-                        {
-                            var typeArgument = genericName.TypeArgumentList.Arguments[0];
-                            typeSymbol = new(model.GetTypeInfo(typeArgument).Type!); // TODO: not !
-                        }
-                        else
-                        {
-                            // maybe bool
-                            typeSymbol = new(model.Compilation.GetSpecialType(SpecialType.System_Boolean));
-                            isBool = true;
-                        }
-
-                        var arguments = node.ArgumentList.Arguments;
-                        name = model.GetConstantValue(arguments[0].Expression).Value!.ToString();
-                        description = model.GetConstantValue(arguments[1].Expression).Value!.ToString();
-
-                        if (!isRequired && !isBool)
-                        {
-                            var constant = model.GetConstantValue(arguments[2].Expression);
-                            defaultValue = constant.Value!;
-                        }
-
-                        return new GlobalOptionInfo
-                        {
-                            Type = typeSymbol,
-                            IsRequired = isRequired,
-                            Name = name,
-                            Description = description,
-                            DefaultValue = defaultValue
-                        };
-                    })
-                    .Where(x => x != null)
-                    .ToArray();
+                var parser = new Parser(generatorOptions, DiagnosticReporter, node, model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                GlobalOptions = parser.ParseGlobalOptions();
             }
-
-
-
 
             if (DiagnosticReporter.HasDiagnostics)
             {

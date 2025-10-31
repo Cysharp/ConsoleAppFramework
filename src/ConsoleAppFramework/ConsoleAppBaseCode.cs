@@ -570,12 +570,7 @@ internal static partial class ConsoleApp
             this.args = args;
         }
 
-        public bool AddGlobalOption([ConstantExpected] string name, [ConstantExpected] string description)
-        {
-            return AddGlobalOption<bool>(name, description, false);
-        }
-
-        public T AddGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description, [ConstantExpected] T defaultValue)
+        public T AddGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "", [ConstantExpected] T defaultValue = default(T))
         {
             var aliasCount = name.AsSpan().Count("|") + 1;
             if (aliasCount == 1)
@@ -619,7 +614,7 @@ internal static partial class ConsoleApp
             return defaultValue;
         }
 
-        public T AddRequiredGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description)
+        public T AddRequiredGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "")
         {
             if (typeof(T) == typeof(bool)) throw new InvalidOperationException("<bool> can not use in AddRequiredGlobalOption. use AddGlobalOption instead.");
 
@@ -817,66 +812,6 @@ internal static partial class ConsoleApp
                 if (double.TryParse(s, out var v))
                 {
                     result = Unsafe.As<double, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
-            else if (typeof(T) == typeof(DateTime))
-            {
-                if (DateTime.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<DateTime, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
-            else if (typeof(T) == typeof(DateTimeOffset))
-            {
-                if (DateTimeOffset.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<DateTimeOffset, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
-            else if (typeof(T) == typeof(TimeOnly))
-            {
-                if (TimeOnly.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<TimeOnly, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
-            else if (typeof(T) == typeof(DateOnly))
-            {
-                if (DateOnly.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<DateOnly, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
-            else if (typeof(T) == typeof(Version))
-            {
-                if (System.Version.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<Version, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
-            else if (typeof(T) == typeof(Guid))
-            {
-                if (Guid.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<Guid, T>(ref v);
                     return true;
                 }
                 result = default;

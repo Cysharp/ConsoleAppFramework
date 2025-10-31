@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Immutable;
 
 namespace ConsoleAppFramework;
 
@@ -172,20 +173,109 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             .ToArray();
     }
 
-    public void ParseGlobalOptions()
+    public GlobalOptionInfo[] ParseGlobalOptions()
     {
+        var lambdaExpr = (node as InvocationExpressionSyntax);
+        if (lambdaExpr == null) return [];
 
-        // GlobalOptions allow type is limited. see ConsoleAppBaseCode.TryParse
+        var symbolInfo = model.GetSymbolInfo(lambdaExpr);
+        if (symbolInfo.Symbol is IMethodSymbol methodSymbol)
+        {
+            ImmutableArray<ITypeSymbol> typeArguments = methodSymbol.TypeArguments;
+
+            if (typeArguments.Length > 0)
+            {
+                ITypeSymbol typeT = typeArguments[0];
+                string typeName = typeT.ToDisplayString(); // TODO: get <T>.
+            }
+        }
+
+        var addOptions = node
+            .DescendantNodes()
+            .OfType<InvocationExpressionSyntax>()
+            .Select(x =>
+            {
+                var expr = x.Expression as MemberAccessExpressionSyntax;
+                var methodName = expr?.Name.Identifier.Text;
+                if (methodName is "AddGlobalOption")
+                {
+                    return new { node = x, expr, required = false };
+                }
+                else if (methodName is "AddRequiredGlobalOption")
+                {
+                    return new { node = x, expr, required = true };
+                }
+
+                return null;
+            })
+            .Where(x => x != null);
+
+        var result = addOptions
+            .Select(x =>
+            {
+                var node = x!.node;
+                var memberAccess = x.expr!;
+
+                EquatableTypeSymbol typeSymbol = default!;
+                string name = "";
+                string description = "";
+                bool isRequired = x.required;
+                object? defaultValue = null;
+
+                // TODO: need 
+                if (memberAccess.Name is GenericNameSyntax genericName)
+                {
+                    var typeArgument = genericName.TypeArgumentList.Arguments[0];
+                    typeSymbol = new(model.GetTypeInfo(typeArgument).Type!); // TODO: not !
+                }
+
+                var arguments = node.ArgumentList.Arguments;
+                name = model.GetConstantValue(arguments[0].Expression).Value!.ToString();
+
+                if (arguments.Count >= 2)
+                {
+                    description = model.GetConstantValue(arguments[1].Expression).Value!.ToString();
+                }
+
+                if (!isRequired)
+                {
+                    if (arguments.Count >= 3)
+                    {
+                        var constant = model.GetConstantValue(arguments[2].Expression);
+                        defaultValue = constant.Value!;
+                    }
+                }
+
+                return new GlobalOptionInfo
+                {
+                    Type = typeSymbol,
+                    IsRequired = isRequired,
+                    Name = name,
+                    Description = description,
+                    DefaultValue = defaultValue
+                };
+            })
+            .Where(x => x != null)
+            .ToArray();
+
+        return result;
+
+        // GlobalOptions allow type is limited(C# compile-time constant only)
+        // bool, char, sbyte, byte, short, ushort, int, uint, long, ulong, float, double, decimal
+        // string
+        // null
+        // enum
+        // Nullable<T>
         bool IsParsableType(ITypeSymbol type, Compilation compilation, WellKnownTypes wellKnownTypes)
         {
             if (type is INamedTypeSymbol { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } namedType)
             {
-                return false;
+                return true;
             }
 
             switch (type.SpecialType)
             {
-                case SpecialType.System_String:
+                case SpecialType.System_Boolean:
                 case SpecialType.System_Char:
                 case SpecialType.System_SByte:
                 case SpecialType.System_Byte:
@@ -198,6 +288,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 case SpecialType.System_Single:
                 case SpecialType.System_Double:
                 case SpecialType.System_Decimal:
+                case SpecialType.System_String:
                     return true;
             }
 
@@ -205,14 +296,6 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             {
                 return true;
             }
-
-            var comparer = SymbolEqualityComparer.Default;
-            if (comparer.Equals(type, wellKnownTypes.Guid)) return true;
-            if (comparer.Equals(type, wellKnownTypes.DateTime)) return true;
-            if (comparer.Equals(type, wellKnownTypes.DateTimeOffset)) return true;
-            if (comparer.Equals(type, wellKnownTypes.TimeOnly)) return true;
-            if (comparer.Equals(type, wellKnownTypes.DateOnly)) return true;
-            if (comparer.Equals(type, wellKnownTypes.Version)) return true;
 
             return false;
         }
@@ -222,6 +305,26 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             if (type is INamedTypeSymbol { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } namedType)
             {
                 return null;
+            }
+
+            switch (type.SpecialType)
+            {
+                case SpecialType.System_Boolean: return false;
+                case SpecialType.System_Char: return '\0';
+                case SpecialType.System_SByte: return (sbyte)0;
+                case SpecialType.System_Byte: return (byte)0;
+                case SpecialType.System_Int16: return (short)0;
+                case SpecialType.System_UInt16: return (ushort)0;
+                case SpecialType.System_Int32: return 0;
+                case SpecialType.System_UInt32: return 0u;
+                case SpecialType.System_Int64: return 0L;
+                case SpecialType.System_UInt64: return 0UL;
+                case SpecialType.System_Single: return 0f;
+                case SpecialType.System_Double: return 0d;
+                case SpecialType.System_Decimal: return 0m;
+                case SpecialType.System_String: return null;
+                default:
+                    break;
             }
 
             if (type.TypeKind == TypeKind.Enum)
@@ -242,41 +345,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 };
             }
 
-            var fullName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            switch (fullName)
-            {
-                case "global::System.DateTime":
-                    return default(DateTime); // new DateTime(0)
-                case "global::System.DateTimeOffset":
-                    return default(DateTimeOffset);
-                case "global::System.TimeSpan":
-                    return default(TimeSpan);
-                case "global::System.Guid":
-                    return default(Guid); // Guid.Empty
-                                          //case "global::System.DateOnly":
-                                          //    return default(DateOnly);
-                                          //case "global::System.TimeOnly":
-                                          //    return default(TimeOnly);
-            }
-
-            switch (type.SpecialType)
-            {
-                case SpecialType.System_Boolean: return false;
-                case SpecialType.System_Byte: return (byte)0;
-                case SpecialType.System_SByte: return (sbyte)0;
-                case SpecialType.System_Int16: return (short)0;
-                case SpecialType.System_UInt16: return (ushort)0;
-                case SpecialType.System_Int32: return 0;
-                case SpecialType.System_UInt32: return 0u;
-                case SpecialType.System_Int64: return 0L;
-                case SpecialType.System_UInt64: return 0UL;
-                case SpecialType.System_Single: return 0f;
-                case SpecialType.System_Double: return 0d;
-                case SpecialType.System_Decimal: return 0m;
-                case SpecialType.System_Char: return '\0';
-                default:
-                    return null;
-            }
+            return null;
         }
     }
 

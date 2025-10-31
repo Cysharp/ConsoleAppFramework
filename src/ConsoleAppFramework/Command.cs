@@ -473,10 +473,6 @@ public record class GlobalOptionInfo
     public CommandParameter ToDummyCommandParameter()
     {
         // see: CommandHelpBuilder.CreateCommandHelpDefinition / BuildOptionsMessage
-        // IsParsable, name + aliases, description, HasDefaultValue/DefaultValue, IsHidden, IsParams
-
-        // TODO: IsRequired => DefaultValue == null && !IsParams
-
         return new CommandParameter
         {
             // no need
@@ -496,7 +492,7 @@ public record class GlobalOptionInfo
             ArgumentIndex = -1,
 
             Type = Type,
-            HasDefaultValue = DefaultValue != null, // TODO
+            HasDefaultValue = !IsRequired, // if not required, needs defaultValue
             DefaultValue = DefaultValue,
             Description = Description,
             Name = null!, // allows null in CreateCommandHelpDefinition

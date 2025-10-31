@@ -13,9 +13,9 @@ var app = ConsoleApp.Create();
 
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
-    var verbose = builder.AddGlobalOption($"-v", "", true);
-    var noColor = builder.AddGlobalOption("--no-color", "Don't colorize output.");
-    var dryRun = builder.AddGlobalOption("--dry-run", "");
+    var verbose = builder.AddGlobalOption<bool>($"-v", "");
+    var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
+    var dryRun = builder.AddGlobalOption<bool>("--dry-run", "");
     var prefixOutput = builder.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
 
     // var tako = builder.AddGlobalOption<int>("--in", "");
@@ -73,7 +73,7 @@ internal class MyCommand(GlobalOptions globalOptions)
     /// <param name="xxx">-x, takoyaki</param>
     /// <param name="yyyy">-yy|-y, naninuneno</param>
     [Command("")]
-    public void Run(int xxx, int yyyy, bool z, bool zzz, Int128 iiii, MyFruit myFruit = default, Version version = null)
+    public void Run(int xxx, int yyyy, bool z, bool zzz, Int128 iiii, int? takoyaki = null, MyFruit myFruit = default, Version version = null)
     {
         Console.WriteLine(xxx + yyyy + ":" + globalOptions);
     }
