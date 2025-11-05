@@ -68,7 +68,7 @@ var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
     var p = builder.AddGlobalOption("--parameter", "", 0);
-    var d = builder.AddGlobalOption("--dry-run", "");
+    var d = builder.AddGlobalOption<bool>("--dry-run", "");
     var f = builder.AddGlobalOption("--fruit", "", Fruit.Orange);
     return (p, d, f);
 });

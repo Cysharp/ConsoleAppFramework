@@ -222,12 +222,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 bool isRequired = x.required;
                 object? defaultValue = null;
 
-                // TODO: need 
-                if (memberAccess.Name is GenericNameSyntax genericName)
-                {
-                    var typeArgument = genericName.TypeArgumentList.Arguments[0];
-                    typeSymbol = new(model.GetTypeInfo(typeArgument).Type!); // TODO: not !
-                }
+                var symbolInfo = model.GetSymbolInfo(memberAccess).Symbol as IMethodSymbol;
+                typeSymbol = new(symbolInfo!.TypeArguments[0]);
 
                 var arguments = node.ArgumentList.Arguments;
                 name = model.GetConstantValue(arguments[0].Expression).Value!.ToString();
