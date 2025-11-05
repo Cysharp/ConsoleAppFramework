@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace ConsoleAppFramework;
 
@@ -215,39 +216,34 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             {
                 var node = x!.node;
                 var memberAccess = x.expr!;
-
-                EquatableTypeSymbol typeSymbol = default!;
-                string name = "";
-                string description = "";
-                bool isRequired = x.required;
-                object? defaultValue = null;
-
                 var symbolInfo = model.GetSymbolInfo(memberAccess).Symbol as IMethodSymbol;
-                typeSymbol = new(symbolInfo!.TypeArguments[0]);
 
-                var arguments = node.ArgumentList.Arguments;
-                name = model.GetConstantValue(arguments[0].Expression).Value!.ToString();
+                bool isRequired = x.required;
+                EquatableTypeSymbol typeSymbol = new(symbolInfo!.TypeArguments[0]);
 
-                if (arguments.Count >= 2)
-                {
-                    description = model.GetConstantValue(arguments[1].Expression).Value!.ToString();
-                }
+                object? name = "";
+                object? description = "";
+                object? defaultValue = GetDefaultValue(typeSymbol.TypeSymbol);
+
+                var arguments = node.ArgumentList;
 
                 if (!isRequired)
                 {
-                    if (arguments.Count >= 3)
-                    {
-                        var constant = model.GetConstantValue(arguments[2].Expression);
-                        defaultValue = constant.Value!;
-                    }
+                    // public T AddGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "", [ConstantExpected] T defaultValue = default(T))
+                    GetArgumentConstantValues3(node.ArgumentList, model, "name", "description", "defaultValue", ref name, ref description, ref defaultValue);
+                }
+                else
+                {
+                    // public T AddRequiredGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "")
+                    GetArgumentConstantValues2(node.ArgumentList, model, "name", "description", ref name, ref description);
                 }
 
                 return new GlobalOptionInfo
                 {
                     Type = typeSymbol,
                     IsRequired = isRequired,
-                    Name = name,
-                    Description = description,
+                    Name = (string)name!,
+                    Description = (string)description!,
                     DefaultValue = defaultValue
                 };
             })
@@ -255,6 +251,73 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             .ToArray();
 
         return result;
+
+        static void GetArgumentConstantValues2(ArgumentListSyntax argumentListSyntax, SemanticModel model, string name1, string name2, ref object? value1, ref object? value2)
+        {
+            var arguments = argumentListSyntax.Arguments;
+            for (int i = 0; i < arguments.Count; i++)
+            {
+                var arg = arguments[i];
+                var constant = model.GetConstantValue(arg.Expression);
+                if (constant.HasValue)
+                {
+                    var constantValue = constant.Value;
+                    if (arg.NameColon != null)
+                    {
+                        var name = arg.NameColon.Name.Identifier.Text;
+                        if (name == name1)
+                        {
+                            value1 = constantValue;
+                        }
+                        else if (name == name2)
+                        {
+                            value2 = constantValue!;
+                        }
+                    }
+                    else
+                    {
+                        if (i == 0) value1 = constantValue;
+                        else if (i == 1) value2 = constantValue;
+                    }
+                }
+            }
+        }
+
+        static void GetArgumentConstantValues3(ArgumentListSyntax argumentListSyntax, SemanticModel model, string name1, string name2, string name3, ref object? value1, ref object? value2, ref object? value3)
+        {
+            var arguments = argumentListSyntax.Arguments;
+            for (int i = 0; i < arguments.Count; i++)
+            {
+                var arg = arguments[i];
+                var constant = model.GetConstantValue(arg.Expression);
+                if (constant.HasValue)
+                {
+                    var constantValue = constant.Value;
+                    if (arg.NameColon != null)
+                    {
+                        var name = arg.NameColon.Name.Identifier.Text;
+                        if (name == name1)
+                        {
+                            value1 = constantValue;
+                        }
+                        else if (name == name2)
+                        {
+                            value2 = constantValue!;
+                        }
+                        else if (name == name3)
+                        {
+                            value3 = constantValue!;
+                        }
+                    }
+                    else
+                    {
+                        if (i == 0) value1 = constantValue;
+                        else if (i == 1) value2 = constantValue;
+                        else if (i == 2) value3 = constantValue;
+                    }
+                }
+            }
+        }
 
         // GlobalOptions allow type is limited(C# compile-time constant only)
         // bool, char, sbyte, byte, short, ushort, int, uint, long, ulong, float, double, decimal

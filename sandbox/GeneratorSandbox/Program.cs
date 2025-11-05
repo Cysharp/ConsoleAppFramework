@@ -8,11 +8,15 @@ using System.Diagnostics.CodeAnalysis;
 
 var app = ConsoleApp.Create();
 
+
+
 //
 // AddGlobalOption
 
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
+    // builder.AddGlobalOption(description: "hoge", defaultValue: 0,  "tako");
+
     var verbose = builder.AddGlobalOption<bool>($"-v", "");
     var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
     var dryRun = builder.AddGlobalOption<bool>("--dry-run", "");
