@@ -155,6 +155,7 @@ public record class CommandParameter
     public required bool IsNullableReference { get; init; }
     public required bool IsParams { get; init; }
     public required bool IsHidden { get; init; } // Hide command parameter help
+    public bool IsDefaultValueHidden { get; init; } = false; // Hide default value in command parameter help
     public required string Name { get; init; }
     public required string OriginalParameterName { get; init; }
     public required bool HasDefaultValue { get; init; }

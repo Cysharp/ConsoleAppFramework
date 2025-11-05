@@ -147,6 +147,11 @@ internal sealed class RegisterCommandsAttribute : Attribute
     }
 }
 
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+internal sealed class HideDefaultValueAttribute : Attribute
+{
+}
+
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false, Inherited = false)]
 internal class ConsoleAppFrameworkGeneratorOptionsAttribute : Attribute
 {
