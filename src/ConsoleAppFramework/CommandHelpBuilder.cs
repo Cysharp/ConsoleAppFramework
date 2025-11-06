@@ -161,7 +161,7 @@ public static class CommandHelpBuilder
         var optionsFormatted = definition.Options
             .Where(x => !x.Index.HasValue)
             .Where(x => !x.IsHidden)
-            .Select(x => (Options: string.Join("|", x.Options) + (x.IsFlag ? string.Empty : $" {x.FormattedValueTypeName}{(x.IsParams ? "..." : "")}"), x.Description, x.IsRequired, x.IsFlag, x.DefaultValue))
+            .Select(x => (Options: string.Join("|", x.Options) + (x.IsFlag ? string.Empty : $" {x.FormattedValueTypeName}{(x.IsParams ? "..." : "")}"), x.Description, x.IsRequired, x.IsFlag, x.DefaultValue, x.IsDefaultValueHidden))
             .ToArray();
 
         if (!optionsFormatted.Any()) return string.Empty;
@@ -202,7 +202,8 @@ public static class CommandHelpBuilder
             }
             else if (opt.DefaultValue != null)
             {
-                sb.Append($" (Default: {opt.DefaultValue})");
+                if (!opt.IsDefaultValueHidden)
+                    sb.Append($" (Default: {opt.DefaultValue})");
             }
             else if (opt.IsRequired)
             {
@@ -285,6 +286,7 @@ public static class CommandHelpBuilder
             var isFlag = item.Type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Boolean;
             var isParams = item.IsParams;
             var isHidden = item.IsHidden;
+            var isDefaultValueHidden = item.IsDefaultValueHidden;
 
             var defaultValue = default(string);
             if (item.HasDefaultValue)
@@ -306,7 +308,7 @@ public static class CommandHelpBuilder
             }
 
             var paramTypeName = item.ToTypeShortString();
-            parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, paramTypeName, defaultValue, index, isFlag, isParams, isHidden));
+            parameterDefinitions.Add(new CommandOptionHelpDefinition(options.Distinct().ToArray(), description, paramTypeName, defaultValue, index, isFlag, isParams, isHidden, isDefaultValueHidden));
         }
 
         var commandName = descriptor.Name;
@@ -342,9 +344,10 @@ public static class CommandHelpBuilder
         public bool IsFlag { get; }
         public bool IsParams { get; }
         public bool IsHidden { get; }
+        public bool IsDefaultValueHidden { get; }
         public string FormattedValueTypeName => "<" + ValueTypeName + ">";
 
-        public CommandOptionHelpDefinition(string[] options, string description, string valueTypeName, string? defaultValue, int? index, bool isFlag, bool isParams, bool isHidden)
+        public CommandOptionHelpDefinition(string[] options, string description, string valueTypeName, string? defaultValue, int? index, bool isFlag, bool isParams, bool isHidden, bool isDefaultValueHidden)
         {
             Options = options;
             Description = description;
@@ -354,6 +357,7 @@ public static class CommandHelpBuilder
             IsFlag = isFlag;
             IsParams = isParams;
             IsHidden = isHidden;
+            IsDefaultValueHidden = isDefaultValueHidden;
         }
     }
 }

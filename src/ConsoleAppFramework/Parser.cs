@@ -725,6 +725,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
                 var isConsoleAppContext = x.Type!.Name == "ConsoleAppContext";
                 var isHiddenParameter = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HiddenAttribute");
+                var isDefaultValueHidden = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HideDefaultValueAttribute");
 
                 object? keyedServiceKey = null;
                 if (hasFromKeyedServices)
@@ -764,6 +765,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = x.IsParams,
                     IsHidden = isHiddenParameter,
+                    IsDefaultValueHidden = isDefaultValueHidden,
                     Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
                     Type = new EquatableTypeSymbol(x.Type),
                     HasDefaultValue = x.HasExplicitDefaultValue,

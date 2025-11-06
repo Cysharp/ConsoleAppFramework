@@ -321,6 +321,32 @@ Options:
 """);
     }
 
+    [Fact]
+    public void HideDefaultValue()
+    {
+        var code = """
+ConsoleApp.Run(args, Commands.Hello);
+
+static class Commands
+{
+    /// <summary>
+    /// Display Hello.
+    /// </summary>
+    /// <param name="message">-m, Message to show.</param>
+    public static void Hello([HideDefaultValue]string message = "ConsoleAppFramework") => Console.Write($"Hello, {message}");
+}
+""";
+        verifier.Execute(code, args: "--help", expected: """
+Usage: [options...] [-h|--help] [--version]
+
+Display Hello.
+
+Options:
+  -m|--message <string>    Message to show.
+
+""");
+    }
+
     private static string GetEntryAssemblyVersion()
     {
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
