@@ -5,6 +5,16 @@ namespace ConsoleAppFramework;
 
 internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, null.
 {
+    private static readonly SymbolDisplayFormat DynamicDependencyContainingTypeFormat = new(
+        globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
+        typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+        genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+        miscellaneousOptions:
+            SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier |
+            SymbolDisplayMiscellaneousOptions.ExpandNullable
+    );
+
     public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName)
     {
         var command = commandWithId.Command;
@@ -49,6 +59,21 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                     : emitForBuilder ? "__ExternalCancellationToken__"
                                     : "CancellationToken.None";
 
+        string? dynamicDependencyAttribute = null;
+        if (command.CommandMethodInfo == null &&
+            command.Symbol.Value is IMethodSymbol dynamicDependencyMethod &&
+            dynamicDependencyMethod.ContainingType != null)
+        {
+            var memberTypes = dynamicDependencyMethod.DeclaredAccessibility switch
+            {
+                Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal => "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods",
+                _ => "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods"
+            };
+
+            var containingType = dynamicDependencyMethod.ContainingType.ToDisplayString(DynamicDependencyContainingTypeFormat);
+            dynamicDependencyAttribute = $"[global::System.Diagnostics.CodeAnalysis.DynamicDependency({memberTypes}, typeof({containingType}))]";
+        }
+
         if (!emitForBuilder)
         {
             sb.AppendLine("/// <summary>");
@@ -63,6 +88,10 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
 
         // method signature
+        if (dynamicDependencyAttribute != null)
+        {
+            sb.AppendLine(dynamicDependencyAttribute);
+        }
         using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}(string[] args{commandDepthEscapeIndex}{commandMethodType}{filterCancellationToken})"))
         {
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
