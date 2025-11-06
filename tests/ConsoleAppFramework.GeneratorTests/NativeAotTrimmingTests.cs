@@ -6,7 +6,7 @@ namespace ConsoleAppFramework.GeneratorTests;
 public class NativeAotTrimmingTests
 {
     [Fact]
-    public void NativeAotTrimmingSample_FailsWithTrimmedMetadata()
+    public void NativeAotTrimmingSample_PublishesAndRuns()
     {
         var publishDir = Directory.CreateTempSubdirectory("caf-nativeaot").FullName;
 
