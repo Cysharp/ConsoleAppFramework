@@ -5,16 +5,6 @@ namespace ConsoleAppFramework;
 
 internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, null.
 {
-    private static readonly SymbolDisplayFormat DynamicDependencyContainingTypeFormat = new(
-        globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
-        typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-        genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
-        miscellaneousOptions:
-            SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
-            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier |
-            SymbolDisplayMiscellaneousOptions.ExpandNullable
-    );
-
     public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName)
     {
         var command = commandWithId.Command;
@@ -35,7 +25,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
         var returnType = isRunAsync ? "async Task" : "void";
         var accessibility = !emitForBuilder ? "public static" : "private";
-        methodName = methodName ?? (isRunAsync ? "RunAsync" : "Run");
+        methodName ??= (isRunAsync ? "RunAsync" : "Run");
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
         var commandMethodType = command.BuildDelegateSignature(commandWithId.BuildCustomDelegateTypeName(), out var delegateType);
@@ -64,14 +54,14 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             command.Symbol.Value is IMethodSymbol dynamicDependencyMethod &&
             dynamicDependencyMethod.ContainingType != null)
         {
-            var memberTypes = dynamicDependencyMethod.DeclaredAccessibility switch
-            {
-                Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal => "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods",
-                _ => "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods"
-            };
+            var docCommentId = dynamicDependencyMethod.GetDocumentationCommentId();
+            var parameterPartIndex = docCommentId?.IndexOf('(') ?? -1;
+            var memberSignature = parameterPartIndex >= 0
+                ? dynamicDependencyMethod.Name + docCommentId!.Substring(parameterPartIndex)
+                : dynamicDependencyMethod.Name;
 
-            var containingType = dynamicDependencyMethod.ContainingType.ToDisplayString(DynamicDependencyContainingTypeFormat);
-            dynamicDependencyAttribute = $"[global::System.Diagnostics.CodeAnalysis.DynamicDependency({memberTypes}, typeof({containingType}))]";
+            var containingType = dynamicDependencyMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            dynamicDependencyAttribute = $"[global::System.Diagnostics.CodeAnalysis.DynamicDependency(\"{memberSignature}\", typeof({containingType}))]";
         }
 
         if (!emitForBuilder)
