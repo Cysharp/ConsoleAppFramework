@@ -3,6 +3,7 @@ using Google.Protobuf.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 //args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
 
@@ -20,7 +21,12 @@ app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
     var verbose = builder.AddGlobalOption<bool>($"-v", "");
     var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
     var dryRun = builder.AddGlobalOption<bool>("--dry-run", "");
-    var prefixOutput = builder.AddRequiredGlobalOption<string>("--prefix-output|-pp|-po", "Prefix output with level.");
+
+    var dame = builder.AddGlobalOption<int>("hoge", "huga", 0);
+
+    var takoyaki = builder.AddGlobalOption<int?>("hogemoge", defaultValue: null);
+
+    var prefixOutput = builder.AddRequiredGlobalOption<string>(description: "Prefix output with level.", name: "--prefix-output|-pp|-po");
 
     // var tako = builder.AddGlobalOption<int>("--in", "");
     //var tako = builder.AddGlobalOption<MyFruit>("--fruit", "");
@@ -74,12 +80,10 @@ internal class MyCommand(GlobalOptions globalOptions)
     /// <summary>
     /// my command
     /// </summary>
-    /// <param name="xxx">-x, takoyaki</param>
-    /// <param name="yyyy">-yy|-y, naninuneno</param>
     [Command("")]
-    public void Run(int xxx, int yyyy, bool z, bool zzz, Int128 iiii, int? takoyaki = null, MyFruit myFruit = default, Version version = null)
+    public void Run(int x)
     {
-        Console.WriteLine(xxx + yyyy + ":" + globalOptions);
+        Console.WriteLine(globalOptions);
     }
 }
 
@@ -89,3 +93,7 @@ public enum MyFruit
 }
 
 
+public class Takoyaki
+{
+
+}

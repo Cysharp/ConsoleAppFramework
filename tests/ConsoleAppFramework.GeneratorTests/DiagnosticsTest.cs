@@ -473,5 +473,42 @@ public class MyCommands2
 
 """, "async");
     }
+
+    [Fact]
+    public void GlobalOptionsDuplicate()
+    {
+        verifier.Verify(17, """
+var app = ConsoleApp.Create();
+
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+{
+    return new object();
+});
+
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+{
+    return new object();
+});
+
+app.Run(args);
+""", "app.ConfigureGlobalOptions");
+    }
+
+    [Fact]
+    public void GlobalOptionsInvalidType()
+    {
+        verifier.Verify(18, """
+var app = ConsoleApp.Create();
+
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+{
+    builder.AddGlobalOption<System.Version>("foo");
+    return new object();
+});
+
+app.Run(args);
+""", "builder.AddGlobalOption<System.Version>(\"foo\")");
+    }
+
 }
 

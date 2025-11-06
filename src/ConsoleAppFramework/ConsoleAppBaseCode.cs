@@ -690,6 +690,42 @@ internal static partial class ConsoleApp
             return default;
         }
 
+        static void RemoveRange(ref Span<string> args, int index, int length)
+        {
+            if (length <= 0) return;
+
+            // Fast path(removing from start/end) no need copy
+            if (index == 0)
+            {
+                args = args.Slice(length);
+                return;
+            }
+            else if (index + length == args.Length)
+            {
+                args = args.Slice(0, index);
+                return;
+            }
+
+            // Otherwise, need to copy
+            var temp = new string[args.Length - length];
+            args.Slice(0, index).CopyTo(temp);
+            args.Slice(index + length).CopyTo(temp.AsSpan(index));
+            args = temp;
+        }
+
+        static bool Contains(ReadOnlySpan<char> nameToSlice, Span<Range> ranges, string target)
+        {
+            for (int i = 0; i < ranges.Length; i++)
+            {
+                var name = nameToSlice[ranges[i]].Trim();
+                if (name.Equals(target, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         static bool TryParse<T>(string s, out T result)
         {
             if (typeof(T) == typeof(string))
@@ -737,16 +773,6 @@ internal static partial class ConsoleApp
                 result = default;
                 return false;
             }
-            else if (typeof(T) == typeof(ushort))
-            {
-                if (ushort.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<ushort, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
             else if (typeof(T) == typeof(int))
             {
                 if (int.TryParse(s, out var v))
@@ -762,6 +788,16 @@ internal static partial class ConsoleApp
                 if (long.TryParse(s, out var v))
                 {
                     result = Unsafe.As<long, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
+            else if (typeof(T) == typeof(ushort))
+            {
+                if (ushort.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<ushort, T>(ref v);
                     return true;
                 }
                 result = default;
@@ -787,16 +823,6 @@ internal static partial class ConsoleApp
                 result = default;
                 return false;
             }
-            else if (typeof(T) == typeof(decimal))
-            {
-                if (decimal.TryParse(s, out var v))
-                {
-                    result = Unsafe.As<decimal, T>(ref v);
-                    return true;
-                }
-                result = default;
-                return false;
-            }
             else if (typeof(T) == typeof(float))
             {
                 if (float.TryParse(s, out var v))
@@ -817,6 +843,16 @@ internal static partial class ConsoleApp
                 result = default;
                 return false;
             }
+            else if (typeof(T) == typeof(decimal))
+            {
+                if (decimal.TryParse(s, out var v))
+                {
+                    result = Unsafe.As<decimal, T>(ref v);
+                    return true;
+                }
+                result = default;
+                return false;
+            }
             else
             {
                 if (typeof(T).IsEnum)
@@ -827,44 +863,138 @@ internal static partial class ConsoleApp
                         return true;
                     }
                 }
+
+                var underlyingType = Nullable.GetUnderlyingType(typeof(T));
+                if (underlyingType != null)
+                {
+                    return TryParseNullable<T>(underlyingType, s, out result);
+                }
+
                 result = default;
                 return false;
             }
         }
 
-        static void RemoveRange(ref Span<string> args, int index, int length)
+        static bool TryParseNullable<T>(Type underlyingType, string s, out T result)
         {
-            if (length <= 0) return;
-
-            // Fast path(removing from start/end) no need copy
-            if (index == 0)
+            if (underlyingType == typeof(char))
             {
-                args = args.Slice(length);
-                return;
-            }
-            else if (index + length == args.Length)
-            {
-                args = args.Slice(0, index);
-                return;
-            }
-
-            // Otherwise, need to copy
-            var temp = new string[args.Length - length];
-            args.Slice(0, index).CopyTo(temp);
-            args.Slice(index + length).CopyTo(temp.AsSpan(index));
-            args = temp;
-        }
-
-        static bool Contains(ReadOnlySpan<char> nameToSlice, Span<Range> ranges, string target)
-        {
-            for (int i = 0; i < ranges.Length; i++)
-            {
-                var name = nameToSlice[ranges[i]].Trim();
-                if (name.Equals(target, StringComparison.OrdinalIgnoreCase))
+                if (char.TryParse(s, out var v))
                 {
+                    var nullableValue = new char?(v);
+                    result = Unsafe.As<char?, T>(ref nullableValue);
                     return true;
                 }
             }
+            else if (underlyingType == typeof(sbyte))
+            {
+                if (sbyte.TryParse(s, out var v))
+                {
+                    var nullableValue = new sbyte?(v);
+                    result = Unsafe.As<sbyte?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(byte))
+            {
+                if (byte.TryParse(s, out var v))
+                {
+                    var nullableValue = new byte?(v);
+                    result = Unsafe.As<byte?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(short))
+            {
+                if (short.TryParse(s, out var v))
+                {
+                    var nullableValue = new short?(v);
+                    result = Unsafe.As<short?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(int))
+            {
+                if (int.TryParse(s, out var v))
+                {
+                    var nullableValue = new int?(v);
+                    result = Unsafe.As<int?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(long))
+            {
+                if (long.TryParse(s, out var v))
+                {
+                    var nullableValue = new long?(v);
+                    result = Unsafe.As<long?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(ushort))
+            {
+                if (ushort.TryParse(s, out var v))
+                {
+                    var nullableValue = new ushort?(v);
+                    result = Unsafe.As<ushort?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(uint))
+            {
+                if (uint.TryParse(s, out var v))
+                {
+                    var nullableValue = new uint?(v);
+                    result = Unsafe.As<uint?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(ulong))
+            {
+                if (ulong.TryParse(s, out var v))
+                {
+                    var nullableValue = new ulong?(v);
+                    result = Unsafe.As<ulong?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(float))
+            {
+                if (float.TryParse(s, out var v))
+                {
+                    var nullableValue = new float?(v);
+                    result = Unsafe.As<float?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(double))
+            {
+                if (double.TryParse(s, out var v))
+                {
+                    var nullableValue = new double?(v);
+                    result = Unsafe.As<double?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType == typeof(decimal))
+            {
+                if (decimal.TryParse(s, out var v))
+                {
+                    var nullableValue = new decimal?(v);
+                    result = Unsafe.As<decimal?, T>(ref nullableValue);
+                    return true;
+                }
+            }
+            else if (underlyingType.IsEnum)
+            {
+                if (Enum.TryParse(underlyingType, s, ignoreCase: true, out var v))
+                {
+                    result = (T)v;
+                    return true;
+                }
+            }
+
+            result = default;
             return false;
         }
     }

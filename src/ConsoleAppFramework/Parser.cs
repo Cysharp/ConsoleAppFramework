@@ -179,18 +179,6 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         var lambdaExpr = (node as InvocationExpressionSyntax);
         if (lambdaExpr == null) return [];
 
-        var symbolInfo = model.GetSymbolInfo(lambdaExpr);
-        if (symbolInfo.Symbol is IMethodSymbol methodSymbol)
-        {
-            ImmutableArray<ITypeSymbol> typeArguments = methodSymbol.TypeArguments;
-
-            if (typeArguments.Length > 0)
-            {
-                ITypeSymbol typeT = typeArguments[0];
-                string typeName = typeT.ToDisplayString(); // TODO: get <T>.
-            }
-        }
-
         var addOptions = node
             .DescendantNodes()
             .OfType<InvocationExpressionSyntax>()
@@ -218,30 +206,35 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 var memberAccess = x.expr!;
                 var symbolInfo = model.GetSymbolInfo(memberAccess).Symbol as IMethodSymbol;
 
-                bool isRequired = x.required;
-                EquatableTypeSymbol typeSymbol = new(symbolInfo!.TypeArguments[0]);
+                var typeSymbol = symbolInfo!.TypeArguments[0];
+
+                if (!IsParsableType(typeSymbol))
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.InvalidGlobalOptionsType, node.GetLocation());
+                    return null!;
+                }
 
                 object? name = "";
                 object? description = "";
-                object? defaultValue = GetDefaultValue(typeSymbol.TypeSymbol);
+                object? defaultValue = GetDefaultValue(typeSymbol);
 
                 var arguments = node.ArgumentList;
 
-                if (!isRequired)
+                if (!x.required)
                 {
                     // public T AddGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "", [ConstantExpected] T defaultValue = default(T))
-                    GetArgumentConstantValues3(node.ArgumentList, model, "name", "description", "defaultValue", ref name, ref description, ref defaultValue);
+                    node.ArgumentList.GetConstantValues(model, "name", "description", "defaultValue", ref name, ref description, ref defaultValue);
                 }
                 else
                 {
                     // public T AddRequiredGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "")
-                    GetArgumentConstantValues2(node.ArgumentList, model, "name", "description", ref name, ref description);
+                    node.ArgumentList.GetConstantValues(model, "name", "description", ref name, ref description);
                 }
 
                 return new GlobalOptionInfo
                 {
-                    Type = typeSymbol,
-                    IsRequired = isRequired,
+                    Type = new(typeSymbol),
+                    IsRequired = x.required,
                     Name = (string)name!,
                     Description = (string)description!,
                     DefaultValue = defaultValue
@@ -252,84 +245,18 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
         return result;
 
-        static void GetArgumentConstantValues2(ArgumentListSyntax argumentListSyntax, SemanticModel model, string name1, string name2, ref object? value1, ref object? value2)
-        {
-            var arguments = argumentListSyntax.Arguments;
-            for (int i = 0; i < arguments.Count; i++)
-            {
-                var arg = arguments[i];
-                var constant = model.GetConstantValue(arg.Expression);
-                if (constant.HasValue)
-                {
-                    var constantValue = constant.Value;
-                    if (arg.NameColon != null)
-                    {
-                        var name = arg.NameColon.Name.Identifier.Text;
-                        if (name == name1)
-                        {
-                            value1 = constantValue;
-                        }
-                        else if (name == name2)
-                        {
-                            value2 = constantValue!;
-                        }
-                    }
-                    else
-                    {
-                        if (i == 0) value1 = constantValue;
-                        else if (i == 1) value2 = constantValue;
-                    }
-                }
-            }
-        }
-
-        static void GetArgumentConstantValues3(ArgumentListSyntax argumentListSyntax, SemanticModel model, string name1, string name2, string name3, ref object? value1, ref object? value2, ref object? value3)
-        {
-            var arguments = argumentListSyntax.Arguments;
-            for (int i = 0; i < arguments.Count; i++)
-            {
-                var arg = arguments[i];
-                var constant = model.GetConstantValue(arg.Expression);
-                if (constant.HasValue)
-                {
-                    var constantValue = constant.Value;
-                    if (arg.NameColon != null)
-                    {
-                        var name = arg.NameColon.Name.Identifier.Text;
-                        if (name == name1)
-                        {
-                            value1 = constantValue;
-                        }
-                        else if (name == name2)
-                        {
-                            value2 = constantValue!;
-                        }
-                        else if (name == name3)
-                        {
-                            value3 = constantValue!;
-                        }
-                    }
-                    else
-                    {
-                        if (i == 0) value1 = constantValue;
-                        else if (i == 1) value2 = constantValue;
-                        else if (i == 2) value3 = constantValue;
-                    }
-                }
-            }
-        }
-
         // GlobalOptions allow type is limited(C# compile-time constant only)
         // bool, char, sbyte, byte, short, ushort, int, uint, long, ulong, float, double, decimal
         // string
         // null
         // enum
         // Nullable<T>
-        bool IsParsableType(ITypeSymbol type, Compilation compilation, WellKnownTypes wellKnownTypes)
+        bool IsParsableType(ITypeSymbol type)
         {
             if (type is INamedTypeSymbol { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } namedType)
             {
-                return true;
+                var underlyingType = namedType.TypeArguments[0];
+                return IsParsableType(underlyingType);
             }
 
             switch (type.SpecialType)

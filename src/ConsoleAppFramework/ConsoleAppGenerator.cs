@@ -495,7 +495,9 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             var configureGlobalOptionsGroup = methodGroup["ConfigureGlobalOptions"];
             if (configureGlobalOptionsGroup.Count() >= 2)
             {
-                // TODO: Diagnostics, not allows multiple configureglobaloptions.
+                var node = configureGlobalOptionsGroup.Last().Item1.Node;
+                
+                DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateConfigureGlobalOptions, node.Expression.GetLocation());
             }
 
             if (configureGlobalOptionsGroup.Count() == 1)

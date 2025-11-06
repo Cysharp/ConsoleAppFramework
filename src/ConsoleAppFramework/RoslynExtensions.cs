@@ -163,4 +163,76 @@ internal static class RoslynExtensions
 
         yield break;
     }
+
+    public static void GetConstantValues(this ArgumentListSyntax argumentListSyntax, SemanticModel model,
+        string name1, string name2,
+        ref object? value1, ref object? value2)
+    {
+        var arguments = argumentListSyntax.Arguments;
+        for (int i = 0; i < arguments.Count; i++)
+        {
+            var arg = arguments[i];
+            var constant = model.GetConstantValue(arg.Expression);
+            if (constant.HasValue)
+            {
+                var constantValue = constant.Value;
+                if (arg.NameColon != null)
+                {
+                    var name = arg.NameColon.Name.Identifier.Text;
+                    if (name == name1)
+                    {
+                        value1 = constantValue;
+                    }
+                    else if (name == name2)
+                    {
+                        value2 = constantValue;
+                    }
+                }
+                else
+                {
+                    if (i == 0) value1 = constantValue;
+                    else if (i == 1) value2 = constantValue;
+                }
+            }
+        }
+    }
+
+    public static void GetConstantValues(this ArgumentListSyntax argumentListSyntax, SemanticModel model,
+        string name1, string name2, string name3,
+        ref object? value1, ref object? value2, ref object? value3)
+    {
+        var arguments = argumentListSyntax.Arguments;
+        for (int i = 0; i < arguments.Count; i++)
+        {
+            var arg = arguments[i];
+            var constant = model.GetConstantValue(arg.Expression);
+            if (constant.HasValue)
+            {
+                var constantValue = constant.Value;
+                if (arg.NameColon != null)
+                {
+                    var name = arg.NameColon.Name.Identifier.Text;
+                    if (name == name1)
+                    {
+                        value1 = constantValue;
+                    }
+                    else if (name == name2)
+                    {
+                        value2 = constantValue;
+                    }
+                    else if (name == name3)
+                    {
+                        value3 = constantValue;
+                    }
+                }
+                else
+                {
+                    if (i == 0) value1 = constantValue;
+                    else if (i == 1) value2 = constantValue;
+                    else if (i == 2) value3 = constantValue;
+                }
+            }
+        }
+    }
+
 }

@@ -122,4 +122,12 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor ReturnTypeMethodAsyncVoid { get; } = Create(
         16,
         "Command method return type does not allow async void.");
+
+    public static DiagnosticDescriptor DuplicateConfigureGlobalOptions { get; } = Create(
+        17,
+        "ConfigureGlobalOptions does not allow to invoke twice.");
+
+    public static DiagnosticDescriptor InvalidGlobalOptionsType { get; } = Create(
+        18,
+        "GlobalOption parameter type only allows compile-time constant(primitives, string, enum) and there nullable.");
 }
