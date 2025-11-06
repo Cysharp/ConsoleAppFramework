@@ -347,6 +347,40 @@ Options:
 """);
     }
 
+    [Fact]
+    public void GlobalOptions()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+{
+    var p = builder.AddGlobalOption<int>("--parameter", "param global", defaultValue: 1000);
+    var d = builder.AddGlobalOption<bool>(description: "run dry dry", name: "--dry-run");
+    var r = builder.AddRequiredGlobalOption<int>("--p2|--p3", "param 2");
+    return (p, d, r);
+});
+
+app.Add("", (int x, int y) => { });
+app.Add("a", (int x, int y) => { });
+app.Add("ab", (int x, int y) => { });
+app.Add("a b c", (int x, int y) => { });
+app.Run(args);
+""";
+
+        verifier.Execute(code, args: "a --help", expected: """
+Usage: a [options...] [-h|--help] [--version]
+
+Options:
+  --x <int>             (Required)
+  --y <int>             (Required)
+  --parameter <int>    param global (Default: 1000)
+  --dry-run            run dry dry (Optional)
+  --p2|--p3 <int>      param 2 (Required)
+
+""");
+    }
+
     private static string GetEntryAssemblyVersion()
     {
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;

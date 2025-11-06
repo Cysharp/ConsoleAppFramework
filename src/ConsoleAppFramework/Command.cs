@@ -155,7 +155,7 @@ public record class CommandParameter
     public required bool IsNullableReference { get; init; }
     public required bool IsParams { get; init; }
     public required bool IsHidden { get; init; } // Hide command parameter help
-    public bool IsDefaultValueHidden { get; init; } = false; // Hide default value in command parameter help
+    public required bool IsDefaultValueHidden { get; init; } // Hide default value in command parameter help
     public required string Name { get; init; }
     public required string OriginalParameterName { get; init; }
     public required bool HasDefaultValue { get; init; }
@@ -491,6 +491,7 @@ public record class GlobalOptionInfo
             IsCancellationToken = false,
             HasValidation = false,
             ArgumentIndex = -1,
+            IsDefaultValueHidden = false,
 
             Type = Type,
             HasDefaultValue = !IsRequired, // if not required, needs defaultValue

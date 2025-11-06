@@ -131,4 +131,23 @@ app.Run(args);
 
         error.Contains("Required argument '--parameter' was not specified.");
     }
+
+    [Fact]
+    public void NamedParameter()
+    {
+        verifier.Execute("""
+var app = ConsoleApp.Create();
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+{
+    var p = builder.AddGlobalOption<int>("--parameter", defaultValue: 1000);
+    var d = builder.AddGlobalOption<bool>(description: "foo", name: "--dry-run");
+    return (p, d);
+});
+app.Add("", (int x, int y, ConsoleAppContext context) =>
+{
+    Console.Write($"{context.GlobalOptions} -> {(x, y)}");
+});
+app.Run(args);
+""", "--x 10 --dry-run --y 20", "(1000, True) -> (10, 20)");
+    }
 }

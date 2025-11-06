@@ -269,6 +269,27 @@ Unfortunately, due to current C# specifications, lambda expressions and [local f
 
 In addition to `-h|--help`, there is another special built-in option: `--version`. In default, it displays the `AssemblyInformationalVersion` without source revision or `AssemblyVersion`. You can configure version string by `ConsoleApp.Version`, for example `ConsoleApp.Version = "2001.9.3f14-preview2";`.
 
+When a default value exists, that value is displayed by default. If you want to omit this display, add the `[HideDefaultValue]` attribute.
+
+```csharp
+ConsoleApp.Run(args, (Fruit myFruit = Fruit.Apple, [HideDefaultValue] Fruit myFruit2 = Fruit.Grape) => { });
+
+enum Fruit
+{
+    Orange, Grape, Apple
+}
+```
+
+```txt
+Usage: [options...] [-h|--help] [--version]
+
+Options:
+  --my-fruit <Fruit>      (Default: Apple)
+  --my-fruit2 <Fruit>
+```
+
+Additionally, if you add the `[Hidden]` attribute, the help for that parameter itself will be hidden.
+
 Command
 ---
 If you want to register multiple commands or perform complex operations (such as adding filters), instead of using `Run/RunAsync`, obtain the `ConsoleAppBuilder` using `ConsoleApp.Create()`. Call `Add`, `Add<T>`, or `UseFilter<T>` multiple times on the `ConsoleAppBuilder` to register commands and filters, and finally execute the application using `Run` or `RunAsync`.
@@ -573,6 +594,93 @@ If none of the above cases apply, `JsonSerializer.Deserialize<T>` is used to per
 If you want to change the deserialization options, you can set `JsonSerializerOptions` to `ConsoleApp.JsonSerializerOptions`.
 
 > NOTE: If they are not set when NativeAOT is used, a runtime exception may occur. If they are included in the parsing process, be sure to set source generated options.
+
+### GlobalOptions
+
+By calling `ConfigureGlobalOptions` on `ConsoleAppBuilder`, you can define global options that are enabled for all commands. For example, `--dry-run` or `--verbose` are suitable as common options.
+
+```csharp
+var app = ConsoleApp.Create();
+// builder: Func<ref ConsoleApp.GlobalOptionsBuilder, object>
+app.ConfigureGlobalOptions((ref builder) =>
+{
+    var dryRun = builder.AddGlobalOption<bool>("--dry-run");
+    var verbose = builder.AddGlobalOption<bool>("-v|--verbose");
+    var intParameter = builder.AddRequiredGlobalOption<int>("--int-parameter", "integer parameter");
+    // return value stored to ConsoleAppContext.GlobalOptions
+    return new GlobalOptions(dryRun, verbose, intParameter);
+});
+app.Add("", (int x, int y, ConsoleAppContext context) =>
+{
+    var globalOptions = (GlobalOptions)context.GlobalOptions;
+    Console.WriteLine(globalOptions + ":" + (x, y));
+});
+app.Run(args);
+internal record GlobalOptions(bool DryRun, bool Verbose, int IntParameter);
+```
+
+> NOTE: `(ref builder)` can be written in C# 14 and later. For earlier versions, you need to write `(ref ConsoleApp.GlobalOptionsBuilder builder)`.
+
+With `AddGlobalOption<T>`, you can define optional global options, and with `AddRequiredGlobalOption<T>`, you can define required global options. Each of these is also reflected in the command's help.
+
+To define name aliases, separate them with `|` like `-v|--verbose`.
+
+Unlike command parameters, the supported types are limited to types that can define C# compile-time constants (`string`, `char`, `sbyte`, `byte`, `short`, `int`, `long`, `uint`, `ushort`, `ulong`, `decimal`, `float`, `double`, `Enum`) and their `Nullable<T>` only.
+
+Parsed global options can be retrieved from `ConsoleAppContext.GlobalOptions`. Additionally, when combined with DI, you can retrieve them in a typed manner in each command.
+
+```csharp
+var app = ConsoleApp.Create();
+
+// builder: Func<ref ConsoleApp.GlobalOptionsBuilder, object>
+app.ConfigureGlobalOptions((ref builder) =>
+{
+    var dryRun = builder.AddGlobalOption<bool>("--dry-run");
+    var verbose = builder.AddGlobalOption<bool>("-v|--verbose");
+    var intParameter = builder.AddRequiredGlobalOption<int>("--int-parameter", "integer parameter");
+
+    // return value stored to ConsoleAppContext.GlobalOptions
+    return new GlobalOptions(dryRun, verbose, intParameter);
+});
+
+app.ConfigureServices((context, configuration, services) =>
+{
+    // store global-options to DI
+    var globalOptions = (GlobalOptions)context.GlobalOptions;
+    services.AddSingleton(globalOptions);
+
+    // check global-options value to configure services
+    services.AddLogging(logging =>
+    {
+        if (globalOptions.Verbose)
+        {
+            logging.SetMinimumLevel(LogLevel.Trace);
+        }
+    });
+});
+
+app.Add<Commands>();
+
+app.Run(args);
+
+internal record GlobalOptions(bool DryRun, bool Verbose, int IntParameter);
+
+// get GlobalOptions from DI
+internal class Commands(GlobalOptions globalOptions)
+{
+    [Command("cmd-a")]
+    public void CommandA(int x, int y)
+    {
+        Console.WriteLine("A:" + globalOptions + ":" + (x, y));
+    }
+
+    [Command("cmd-b")]
+    public void CommandB(int x, int y)
+    {
+        Console.WriteLine("B:" + globalOptions + ":" + (x, y));
+    }
+}
+```
 
 ### Custom Value Converter
 
@@ -1073,6 +1181,8 @@ public class PositionOptions
 When `Microsoft.Extensions.Configuration` is imported, `ConfigureEmptyConfiguration` becomes available to call. Additionally, when `Microsoft.Extensions.Configuration.Json` is imported, `ConfigureDefaultConfiguration` becomes available to call. In DefaultConfiguration, `SetBasePath(System.IO.Directory.GetCurrentDirectory())` and `AddJsonFile("appsettings.json", optional: true)` are executed before calling `Action<IConfigurationBuilder> configure`.
 
 Furthermore, overloads of `Action<IConfiguration, IServiceCollection> configure` and `Action<IConfiguration, ILoggingBuilder> configure` are added to `ConfigureServices` and `ConfigureLogging`, allowing you to retrieve the Configuration when executing the delegate.
+
+There are also overloads that receive ConsoleAppContext. If you want to obtain global options and build with them, you can use these overloads: `Action<ConsoleAppContext, IConfiguration, IServiceCollection>` and `Action<ConsoleAppContext, IConfiguration, ILoggingBuilder>`.
 
 without Hosting dependency, I've preferred these import packages.
 

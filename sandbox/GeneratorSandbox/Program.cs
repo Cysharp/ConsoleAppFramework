@@ -5,95 +5,55 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-//args = ["--x", "10", "--y", "20", "-v", "--prefix-output", "takoyakix"];
+args = ["cmd-a", "--x", "10", "--y", "20", "--int-parameter", "1000"];
 
 var app = ConsoleApp.Create();
 
-
-
-//
-// AddGlobalOption
-
-app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+// builder: Func<ref ConsoleApp.GlobalOptionsBuilder, object>
+app.ConfigureGlobalOptions((ref builder) =>
 {
-    // builder.AddGlobalOption(description: "hoge", defaultValue: 0,  "tako");
+    var dryRun = builder.AddGlobalOption<bool>("--dry-run");
+    var verbose = builder.AddGlobalOption<bool>("-v|--verbose");
+    var intParameter = builder.AddRequiredGlobalOption<int>("--int-parameter", "integer parameter");
 
-    var verbose = builder.AddGlobalOption<bool>($"-v", "");
-    var noColor = builder.AddGlobalOption<bool>("--no-color", "Don't colorize output.");
-    var dryRun = builder.AddGlobalOption<bool>("--dry-run", "");
-
-    var dame = builder.AddGlobalOption<int>("hoge", "huga", 0);
-
-    var takoyaki = builder.AddGlobalOption<int?>("hogemoge", defaultValue: null);
-
-    var prefixOutput = builder.AddRequiredGlobalOption<string>(description: "Prefix output with level.", name: "--prefix-output|-pp|-po");
-
-    // var tako = builder.AddGlobalOption<int>("--in", "");
-    //var tako = builder.AddGlobalOption<MyFruit>("--fruit", "");
-
-    //return new GlobalOptions(true, true, true, "");
-    return new GlobalOptions(verbose, noColor, dryRun, prefixOutput);
+    // return value stored to ConsoleAppContext.GlobalOptions
+    return new GlobalOptions(dryRun, verbose, intParameter);
 });
 
-app.ConfigureServices((context, configuration, collection) =>
+app.ConfigureServices((context, configuration, services) =>
 {
+    // store global-options to DI
     var globalOptions = (GlobalOptions)context.GlobalOptions;
+    services.AddSingleton(globalOptions);
 
-    // simply use for filter/command body
-    collection.AddSingleton(globalOptions);
-
-    // variable for setup other DI
-    collection.AddLogging(logging =>
+    // check global-options value to configure services
+    services.AddLogging(logging =>
     {
-        var console = logging.AddSimpleConsole();
         if (globalOptions.Verbose)
         {
-            console.SetMinimumLevel(LogLevel.Trace);
+            logging.SetMinimumLevel(LogLevel.Trace);
         }
     });
 });
 
-app.Add<MyCommand>();
-
-// app.Add("", (int x, int y, [FromServices] GlobalOptions globalOptions) => Console.WriteLine(x + y + ":" + globalOptions));
-
-//var iii = int.Parse("1000");
-//var sss = new string('a', 3);
-//var datet  = DateTime.Parse("10000");
-
-// AddGlobalOption<int?>("hoge", "takoyaki", null);
+app.Add<Commands>();
 
 app.Run(args);
 
+internal record GlobalOptions(bool DryRun, bool Verbose, int IntParameter);
 
-// public T AddGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description = "", T defaultValue = default(T))
-
-
-static void AddGlobalOption<T>([ConstantExpected] string name, [ConstantExpected] string description, [ConstantExpected] T defaultValue)
+// get GlobalOptions from DI
+internal class Commands(GlobalOptions globalOptions)
 {
-}
-
-internal record GlobalOptions(bool Verbose, bool NoColor, bool DryRun, string PrefixOutput);
-
-internal class MyCommand(GlobalOptions globalOptions)
-{
-    /// <summary>
-    /// my command
-    /// </summary>
-    [Command("")]
-    public void Run(int x)
+    [Command("cmd-a")]
+    public void CommandA(int x, int y)
     {
-        Console.WriteLine(globalOptions);
+        Console.WriteLine("A:" + globalOptions + ":" + (x, y));
     }
-}
 
-public enum MyFruit
-{
-    Apple, Orange, Grape
-}
-
-
-public class Takoyaki
-{
-
+    [Command("cmd-b")]
+    public void CommandB(int x, int y)
+    {
+        Console.WriteLine("B:" + globalOptions + ":" + (x, y));
+    }
 }

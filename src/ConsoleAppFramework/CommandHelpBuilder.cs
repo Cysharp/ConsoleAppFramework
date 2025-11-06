@@ -203,7 +203,9 @@ public static class CommandHelpBuilder
             else if (opt.DefaultValue != null)
             {
                 if (!opt.IsDefaultValueHidden)
+                {
                     sb.Append($" (Default: {opt.DefaultValue})");
+                }
             }
             else if (opt.IsRequired)
             {

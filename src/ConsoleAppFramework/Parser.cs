@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices.ComTypes;
+using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -452,6 +453,10 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                                 .SelectMany(x => x.Attributes)
                                 .Any(x => model.GetTypeInfo(x).Type?.Name == "HiddenAttribute");
 
+                var isDefaultValueHidden = x.AttributeLists
+                                .SelectMany(x => x.Attributes)
+                                .Any(x => model.GetTypeInfo(x).Type?.Name == "HideDefaultValueAttribute");
+
                 var customParserType = x.AttributeLists.SelectMany(x => x.Attributes)
                     .Select(x =>
                     {
@@ -562,6 +567,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                     IsConsoleAppContext = isConsoleAppContext,
                     IsParams = hasParams,
                     IsHidden = isHidden,
+                    IsDefaultValueHidden = isDefaultValueHidden,
                     Type = new EquatableTypeSymbol(type.Type!),
                     Location = x.GetLocation(),
                     HasDefaultValue = hasDefault,
