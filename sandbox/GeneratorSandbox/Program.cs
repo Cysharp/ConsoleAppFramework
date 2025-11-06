@@ -1,7 +1,5 @@
 ﻿using ConsoleAppFramework;
-using Google.Protobuf.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -20,20 +18,24 @@ app.ConfigureGlobalOptions((ref builder) =>
     return new GlobalOptions(dryRun, verbose, intParameter);
 });
 
-app.ConfigureServices((context, configuration, services) =>
+app.ConfigureServices((context, _, services) =>
 {
     // store global-options to DI
     var globalOptions = (GlobalOptions)context.GlobalOptions;
     services.AddSingleton(globalOptions);
 
     // check global-options value to configure services
-    services.AddLogging(logging =>
-    {
-        if (globalOptions.Verbose)
-        {
-            logging.SetMinimumLevel(LogLevel.Trace);
-        }
-    });
+    //services.AddLogging(logging =>
+    //{
+    //    if (globalOptions.Verbose)
+    //    {
+    //        logging.SetMinimumLevel(LogLevel.Trace);
+    //    }
+    //});
+});
+
+app.ConfigureLogging((context, _, services) =>
+{
 });
 
 app.Add<Commands>();

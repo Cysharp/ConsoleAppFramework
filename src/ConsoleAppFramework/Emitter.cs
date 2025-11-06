@@ -810,7 +810,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine();
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
                 {
-                    sb.AppendLine("this.configureServices = (_, _, services) => configure(services);");
+                    sb.AppendLine("this.configureServices = (_, services) => configure(services);");
                     sb.AppendLine("return this;");
                 }
 
