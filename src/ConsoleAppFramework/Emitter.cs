@@ -25,7 +25,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
         var returnType = isRunAsync ? "async Task" : "void";
         var accessibility = !emitForBuilder ? "public static" : "private";
-        methodName = methodName ?? (isRunAsync ? "RunAsync" : "Run");
+        methodName ??= (isRunAsync ? "RunAsync" : "Run");
         var unsafeCode = (command.MethodKind == MethodKind.FunctionPointer) ? "unsafe " : "";
 
         var commandMethodType = command.BuildDelegateSignature(commandWithId.BuildCustomDelegateTypeName(), out var delegateType);
@@ -49,6 +49,21 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                     : emitForBuilder ? "__ExternalCancellationToken__"
                                     : "CancellationToken.None";
 
+        string? dynamicDependencyAttribute = null;
+        if (command.CommandMethodInfo == null &&
+            command.Symbol.Value is IMethodSymbol dynamicDependencyMethod &&
+            dynamicDependencyMethod.ContainingType != null)
+        {
+            var docCommentId = dynamicDependencyMethod.GetDocumentationCommentId();
+            var parameterPartIndex = docCommentId?.IndexOf('(') ?? -1;
+            var memberSignature = parameterPartIndex >= 0
+                ? dynamicDependencyMethod.Name + docCommentId!.Substring(parameterPartIndex)
+                : dynamicDependencyMethod.Name;
+
+            var containingType = dynamicDependencyMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            dynamicDependencyAttribute = $"[global::System.Diagnostics.CodeAnalysis.DynamicDependency(\"{memberSignature}\", typeof({containingType}))]";
+        }
+
         if (!emitForBuilder)
         {
             sb.AppendLine("/// <summary>");
@@ -63,6 +78,10 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
 
         // method signature
+        if (dynamicDependencyAttribute != null)
+        {
+            sb.AppendLine(dynamicDependencyAttribute);
+        }
         using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}(string[] args{commandDepthEscapeIndex}{commandMethodType}{filterCancellationToken})"))
         {
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
