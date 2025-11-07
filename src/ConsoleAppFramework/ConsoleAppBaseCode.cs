@@ -487,6 +487,7 @@ internal static partial class ConsoleApp
     internal partial class ConsoleAppBuilder
     {
         FuncGlobalOptionsBuilderObject? configureGlobalOptions;
+        bool isRequireCallBuildAndSetServiceProvider = false;
 
         public ConsoleAppBuilder()
         {
@@ -554,6 +555,7 @@ internal static partial class ConsoleApp
         public ConsoleAppBuilder ConfigureGlobalOptions(FuncGlobalOptionsBuilderObject configure)
         {
             this.configureGlobalOptions = configure;
+            this.isRequireCallBuildAndSetServiceProvider = true;
             return this;
         }
 

@@ -72,20 +72,27 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         {
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
-                // prepare commandArgs
+                // prepare commandArgsMemory
                 if (command.HasFilter)
                 {
                     sb.AppendLine("var commandArgsMemory = context.InternalCommandArgs;"); // already prepared and craeted ConsoleAppContext
                 }
                 else
                 {
-                    sb.AppendLine("var escapeIndex = args.AsSpan().IndexOf(\"--\");");
-                    if (!emitForBuilder)
+                    if (hasConsoleAppContext || emitForBuilder)
                     {
-                        sb.AppendLine("var commandDepth = 0;");
-                    }
+                        sb.AppendLine("var escapeIndex = args.AsSpan().IndexOf(\"--\");");
+                        if (!emitForBuilder)
+                        {
+                            sb.AppendLine("var commandDepth = 0;");
+                        }
 
-                    sb.AppendLine("ReadOnlyMemory<string> commandArgsMemory = (escapeIndex == -1) ? args.AsMemory(commandDepth) : args.AsMemory(commandDepth, escapeIndex - commandDepth);");
+                        sb.AppendLine("ReadOnlyMemory<string> commandArgsMemory = (escapeIndex == -1) ? args.AsMemory(commandDepth) : args.AsMemory(commandDepth, escapeIndex - commandDepth);");
+                    }
+                    else
+                    {
+                        sb.AppendLine("ReadOnlyMemory<string> commandArgsMemory = args;");
+                    }
                 }
 
                 sb.AppendLine($"if (TryShowHelpOrVersion(commandArgsMemory.Span, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
@@ -104,18 +111,21 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     if (emitForBuilder)
                     {
                         sb.AppendLine("ConsoleAppContext context;");
-                        using (sb.BeginBlock("if (configureGlobalOptions == null)"))
+                        using (hasConsoleAppContext ? sb.Nop : sb.BeginBlock("if (isRequireCallBuildAndSetServiceProvider)"))
                         {
-                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, commandArgsMemory, null, null, commandDepth, escapeIndex);");
+                            using (sb.BeginBlock("if (configureGlobalOptions == null)"))
+                            {
+                                sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, commandArgsMemory, null, null, commandDepth, escapeIndex);");
+                            }
+                            using (sb.BeginBlock("else"))
+                            {
+                                sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgsMemory);");
+                                sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
+                                sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, builder.RemainingArgs, null, globalOptions, commandDepth, escapeIndex);");
+                                sb.AppendLine("commandArgsMemory = builder.RemainingArgs;");
+                            }
+                            sb.AppendLine("BuildAndSetServiceProvider(context);");
                         }
-                        using (sb.BeginBlock("else"))
-                        {
-                            sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgsMemory);");
-                            sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
-                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, builder.RemainingArgs, null, globalOptions, commandDepth, escapeIndex);");
-                            sb.AppendLine("commandArgsMemory = builder.RemainingArgs;");
-                        }
-                        sb.AppendLine("BuildAndSetServiceProvider(context);");
 
                         if (dllReference != null && dllReference.Value.HasHost)
                         {
@@ -790,6 +800,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
                 {
                     sb.AppendLine("this.configureServices = (_, _, services) => configure(services);");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
 
@@ -799,6 +810,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     // for backward-compatiblity, we chooce (IConfiguration, IServiceCollection) for two arguments overload
                     sb.AppendLine("this.requireConfiguration = true;");
                     sb.AppendLine("this.configureServices = (_, configuration, services) => configure(configuration, services);");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
 
@@ -807,6 +819,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 {
                     sb.AppendLine("this.requireConfiguration = true;");
                     sb.AppendLine("this.configureServices = configure;");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
             }
@@ -816,6 +829,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
                 {
                     sb.AppendLine("this.configureServices = (_, services) => configure(services);");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
 
@@ -823,6 +837,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<ConsoleAppContext, IServiceCollection> configure)"))
                 {
                     sb.AppendLine("this.configureServices = configure;");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
             }
@@ -850,6 +865,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ILoggingBuilder> configure)"))
                 {
                     sb.AppendLine("this.configureLogging = (_, _, logging) => configure(logging);");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
 
@@ -858,6 +874,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 {
                     sb.AppendLine("this.requireConfiguration = true;");
                     sb.AppendLine("this.configureLogging = (_, configuration, logging) => configure(configuration, logging);");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
 
@@ -866,6 +883,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 {
                     sb.AppendLine("this.requireConfiguration = true;");
                     sb.AppendLine("this.configureLogging = configure;");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
             }
@@ -875,6 +893,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ILoggingBuilder> configure)"))
                 {
                     sb.AppendLine("this.configureLogging = (_, logging) => configure(logging);");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
 
@@ -882,6 +901,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ConsoleAppContext, ILoggingBuilder> configure)"))
                 {
                     sb.AppendLine("this.configureLogging = configure;");
+                    sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
             }
