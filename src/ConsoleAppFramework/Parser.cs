@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
 using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
@@ -356,7 +357,12 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 var methodSymbols = model.GetMemberGroup(expression);
                 if (methodSymbols.Length > 0 && methodSymbols[0] is IMethodSymbol methodSymbol)
                 {
-                    return ParseFromMethodSymbol(methodSymbol, addressOf: false, commandName, []);
+                    var cmd = ParseFromMethodSymbol(methodSymbol, addressOf: false, commandName, []);
+                    if (cmd != null)
+                    {
+                        cmd.IsRequireDynamicDependencyAttribute = true;
+                    }
+                    return cmd;
                 }
             }
         }
@@ -596,7 +602,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             MethodKind = MethodKind.Lambda,
             Description = "",
             DelegateBuildType = delegateBuildType,
-            Filters = globalFilters
+            Filters = globalFilters,
+            IsRequireDynamicDependencyAttribute = false,
         };
 
         return cmd;

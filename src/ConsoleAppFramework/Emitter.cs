@@ -46,22 +46,6 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         var cancellationTokenName = (emitForBuilder) ? "cancellationToken" : null;
         var cancellationTokenParameter = cancellationTokenName != null ? "CancellationToken cancellationToken" : null;
 
-        // TODO: to parser
-        string? dynamicDependencyAttribute = null;
-        if (command.CommandMethodInfo == null &&
-            command.Symbol.Value is IMethodSymbol dynamicDependencyMethod &&
-            dynamicDependencyMethod.ContainingType != null)
-        {
-            var docCommentId = dynamicDependencyMethod.GetDocumentationCommentId();
-            var parameterPartIndex = docCommentId?.IndexOf('(') ?? -1;
-            var memberSignature = parameterPartIndex >= 0
-                ? dynamicDependencyMethod.Name + docCommentId!.Substring(parameterPartIndex)
-                : dynamicDependencyMethod.Name;
-
-            var containingType = dynamicDependencyMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            dynamicDependencyAttribute = $"[global::System.Diagnostics.CodeAnalysis.DynamicDependency(\"{memberSignature}\", typeof({containingType}))]";
-        }
-
         if (!emitForBuilder)
         {
             sb.AppendLine("/// <summary>");
@@ -75,10 +59,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             sb.AppendLine("/// </summary>");
         }
 
-        // method signature
-        if (dynamicDependencyAttribute != null)
+        if (emitForBuilder && command.IsRequireDynamicDependencyAttribute)
         {
-            sb.AppendLine(dynamicDependencyAttribute);
+            sb.AppendLine(command.BuildDynamicDependencyAttribute());
         }
 
         var methodArgument = command.HasFilter

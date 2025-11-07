@@ -31,6 +31,7 @@ public record class Command
     public required EquatableArray<FilterInfo> Filters { get; init; }
     public IgnoreEquality<ISymbol> Symbol { get; init; }
     public bool HasFilter => Filters.Length != 0;
+    public bool IsRequireDynamicDependencyAttribute { get; set; } // can set...!
 
     // return is delegateType(Name).
     public string? BuildDelegateSignature(string customDelegateTypeName, out string? customDelegateDefinition)
@@ -144,6 +145,23 @@ public record class Command
 
         var parameters = string.Join(", ", Parameters.Select(x => x.ToString()));
         return $"delegate {retType} {delegateName}({parameters});";
+    }
+
+    public string BuildDynamicDependencyAttribute()
+    {
+        if (!IsRequireDynamicDependencyAttribute) return "";
+
+        var dynamicDependencyMethod = Symbol.Value as IMethodSymbol;
+        if (dynamicDependencyMethod == null) return "";
+
+        var docCommentId = dynamicDependencyMethod.GetDocumentationCommentId();
+        var parameterPartIndex = docCommentId?.IndexOf('(') ?? -1;
+        var memberSignature = parameterPartIndex >= 0
+            ? dynamicDependencyMethod.Name + docCommentId!.Substring(parameterPartIndex)
+            : dynamicDependencyMethod.Name;
+
+        var containingType = dynamicDependencyMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return $"[global::System.Diagnostics.CodeAnalysis.DynamicDependency(\"{memberSignature}\", typeof({containingType}))]";
     }
 }
 

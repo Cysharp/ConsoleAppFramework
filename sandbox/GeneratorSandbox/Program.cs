@@ -8,11 +8,8 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        var app = ConsoleApp.Create();
-
-        app.Add("", (CancellationToken cancellationToken, ConsoleAppContext ctx) => { });
-
-        app.Run(args, CancellationToken.None);
+        var cmd = new Commands();
+        ConsoleApp.Run(args, cmd.SomeCommand);
 
     }
 }
