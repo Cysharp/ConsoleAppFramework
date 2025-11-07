@@ -66,7 +66,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
         var methodArgument = command.HasFilter
             ? Join(", ", commandMethodType, "ConsoleAppContext context", "CancellationToken cancellationToken")
-            : Join(", ", "ReadOnlyMemory<string> args", (emitForBuilder ? "int commandDepth" : ""), commandMethodType, cancellationTokenParameter);
+            : Join(", ", "string[] args", (emitForBuilder ? "int commandDepth" : ""), commandMethodType, cancellationTokenParameter);
 
         using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}({methodArgument})"))
         {
@@ -75,21 +75,20 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 // prepare commandArgs
                 if (command.HasFilter)
                 {
-                    sb.AppendLine("var commandArgs = context.InternalCommandArgs.Span;"); // already prepared and craeted ConsoleAppContext
+                    sb.AppendLine("var commandArgsMemory = context.InternalCommandArgs;"); // already prepared and craeted ConsoleAppContext
                 }
                 else
                 {
-                    sb.AppendLine("var escapeIndex = args.Span.IndexOf(\"--\");");
+                    sb.AppendLine("var escapeIndex = args.AsSpan().IndexOf(\"--\");");
                     if (!emitForBuilder)
                     {
                         sb.AppendLine("var commandDepth = 0;");
                     }
 
-                    sb.AppendLine("var commandArgsMemory = (escapeIndex == -1) ? args.Slice(commandDepth) : args.Slice(commandDepth, escapeIndex - commandDepth);");
-                    sb.AppendLine("var commandArgs = commandArgsMemory.Span;");
+                    sb.AppendLine("ReadOnlyMemory<string> commandArgsMemory = (escapeIndex == -1) ? args.AsMemory(commandDepth) : args.AsMemory(commandDepth, escapeIndex - commandDepth);");
                 }
 
-                sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
+                sb.AppendLine($"if (TryShowHelpOrVersion(commandArgsMemory.Span, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
                 sb.AppendLine();
 
                 // setup-timer
@@ -114,7 +113,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                             sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgsMemory);");
                             sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
                             sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, builder.RemainingArgs, null, globalOptions, commandDepth, escapeIndex);");
-                            sb.AppendLine("commandArgs = builder.RemainingArgs.Span;");
+                            sb.AppendLine("commandArgsMemory = builder.RemainingArgs;");
                         }
                         sb.AppendLine("BuildAndSetServiceProvider(context);");
 
@@ -189,6 +188,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     sb.AppendLine("var argumentPosition = 0;");
                 }
 
+                sb.AppendLine("var commandArgs = commandArgsMemory.Span;");
                 using (sb.BeginBlock("for (int i = 0; i < commandArgs.Length; i++)"))
                 {
                     sb.AppendLine("var name = commandArgs[i];");
@@ -483,11 +483,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             if (emitSync)
             {
                 sb.AppendLine();
-                using (sb.BeginBlock("partial void RunCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken)"))
+                using (sb.BeginBlock("partial void RunCore(string[] args, CancellationToken cancellationToken)"))
                 {
                     if (hasRootCommand)
                     {
-                        using (sb.BeginBlock("if (args.Length == 1 && args.Span[0] is \"--help\" or \"-h\")"))
+                        using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
                         {
                             sb.AppendLine("ShowHelp(-1);");
                             sb.AppendLine("return;");
@@ -502,11 +502,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             if (emitAsync)
             {
                 sb.AppendLine();
-                using (sb.BeginBlock("partial void RunAsyncCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken, ref Task result)"))
+                using (sb.BeginBlock("partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result)"))
                 {
                     if (hasRootCommand)
                     {
-                        using (sb.BeginBlock("if (args.Length == 1 && args.Span[0] is \"--help\" or \"-h\")"))
+                        using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
                         {
                             sb.AppendLine("ShowHelp(-1);");
                             sb.AppendLine("return;");
@@ -578,7 +578,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 return;
             }
 
-            using (sb.BeginBlock($"switch (args.Span[{depth}])"))
+            using (sb.BeginBlock($"switch (args[{depth}])"))
             {
                 foreach (var commands in groupedCommands.Where(x => x.Key != ""))
                 {
@@ -616,7 +616,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             {
                 if (command == null)
                 {
-                    sb.AppendLine($"if (!TryShowHelpOrVersion(args.Span.Slice({depth}), -1, -1)) ShowHelp(-1);");
+                    sb.AppendLine($"if (!TryShowHelpOrVersion(args.AsSpan({depth}), -1, -1)) ShowHelp(-1);");
                 }
                 else
                 {

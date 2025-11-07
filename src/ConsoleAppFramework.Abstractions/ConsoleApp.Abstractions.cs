@@ -20,7 +20,7 @@ public record ConsoleAppContext
     /// <summary>
     /// Gets the raw arguments passed to the application, including the command name itself.
     /// </summary>
-    public ReadOnlyMemory<string> Arguments { get; init; }
+    public string[] Arguments { get; init; }
 
     /// <summary>
     /// Gets the custom state object that can be used to share data across commands.
@@ -56,8 +56,8 @@ public record ConsoleAppContext
     public ReadOnlySpan<string> CommandArguments
     {
         get => (EscapeIndex == -1)
-            ? Arguments.Span.Slice(CommandDepth)
-            : Arguments.Span.Slice(CommandDepth, EscapeIndex - CommandDepth);
+            ? Arguments.AsSpan(CommandDepth)
+            : Arguments.AsSpan(CommandDepth, EscapeIndex - CommandDepth);
     }
 
     /// <summary>
@@ -68,10 +68,10 @@ public record ConsoleAppContext
     {
         get => (EscapeIndex == -1)
             ? Array.Empty<string>()
-            : Arguments.Span.Slice(EscapeIndex + 1);
+            : Arguments.AsSpan(EscapeIndex + 1);
     }
 
-    public ConsoleAppContext(string commandName, ReadOnlyMemory<string> arguments, ReadOnlyMemory<string> internalCommandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
+    public ConsoleAppContext(string commandName, string[] arguments, ReadOnlyMemory<string> internalCommandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
     {
         this.CommandName = commandName;
         this.Arguments = arguments;
@@ -88,7 +88,7 @@ public record ConsoleAppContext
     /// <returns>A space-separated string of all arguments.</returns>
     public override string ToString()
     {
-        return string.Join(" ", Arguments.ToArray());
+        return string.Join(" ", Arguments);
     }
 }
 

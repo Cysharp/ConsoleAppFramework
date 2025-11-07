@@ -1,36 +1,16 @@
 ﻿using ConsoleAppFramework;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-public static class Program
+var builder = ConsoleApp.Create();
+builder.Add<Commands>();
+await builder.RunAsync(args);
+
+public class Commands
 {
-    public static void Main(string[] args)
-    {
-        var cmd = new Commands();
-        ConsoleApp.Run(args, cmd.SomeCommand);
+    [Hidden]
+    public void Command1() { Console.Write("command1"); }
 
-    }
-}
+    public void Command2() { Console.Write("command2"); }
 
-internal record GlobalOptions(string Flag);
-
-internal class Commands
-{
-    [Command("some-command")]
-    public void SomeCommand([Argument] string commandArg, ConsoleAppContext context)
-    {
-        Console.WriteLine($"ARG: {commandArg}");
-        Console.WriteLine($"ESCAPED: {string.Join(", ", context.EscapedArguments.ToArray()!)}");
-    }
-}
-
-internal class SomeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
-{
-    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
-    {
-        Console.WriteLine($"FLAG: {((GlobalOptions)context.GlobalOptions!).Flag}");
-        await Next.InvokeAsync(context, cancellationToken);
-    }
+    [Hidden]
+    public void Command3(int x, [Hidden] int y) { Console.Write($"command3: x={x} y={y}"); }
 }

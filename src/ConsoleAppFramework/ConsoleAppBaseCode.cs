@@ -58,7 +58,7 @@ internal record ConsoleAppContext
     /// <summary>
     /// Gets the raw arguments passed to the application, including the command name itself.
     /// </summary>
-    public ReadOnlyMemory<string> Arguments { get; init; }
+    public string[] Arguments { get; init; }
 
     /// <summary>
     /// Gets the custom state object that can be used to share data across commands.
@@ -91,8 +91,8 @@ internal record ConsoleAppContext
     public ReadOnlySpan<string> CommandArguments
     {
         get => (EscapeIndex == -1)
-            ? Arguments.Span.Slice(CommandDepth)
-            : Arguments.Span.Slice(CommandDepth, EscapeIndex - CommandDepth);
+            ? Arguments.AsSpan(CommandDepth)
+            : Arguments.AsSpan(CommandDepth, EscapeIndex - CommandDepth);
     }
 
     /// <summary>
@@ -103,10 +103,10 @@ internal record ConsoleAppContext
     {
         get => (EscapeIndex == -1)
             ? Array.Empty<string>()
-            : Arguments.Span.Slice(EscapeIndex + 1);
+            : Arguments.AsSpan(EscapeIndex + 1);
     }
 
-    public ConsoleAppContext(string commandName, ReadOnlyMemory<string> arguments, ReadOnlyMemory<string> internalCommandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
+    public ConsoleAppContext(string commandName, string[] arguments, ReadOnlyMemory<string> internalCommandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
     {
         this.CommandName = commandName;
         this.Arguments = arguments;
@@ -123,7 +123,7 @@ internal record ConsoleAppContext
     /// <returns>A space-separated string of all arguments.</returns>
     public override string ToString()
     {
-        return string.Join(" ", Arguments.ToArray());
+        return string.Join(" ", Arguments);
     }
 }
 
@@ -230,7 +230,7 @@ internal static partial class ConsoleApp
     /// ConsoleApp.Run(args, Foo);<br/>
     /// ConsoleApp.Run(args, &amp;Foo);<br/>
     /// </summary>
-    public static void Run(ReadOnlyMemory<string> args)
+    public static void Run(string[] args)
     {
     }
 
@@ -240,7 +240,7 @@ internal static partial class ConsoleApp
     /// ConsoleApp.RunAsync(args, Foo);<br/>
     /// ConsoleApp.RunAsync(args, &amp;Foo);<br/>
     /// </summary>
-    public static Task RunAsync(ReadOnlyMemory<string> args)
+    public static Task RunAsync(string[] args)
     {
         return Task.CompletedTask;
     }
@@ -510,10 +510,10 @@ internal static partial class ConsoleApp
         partial void AddCore(string commandName, Delegate command);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        partial void RunCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken);
+        partial void RunCore(string[] args, CancellationToken cancellationToken);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        partial void RunAsyncCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken, ref Task result);
+        partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result);
 
         partial void BuildAndSetServiceProvider(ConsoleAppContext context);
 
@@ -557,13 +557,13 @@ internal static partial class ConsoleApp
             return this;
         }
 
-        async Task RunWithFilterAsync(string commandName, ReadOnlyMemory<string> args, int commandDepth, ConsoleAppFilter invoker, CancellationToken cancellationToken)
+        async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, ConsoleAppFilter invoker, CancellationToken cancellationToken)
         {
             using var posixSignalHandler = PosixSignalHandler.Register(Timeout, cancellationToken);
             try
             {
-                var escapeIndex = args.Span.IndexOf("--");
-                var commandArgs = (escapeIndex == -1) ? args.Slice(commandDepth) : args.Slice(commandDepth, escapeIndex - commandDepth);
+                var escapeIndex = args.AsSpan().IndexOf("--");
+                var commandArgs = (escapeIndex == -1) ? args.AsMemory(commandDepth) : args.AsMemory(commandDepth, escapeIndex - commandDepth);
 
                 ConsoleAppContext context;
                 if (configureGlobalOptions == null)
@@ -1077,10 +1077,10 @@ internal static partial class ConsoleApp
 {
     internal partial class ConsoleAppBuilder
     {
-        public void Run(ReadOnlyMemory<string> args) => Run(args, true);
-        public void Run(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => Run(args, true, cancellationToken);
+        public void Run(string[] args) => Run(args, true);
+        public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, cancellationToken);
 
-        public void Run(ReadOnlyMemory<string> args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public void Run(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1098,10 +1098,10 @@ internal static partial class ConsoleApp
             }
         }
 
-        public Task RunAsync(ReadOnlyMemory<string> args) => RunAsync(args, true);
-        public Task RunAsync(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => RunAsync(args, true, cancellationToken);
+        public Task RunAsync(string[] args) => RunAsync(args, true);
+        public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, cancellationToken);
 
-        public async Task RunAsync(ReadOnlyMemory<string> args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public async Task RunAsync(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1155,10 +1155,10 @@ internal static partial class ConsoleApp
         Microsoft.Extensions.Hosting.IHost? host;
         bool startHost;
 
-        public void Run(ReadOnlyMemory<string> args) => Run(args, true, true, true);
-        public void Run(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => Run(args, true, true, true, cancellationToken);
+        public void Run(string[] args) => Run(args, true, true, true);
+        public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, true, true, cancellationToken);
         
-        public void Run(ReadOnlyMemory<string> args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public void Run(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             this.startHost = startHost;
             try
@@ -1182,10 +1182,10 @@ internal static partial class ConsoleApp
             }
         }
 
-        public Task RunAsync(ReadOnlyMemory<string> args) => RunAsync(args, true, true, true);
-        public Task RunAsync(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => RunAsync(args, true, true, true, cancellationToken);
+        public Task RunAsync(string[] args) => RunAsync(args, true, true, true);
+        public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, true, true, cancellationToken);
 
-        public async Task RunAsync(ReadOnlyMemory<string> args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             this.startHost = startHost;
             try
