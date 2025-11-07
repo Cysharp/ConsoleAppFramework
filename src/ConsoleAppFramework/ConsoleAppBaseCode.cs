@@ -45,44 +45,85 @@ internal interface IArgumentParser<T>
     static abstract bool TryParse(ReadOnlySpan<char> s, out T result);
 }
 
+/// <summary>
+/// Represents the execution context for a console application command, containing command metadata and parsed arguments.
+/// </summary>
 internal record ConsoleAppContext
 {
+    /// <summary>
+    /// Gets the name of the command being executed.
+    /// </summary>
     public string CommandName { get; init; }
-    public string[] Arguments { get; init; }
-    public object? State { get; init; }
-    public object? GlobalOptions { get; init; }
-    internal int CommandDepth { get; }
-    internal int EscapeIndex  { get; }
-    internal string[] InternalCommandArgs { get; }
 
+    /// <summary>
+    /// Gets the raw arguments passed to the application, including the command name itself.
+    /// </summary>
+    public ReadOnlyMemory<string> Arguments { get; init; }
+
+    /// <summary>
+    /// Gets the custom state object that can be used to share data across commands.
+    /// </summary>
+    public object? State { get; init; }
+
+    /// <summary>
+    /// Gets the parsed global options that apply across all commands.
+    /// </summary>
+    public object? GlobalOptions { get; init; }
+
+    /// <summary>
+    /// Gets the depth of the command in a nested command hierarchy. Used internally by the framework.
+    /// </summary>
+    public int CommandDepth { get; }
+
+    /// <summary>
+    /// Gets the index of the escape separator ('--') in the arguments, or -1 if not present. Used internally by the framework.
+    /// </summary>
+    public int EscapeIndex { get; }
+
+    /// <summary>
+    /// Gets the internal command arguments with global options removed. Used internally by the framework.
+    /// </summary>
+    public ReadOnlyMemory<string> InternalCommandArgs { get; }
+
+    /// <summary>
+    /// Gets the arguments intended for the current command, excluding the command name and any escaped arguments after '--'.
+    /// </summary>
     public ReadOnlySpan<string> CommandArguments
     {
         get => (EscapeIndex == -1)
-            ? Arguments.AsSpan(CommandDepth)
-            : Arguments.AsSpan(CommandDepth, EscapeIndex - CommandDepth);
+            ? Arguments.Span.Slice(CommandDepth)
+            : Arguments.Span.Slice(CommandDepth, EscapeIndex - CommandDepth);
     }
 
+    /// <summary>
+    /// Gets the arguments that appear after the escape separator ('--'), which are not parsed by the command.
+    /// Returns an empty span if no escape separator is present.
+    /// </summary>
     public ReadOnlySpan<string> EscapedArguments
     {
         get => (EscapeIndex == -1)
             ? Array.Empty<string>()
-            : Arguments.AsSpan(EscapeIndex + 1);
+            : Arguments.Span.Slice(EscapeIndex + 1);
     }
 
-    public ConsoleAppContext(string commandName, string[] arguments, string[] commandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
+    public ConsoleAppContext(string commandName, ReadOnlyMemory<string> arguments, ReadOnlyMemory<string> internalCommandArgs, object? state, object? globalOptions, int commandDepth, int escapeIndex)
     {
         this.CommandName = commandName;
         this.Arguments = arguments;
-        this.InternalCommandArgs = commandArgs;
+        this.InternalCommandArgs = internalCommandArgs;
         this.State = state;
         this.GlobalOptions = globalOptions;
         this.CommandDepth = commandDepth;
         this.EscapeIndex = escapeIndex;
     }
 
+    /// <summary>
+    /// Returns a string representation of all arguments joined by spaces.
+    /// </summary>
+    /// <returns>A space-separated string of all arguments.</returns>
     public override string ToString()
     {
-        return string.Join(" ", Arguments);
+        return string.Join(" ", Arguments.ToArray());
     }
 }
 
@@ -189,7 +230,7 @@ internal static partial class ConsoleApp
     /// ConsoleApp.Run(args, Foo);<br/>
     /// ConsoleApp.Run(args, &amp;Foo);<br/>
     /// </summary>
-    public static void Run(string[] args)
+    public static void Run(ReadOnlyMemory<string> args)
     {
     }
 
@@ -199,7 +240,7 @@ internal static partial class ConsoleApp
     /// ConsoleApp.RunAsync(args, Foo);<br/>
     /// ConsoleApp.RunAsync(args, &amp;Foo);<br/>
     /// </summary>
-    public static Task RunAsync(string[] args)
+    public static Task RunAsync(ReadOnlyMemory<string> args)
     {
         return Task.CompletedTask;
     }
@@ -469,10 +510,10 @@ internal static partial class ConsoleApp
         partial void AddCore(string commandName, Delegate command);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        partial void RunCore(string[] args, CancellationToken cancellationToken);
+        partial void RunCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result);
+        partial void RunAsyncCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken, ref Task result);
 
         partial void BuildAndSetServiceProvider(ConsoleAppContext context);
 
@@ -516,21 +557,24 @@ internal static partial class ConsoleApp
             return this;
         }
 
-        async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, int escapeIndex, ConsoleAppFilter invoker, CancellationToken cancellationToken)
+        async Task RunWithFilterAsync(string commandName, ReadOnlyMemory<string> args, int commandDepth, ConsoleAppFilter invoker, CancellationToken cancellationToken)
         {
             using var posixSignalHandler = PosixSignalHandler.Register(Timeout, cancellationToken);
             try
             {
+                var escapeIndex = args.Span.IndexOf("--");
+                var commandArgs = (escapeIndex == -1) ? args.Slice(commandDepth) : args.Slice(commandDepth, escapeIndex - commandDepth);
+
                 ConsoleAppContext context;
                 if (configureGlobalOptions == null)
                 {
-                    context = new ConsoleAppContext(commandName, args, args, null, null, commandDepth, escapeIndex);
+                    context = new ConsoleAppContext(commandName, args, commandArgs, null, null, commandDepth, escapeIndex);
                 }
                 else
                 {
-                    var builder = new GlobalOptionsBuilder(args);
+                    var builder = new GlobalOptionsBuilder(commandArgs);
                     var globalOptions = configureGlobalOptions(ref builder);
-                    context = new ConsoleAppContext(commandName, args, builder.RemainingArgs.ToArray(), null, globalOptions, commandDepth, escapeIndex);
+                    context = new ConsoleAppContext(commandName, args, builder.RemainingArgs, null, globalOptions, commandDepth, escapeIndex);
                 }
                 BuildAndSetServiceProvider(context);
 
@@ -566,11 +610,11 @@ internal static partial class ConsoleApp
 
     internal ref struct GlobalOptionsBuilder
     {
-        Span<string> args;
+        ReadOnlyMemory<string> args;
 
-        public Span<string> RemainingArgs => args;
+        public ReadOnlyMemory<string> RemainingArgs => args;
 
-        public GlobalOptionsBuilder(Span<string> args)
+        public GlobalOptionsBuilder(ReadOnlyMemory<string> args)
         {
             this.args = args;
         }
@@ -580,9 +624,10 @@ internal static partial class ConsoleApp
             var aliasCount = name.AsSpan().Count("|") + 1;
             if (aliasCount == 1)
             {
-                for (int i = 0; i < args.Length; i++)
+                var span = args.Span;
+                for (int i = 0; i < span.Length; i++)
                 {
-                    if (args[i].Equals(name, StringComparison.OrdinalIgnoreCase))
+                    if (span[i].Equals(name, StringComparison.OrdinalIgnoreCase))
                     {
                         return ParseArgument<T>(ref args, i);
                     }
@@ -596,9 +641,10 @@ internal static partial class ConsoleApp
                     var name1 = name.AsSpan()[aliases[0]].Trim();
                     var name2 = name.AsSpan()[aliases[1]].Trim();
 
-                    for (int i = 0; i < args.Length; i++)
+                    var span = args.Span;
+                    for (int i = 0; i < span.Length; i++)
                     {
-                        if (args[i].AsSpan().Equals(name1, StringComparison.OrdinalIgnoreCase) || args[i].AsSpan().Equals(name2, StringComparison.OrdinalIgnoreCase))
+                        if (span[i].AsSpan().Equals(name1, StringComparison.OrdinalIgnoreCase) || span[i].AsSpan().Equals(name2, StringComparison.OrdinalIgnoreCase))
                         {
                             return ParseArgument<T>(ref args, i);
                         }
@@ -606,9 +652,10 @@ internal static partial class ConsoleApp
                 }
                 else
                 {
-                    for (int i = 0; i < args.Length; i++)
+                    var span = args.Span;
+                    for (int i = 0; i < span.Length; i++)
                     {
-                        if (Contains(name, aliases, args[i]))
+                        if (Contains(name, aliases, span[i]))
                         {
                             return ParseArgument<T>(ref args, i);
                         }
@@ -626,9 +673,10 @@ internal static partial class ConsoleApp
             var aliasCount = name.AsSpan().Count("|") + 1;
             if (aliasCount == 1)
             {
-                for (int i = 0; i < args.Length; i++)
+                var span = args.Span;
+                for (int i = 0; i < span.Length; i++)
                 {
-                    if (args[i].Equals(name, StringComparison.OrdinalIgnoreCase))
+                    if (span[i].Equals(name, StringComparison.OrdinalIgnoreCase))
                     {
                         return ParseArgument<T>(ref args, i);
                     }
@@ -642,9 +690,10 @@ internal static partial class ConsoleApp
                     var name1 = name.AsSpan()[aliases[0]].Trim();
                     var name2 = name.AsSpan()[aliases[1]].Trim();
 
-                    for (int i = 0; i < args.Length; i++)
+                    var span = args.Span;
+                    for (int i = 0; i < span.Length; i++)
                     {
-                        if (args[i].AsSpan().Equals(name1, StringComparison.OrdinalIgnoreCase) || args[i].AsSpan().Equals(name2, StringComparison.OrdinalIgnoreCase))
+                        if (span[i].AsSpan().Equals(name1, StringComparison.OrdinalIgnoreCase) || span[i].AsSpan().Equals(name2, StringComparison.OrdinalIgnoreCase))
                         {
                             return ParseArgument<T>(ref args, i);
                         }
@@ -652,9 +701,10 @@ internal static partial class ConsoleApp
                 }
                 else
                 {
-                    for (int i = 0; i < args.Length; i++)
+                    var span = args.Span;
+                    for (int i = 0; i < span.Length; i++)
                     {
-                        if (Contains(name, aliases, args[i]))
+                        if (Contains(name, aliases, span[i]))
                         {
                             return ParseArgument<T>(ref args, i);
                         }
@@ -666,7 +716,7 @@ internal static partial class ConsoleApp
             return default;
         }
 
-        static T ParseArgument<T>(ref Span<string> args, int i)
+        static T ParseArgument<T>(ref ReadOnlyMemory<string> args, int i)
         {
             if (typeof(T) == typeof(bool))
             {
@@ -678,24 +728,24 @@ internal static partial class ConsoleApp
             {
                 if ((i + 1) < args.Length)
                 {
-                    if (TryParse<T>(args[i + 1], out var value))
+                    if (TryParse<T>(args.Span[i + 1], out var value))
                     {
                         RemoveRange(ref args, i, 2);
                         return value;
                     }
 
-                    ThrowArgumentParseFailed(args[i], args[i + 1]);
+                    ThrowArgumentParseFailed(args.Span[i], args.Span[i + 1]);
                 }
                 else
                 {
-                    ThrowArgumentParseFailed(args[i], "");
+                    ThrowArgumentParseFailed(args.Span[i], "");
                 }
             }
 
             return default;
         }
 
-        static void RemoveRange(ref Span<string> args, int index, int length)
+        static void RemoveRange(ref ReadOnlyMemory<string> args, int index, int length)
         {
             if (length <= 0) return;
 
@@ -713,8 +763,8 @@ internal static partial class ConsoleApp
 
             // Otherwise, need to copy
             var temp = new string[args.Length - length];
-            args.Slice(0, index).CopyTo(temp);
-            args.Slice(index + length).CopyTo(temp.AsSpan(index));
+            args.Span.Slice(0, index).CopyTo(temp);
+            args.Span.Slice(index + length).CopyTo(temp.AsSpan(index));
             args = temp;
         }
 
@@ -1027,10 +1077,10 @@ internal static partial class ConsoleApp
 {
     internal partial class ConsoleAppBuilder
     {
-        public void Run(string[] args) => Run(args, true);
-        public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, cancellationToken);
+        public void Run(ReadOnlyMemory<string> args) => Run(args, true);
+        public void Run(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => Run(args, true, cancellationToken);
 
-        public void Run(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public void Run(ReadOnlyMemory<string> args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1048,10 +1098,10 @@ internal static partial class ConsoleApp
             }
         }
 
-        public Task RunAsync(string[] args) => RunAsync(args, true);
-        public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, cancellationToken);
+        public Task RunAsync(ReadOnlyMemory<string> args) => RunAsync(args, true);
+        public Task RunAsync(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => RunAsync(args, true, cancellationToken);
 
-        public async Task RunAsync(string[] args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public async Task RunAsync(ReadOnlyMemory<string> args, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1105,10 +1155,10 @@ internal static partial class ConsoleApp
         Microsoft.Extensions.Hosting.IHost? host;
         bool startHost;
 
-        public void Run(string[] args) => Run(args, true, true, true);
-        public void Run(string[] args, CancellationToken cancellationToken) => Run(args, true, true, true, cancellationToken);
+        public void Run(ReadOnlyMemory<string> args) => Run(args, true, true, true);
+        public void Run(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => Run(args, true, true, true, cancellationToken);
         
-        public void Run(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public void Run(ReadOnlyMemory<string> args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             this.startHost = startHost;
             try
@@ -1132,10 +1182,10 @@ internal static partial class ConsoleApp
             }
         }
 
-        public Task RunAsync(string[] args) => RunAsync(args, true, true, true);
-        public Task RunAsync(string[] args, CancellationToken cancellationToken) => RunAsync(args, true, true, true, cancellationToken);
+        public Task RunAsync(ReadOnlyMemory<string> args) => RunAsync(args, true, true, true);
+        public Task RunAsync(ReadOnlyMemory<string> args, CancellationToken cancellationToken) => RunAsync(args, true, true, true, cancellationToken);
 
-        public async Task RunAsync(string[] args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
+        public async Task RunAsync(ReadOnlyMemory<string> args, bool startHost, bool stopHost, bool disposeServiceProvider, CancellationToken cancellationToken = default)
         {
             this.startHost = startHost;
             try

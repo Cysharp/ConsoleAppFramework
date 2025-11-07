@@ -1,61 +1,39 @@
 ﻿using ConsoleAppFramework;
-using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-args = ["cmd-a", "--x", "10", "--y", "20", "--int-parameter", "1000"];
-
-var app = ConsoleApp.Create();
-
-// builder: Func<ref ConsoleApp.GlobalOptionsBuilder, object>
-app.ConfigureGlobalOptions((ref builder) =>
+public static class Program
 {
-    var dryRun = builder.AddGlobalOption<bool>("--dry-run");
-    var verbose = builder.AddGlobalOption<bool>("-v|--verbose");
-    var intParameter = builder.AddRequiredGlobalOption<int>("--int-parameter", "integer parameter");
-
-    // return value stored to ConsoleAppContext.GlobalOptions
-    return new GlobalOptions(dryRun, verbose, intParameter);
-});
-
-app.ConfigureServices((context, _, services) =>
-{
-    // store global-options to DI
-    var globalOptions = (GlobalOptions)context.GlobalOptions;
-    services.AddSingleton(globalOptions);
-
-    // check global-options value to configure services
-    //services.AddLogging(logging =>
-    //{
-    //    if (globalOptions.Verbose)
-    //    {
-    //        logging.SetMinimumLevel(LogLevel.Trace);
-    //    }
-    //});
-});
-
-app.ConfigureLogging((context, _, services) =>
-{
-});
-
-app.Add<Commands>();
-
-app.Run(args);
-
-internal record GlobalOptions(bool DryRun, bool Verbose, int IntParameter);
-
-// get GlobalOptions from DI
-internal class Commands(GlobalOptions globalOptions)
-{
-    [Command("cmd-a")]
-    public void CommandA(int x, int y)
+    public static void Main(string[] args)
     {
-        Console.WriteLine("A:" + globalOptions + ":" + (x, y));
+        var app = ConsoleApp.Create();
+
+        app.Add("", (CancellationToken cancellationToken, ConsoleAppContext ctx) => { });
+
+        app.Run(args, CancellationToken.None);
+
     }
+}
 
-    [Command("cmd-b")]
-    public void CommandB(int x, int y)
+internal record GlobalOptions(string Flag);
+
+internal class Commands
+{
+    [Command("some-command")]
+    public void SomeCommand([Argument] string commandArg, ConsoleAppContext context)
     {
-        Console.WriteLine("B:" + globalOptions + ":" + (x, y));
+        Console.WriteLine($"ARG: {commandArg}");
+        Console.WriteLine($"ESCAPED: {string.Join(", ", context.EscapedArguments.ToArray()!)}");
+    }
+}
+
+internal class SomeFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+{
+    public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"FLAG: {((GlobalOptions)context.GlobalOptions!).Flag}");
+        await Next.InvokeAsync(context, cancellationToken);
     }
 }

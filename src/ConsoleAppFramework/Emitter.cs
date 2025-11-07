@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Reflection.Metadata;
+using System.Text;
 
 namespace ConsoleAppFramework;
 
@@ -19,6 +20,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
         if (command.HasFilter)
         {
+            // filter no needs special emit before parse
             isRunAsync = true;
             hasCancellationToken = false;
             hasConsoleAppContext = false;
@@ -31,7 +33,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         var commandMethodType = command.BuildDelegateSignature(commandWithId.BuildCustomDelegateTypeName(), out var delegateType);
         if (commandMethodType != null)
         {
-            commandMethodType = $", {commandMethodType} command";
+            commandMethodType = $"{commandMethodType} command";
         }
 
         // emit custom delegate type
@@ -41,14 +43,10 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             sb.AppendLine();
         }
 
-        var commandDepthEscapeIndex = emitForBuilder ? ", int commandDepth, int escapeIndex" : "";
-        var filterCancellationToken = command.HasFilter ? ", ConsoleAppContext context, CancellationToken cancellationToken"
-                                    : emitForBuilder ? ", CancellationToken __ExternalCancellationToken__"
-                                    : "";
-        var cancellationTokenName = command.HasFilter ? "cancellationToken"
-                                    : emitForBuilder ? "__ExternalCancellationToken__"
-                                    : "CancellationToken.None";
+        var cancellationTokenName = (emitForBuilder) ? "cancellationToken" : null;
+        var cancellationTokenParameter = cancellationTokenName != null ? "CancellationToken cancellationToken" : null;
 
+        // TODO: to parser
         string? dynamicDependencyAttribute = null;
         if (command.CommandMethodInfo == null &&
             command.Symbol.Value is IMethodSymbol dynamicDependencyMethod &&
@@ -82,34 +80,39 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         {
             sb.AppendLine(dynamicDependencyAttribute);
         }
-        using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}(string[] args{commandDepthEscapeIndex}{commandMethodType}{filterCancellationToken})"))
+
+        var methodArgument = command.HasFilter
+            ? Join(", ", commandMethodType, "ConsoleAppContext context", "CancellationToken cancellationToken")
+            : Join(", ", "ReadOnlyMemory<string> args", (emitForBuilder ? "int commandDepth" : ""), commandMethodType, cancellationTokenParameter);
+
+        using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}({methodArgument})"))
         {
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
-                if (emitForBuilder)
+                // prepare commandArgs
+                if (command.HasFilter)
                 {
-                    sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan(commandDepth) : args.AsSpan(commandDepth, escapeIndex - commandDepth);");
+                    sb.AppendLine("var commandArgs = context.InternalCommandArgs.Span;"); // already prepared and craeted ConsoleAppContext
                 }
                 else
                 {
-                    if (hasConsoleAppContext)
+                    sb.AppendLine("var escapeIndex = args.Span.IndexOf(\"--\");");
+                    if (!emitForBuilder)
                     {
-                        sb.AppendLine("var escapeIndex = args.AsSpan().IndexOf(\"--\");");
-                        sb.AppendLine("var commandArgs = (escapeIndex == -1) ? args.AsSpan() : args.AsSpan(0, escapeIndex);");
+                        sb.AppendLine("var commandDepth = 0;");
                     }
-                    else
-                    {
-                        sb.AppendLine("var commandArgs = args.AsSpan();");
-                    }
+
+                    sb.AppendLine("var commandArgsMemory = (escapeIndex == -1) ? args.Slice(commandDepth) : args.Slice(commandDepth, escapeIndex - commandDepth);");
+                    sb.AppendLine("var commandArgs = commandArgsMemory.Span;");
                 }
 
                 sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
                 sb.AppendLine();
 
-                // prepare argument variables
+                // setup-timer
                 if (hasCancellationToken)
                 {
-                    sb.AppendLine($"using var posixSignalHandler = PosixSignalHandler.Register(Timeout, {cancellationTokenName});");
+                    sb.AppendLine($"using var posixSignalHandler = PosixSignalHandler.Register(Timeout, {cancellationTokenName ?? "CancellationToken.None"});");
                     sb.AppendLine();
                     cancellationTokenName = "posixSignalHandler.Token";
                 }
@@ -121,14 +124,14 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                         sb.AppendLine("ConsoleAppContext context;");
                         using (sb.BeginBlock("if (configureGlobalOptions == null)"))
                         {
-                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, commandDepth, escapeIndex);");
+                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, commandArgsMemory, null, null, commandDepth, escapeIndex);");
                         }
                         using (sb.BeginBlock("else"))
                         {
-                            sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgs);");
+                            sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgsMemory);");
                             sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
-                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, args, null, globalOptions, commandDepth, escapeIndex);");
-                            sb.AppendLine("commandArgs = builder.RemainingArgs;");
+                            sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, builder.RemainingArgs, null, globalOptions, commandDepth, escapeIndex);");
+                            sb.AppendLine("commandArgs = builder.RemainingArgs.Span;");
                         }
                         sb.AppendLine("BuildAndSetServiceProvider(context);");
 
@@ -150,7 +153,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     }
                     else
                     {
-                        sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", args, args, null, null, 0, escapeIndex);");
+                        sb.AppendLine($"var context = new ConsoleAppContext(\"{command.Name}\", args, commandArgsMemory, null, null, commandDepth, escapeIndex);");
                     }
                     sb.AppendLine();
                 }
@@ -497,11 +500,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             if (emitSync)
             {
                 sb.AppendLine();
-                using (sb.BeginBlock("partial void RunCore(string[] args, CancellationToken cancellationToken)"))
+                using (sb.BeginBlock("partial void RunCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken)"))
                 {
                     if (hasRootCommand)
                     {
-                        using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
+                        using (sb.BeginBlock("if (args.Length == 1 && args.Span[0] is \"--help\" or \"-h\")"))
                         {
                             sb.AppendLine("ShowHelp(-1);");
                             sb.AppendLine("return;");
@@ -516,11 +519,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             if (emitAsync)
             {
                 sb.AppendLine();
-                using (sb.BeginBlock("partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result)"))
+                using (sb.BeginBlock("partial void RunAsyncCore(ReadOnlyMemory<string> args, CancellationToken cancellationToken, ref Task result)"))
                 {
                     if (hasRootCommand)
                     {
-                        using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
+                        using (sb.BeginBlock("if (args.Length == 1 && args.Span[0] is \"--help\" or \"-h\")"))
                         {
                             sb.AppendLine("ShowHelp(-1);");
                             sb.AppendLine("return;");
@@ -592,7 +595,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 return;
             }
 
-            using (sb.BeginBlock($"switch (args[{depth}])"))
+            using (sb.BeginBlock($"switch (args.Span[{depth}])"))
             {
                 foreach (var commands in groupedCommands.Where(x => x.Key != ""))
                 {
@@ -630,7 +633,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             {
                 if (command == null)
                 {
-                    sb.AppendLine($"if (!TryShowHelpOrVersion(args.AsSpan({depth}), -1, -1)) ShowHelp(-1);");
+                    sb.AppendLine($"if (!TryShowHelpOrVersion(args.Span.Slice({depth}), -1, -1)) ShowHelp(-1);");
                 }
                 else
                 {
@@ -644,18 +647,18 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     {
                         if (!isRunAsync)
                         {
-                            sb.AppendLine($"RunCommand{command.Id}(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs}, cancellationToken);");
+                            sb.AppendLine($"RunCommand{command.Id}(args, {depth}{commandArgs}, cancellationToken);");
                         }
                         else
                         {
-                            sb.AppendLine($"result = RunCommand{command.Id}Async(args, {depth}, args.AsSpan().IndexOf(\"--\"){commandArgs}, cancellationToken);");
+                            sb.AppendLine($"result = RunCommand{command.Id}Async(args, {depth}{commandArgs}, cancellationToken);");
                         }
                     }
                     else
                     {
                         var invokerArgument = commandArgs.TrimStart(',', ' ');
                         invokerArgument = (invokerArgument != "") ? $"this, {invokerArgument}" : "this";
-                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, args.AsSpan().IndexOf(\"--\"), new Command{command.Id}Invoker({invokerArgument}).BuildFilter(), cancellationToken)";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, new Command{command.Id}Invoker({invokerArgument}).BuildFilter(), cancellationToken)";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
@@ -692,8 +695,8 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine();
                 using (sb.BeginBlock($"public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)"))
                 {
-                    var cmdArgs = needsCommand ? ", command" : "";
-                    sb.AppendLine($"return builder.RunCommand{command.Id}Async(context.InternalCommandArgs, context.CommandDepth, context.EscapeIndex{cmdArgs}, context, cancellationToken);");
+                    var cmdArgs = needsCommand ? "command, " : "";
+                    sb.AppendLine($"return builder.RunCommand{command.Id}Async({cmdArgs}context, cancellationToken);");
                 }
             }
         }
@@ -1057,6 +1060,21 @@ internal static class ConsoleAppHostBuilderExtensions
     }
 }
 """);
+    }
+
+    string Join(string separator, params string?[] args)
+    {
+        var sb = new StringBuilder();
+        var first = true;
+        foreach (var item in args)
+        {
+            if (string.IsNullOrEmpty(item)) continue;
+
+            if (first) first = false;
+            else sb.Append(separator);
+            sb.Append(item);
+        }
+        return sb.ToString();
     }
 
     internal record CommandWithId(string? FieldType, Command Command, int Id)
