@@ -1,47 +1,26 @@
-﻿using System.CommandLine;
-using System.CommandLine.NamingConventionBinder;
+﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
+using System.CommandLine;
 
 namespace Cocona.Benchmark.External.Commands;
 
 public class SystemCommandLineCommand
 {
-    public static int ExecuteHandler(string s, int i, bool b) => 0;
-
-    public static int Execute(string[] args)
+    public int Execute(string[] args)
     {
-        var command = new RootCommand
-        {
-            new Option<string?>("--str", ["-s"]),
-            new Option<int>("--int", ["-i"]),
-            new Option<bool>("--bool", ["-b"]),
-        };
+        var stringOption = new Option<string>("--str", "-s");
+        var intOption = new Option<int>("--int", "-i");
+        var boolOption = new Option<bool>("--bool", "-b");
+
+        var command = new RootCommand { stringOption, intOption, boolOption };
 
         command.SetAction(parseResult =>
         {
-            var handler = CommandHandler.Create(ExecuteHandler);
-            return handler.InvokeAsync(parseResult);
+            _ = parseResult.GetValue(stringOption);
+            _ = parseResult.GetValue(intOption);
+            _ = parseResult.GetValue(boolOption);
         });
 
-        ParseResult parseResult = command.Parse(args);
-        return parseResult.Invoke();
-    }
-
-    public static Task<int> ExecuteAsync(string[] args)
-    {
-        var command = new RootCommand
-        {
-            new Option<string?>("--str", ["-s"]),
-            new Option<int>("--int", ["-i"]),
-            new Option<bool>("--bool", ["-b"]),
-        };
-
-        command.SetAction((parseResult, cancellationToken) =>
-        {
-            var handler = CommandHandler.Create(ExecuteHandler);
-            return handler.InvokeAsync(parseResult);
-        });
-
-        ParseResult parseResult = command.Parse(args);
-        return parseResult.InvokeAsync();
+        return command.Parse(args).Invoke();
     }
 }

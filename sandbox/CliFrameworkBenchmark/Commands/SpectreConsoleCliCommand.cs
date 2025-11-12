@@ -17,7 +17,7 @@ public class SpectreConsoleCliCommand : Command<SpectreConsoleCliCommand.Setting
         public bool boolOption { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         return 0;
     }
