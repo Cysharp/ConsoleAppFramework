@@ -37,10 +37,16 @@ public class Benchmark
         return new CliApplicationBuilder().AddCommand(typeof(CliFxCommand)).Build().RunAsync(Arguments);
     }
 
-    [Benchmark(Description = "System.CommandLine")]
+    [Benchmark(Description = "System.CommandLine v2")]
     public int ExecuteWithSystemCommandLine()
     {
-        return new SystemCommandLineCommand().Execute(Arguments);
+        return SystemCommandLineCommand.ParseInvoke(Arguments);
+    }
+
+    [Benchmark(Description = "System.CommandLine v2(InvokeAsync)")]
+    public Task<int> ExecuteWithSystemCommandLineAsync()
+    {
+        return SystemCommandLineCommand.ParseInvokeAsync(Arguments);
     }
 
     //[Benchmark(Description = "McMaster.Extensions.CommandLineUtils")]
@@ -69,9 +75,17 @@ public class Benchmark
     //}
 
     [Benchmark(Description = "ConsoleAppFramework v5", Baseline = true)]
-    public unsafe void ExecuteConsoleAppFramework()
+    public void ExecuteConsoleAppFramework()
     {
-        ConsoleApp.Run(Arguments, &ConsoleAppFrameworkCommandWithCancellationToken.Execute);
+        ConsoleApp.Run(Arguments, ConsoleAppFrameworkCommand.Execute);
+    }
+
+    [Benchmark(Description = "ConsoleAppFramework v5(app with CancellationToken)")]
+    public Task ExecuteConsoleAppFramework2()
+    {
+        var app = ConsoleApp.Create();
+        app.Add("", ConsoleAppFrameworkCommand.ExecuteWithCancellationToken);
+        return app.RunAsync(Arguments);
     }
 
     // for alpha testing

@@ -4,7 +4,7 @@
 
 ConsoleAppFramework v5 is Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator; achieves exceptionally high performance, fastest start-up time(with NativeAOT) and minimal binary size. Leveraging the latest features of .NET 8 and C# 13 ([IncrementalGenerator](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md), [managed function pointer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers#function-pointers-1), [params arrays and default values lambda expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions#input-parameters-of-a-lambda-expression), [`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1), [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration), etc.), this library ensures maximum performance while maintaining flexibility and extensibility.
 
-![image](https://github.com/Cysharp/ConsoleAppFramework/assets/46207/db4bf599-9fe0-4ce4-801f-0003f44d5628)
+![image](https://github.com/user-attachments/assets/4a10fd2b-fa56-467f-8d7f-e47bee634753)
 > Set `RunStrategy=ColdStart WarmupCount=0` to calculate the cold start benchmark, which is suitable for CLI application.
 
 The magical performance is achieved by statically generating everything and parsing inline. Let's take a look at a minimal example:
@@ -745,8 +745,6 @@ You can get the escaped arguments using `ConsoleAppContext.EscapedArguments`. Fr
 While there are some standards for command-line arguments, such as UNIX tools and POSIX, there is no absolute specification. The [Command-line syntax overview for System.CommandLine](https://learn.microsoft.com/en-us/dotnet/standard/commandline/syntax) provides an explanation of the specifications adopted by System.CommandLine. However, ConsoleAppFramework, while referring to these specifications to some extent, does not necessarily aim to fully comply with them.
 
 For example, specifications that change behavior based on `-x` and `-X` or allow bundling `-f -d -x` as `-fdx` are not easy to understand and also take time to parse. The poor performance of System.CommandLine may be influenced by its adherence to complex grammar. Therefore, ConsoleAppFramework prioritizes performance and clear rules. It uses lower-kebab-case as the basis while allowing case-insensitive matching. It does not support ambiguous grammar that cannot be processed in a single pass or takes time to parse.
-
-[System.CommandLine seems to be aiming for a new direction in .NET 9 and .NET 10](https://github.com/dotnet/command-line-api/issues/2338), but from a performance perspective, it will never surpass ConsoleAppFramework.
 
 CancellationToken(Gracefully Shutdown) and Timeout
 ---

@@ -29,19 +29,16 @@ public class ConsoleAppFrameworkCommand
     {
 
     }
-}
 
-public class ConsoleAppFrameworkCommandWithCancellationToken
-{
     /// <summary>
     /// 
     /// </summary>
     /// <param name="str">-s</param>
     /// <param name="intOption">-i</param>
     /// <param name="boolOption">-b</param>
-    public static void Execute(string? str, int intOption, bool boolOption, CancellationToken cancellationToken)
+    public static Task ExecuteWithCancellationToken(string? str, int intOption, bool boolOption, CancellationToken cancellationToken)
     {
-
+        return Task.CompletedTask;
     }
 }
 
