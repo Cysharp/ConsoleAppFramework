@@ -73,6 +73,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
                 // prepare commandArgsMemory
+                var noCommandArgsMemory = false;
                 if (command.HasFilter)
                 {
                     sb.AppendLine("var commandArgsMemory = context.InternalCommandArgs;"); // already prepared and craeted ConsoleAppContext
@@ -91,11 +92,16 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     }
                     else
                     {
-                        sb.AppendLine("ReadOnlyMemory<string> commandArgsMemory = args;");
+                        noCommandArgsMemory = true; // emit help directly
+                        sb.AppendLine($"ReadOnlySpan<string> commandArgs = args;");
+                        sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
                     }
                 }
 
-                sb.AppendLine($"if (TryShowHelpOrVersion(commandArgsMemory.Span, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
+                if (!noCommandArgsMemory)
+                {
+                    sb.AppendLine($"if (TryShowHelpOrVersion(commandArgsMemory.Span, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
+                }
                 sb.AppendLine();
 
                 // setup-timer
@@ -198,7 +204,10 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     sb.AppendLine("var argumentPosition = 0;");
                 }
 
-                sb.AppendLine("var commandArgs = commandArgsMemory.Span;");
+                if (!noCommandArgsMemory)
+                {
+                    sb.AppendLine("var commandArgs = commandArgsMemory.Span;");
+                }
                 using (sb.BeginBlock("for (int i = 0; i < commandArgs.Length; i++)"))
                 {
                     sb.AppendLine("var name = commandArgs[i];");
