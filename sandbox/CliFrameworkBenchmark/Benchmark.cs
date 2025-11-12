@@ -40,7 +40,7 @@ public class Benchmark
     [Benchmark(Description = "System.CommandLine")]
     public int ExecuteWithSystemCommandLine()
     {
-        return SystemCommandLineCommand.Execute(Arguments);
+        return new SystemCommandLineCommand().Execute(Arguments);
     }
 
     //[Benchmark(Description = "McMaster.Extensions.CommandLineUtils")]
@@ -71,7 +71,7 @@ public class Benchmark
     [Benchmark(Description = "ConsoleAppFramework v5", Baseline = true)]
     public unsafe void ExecuteConsoleAppFramework()
     {
-        ConsoleApp.Run(Arguments, &ConsoleAppFrameworkCommand.Execute);
+        ConsoleApp.Run(Arguments, &ConsoleAppFrameworkCommandWithCancellationToken.Execute);
     }
 
     // for alpha testing
