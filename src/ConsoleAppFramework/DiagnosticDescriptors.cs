@@ -4,12 +4,42 @@ namespace ConsoleAppFramework;
 
 internal sealed class DiagnosticReporter
 {
+    // store diagnostics and deduplicate identical diagnostics (by id, location span and message args)
     List<Diagnostic>? diagnostics;
+    HashSet<string>? diagnosticKeys;
 
     public bool HasDiagnostics => diagnostics != null && diagnostics.Count != 0;
 
     public void ReportDiagnostic(DiagnosticDescriptor diagnosticDescriptor, Location location, params object?[]? messageArgs)
     {
+        // Build a lightweight key to avoid reporting the same diagnostic multiple times.
+        // Use descriptor id + source span + message args to determine uniqueness.
+        var span = location.SourceSpan;
+        var key = diagnosticDescriptor.Id + "|" + span.Start + ":" + span.End;
+        if (messageArgs != null && messageArgs.Length > 0)
+        {
+            try
+            {
+                key += "|" + string.Join("|", messageArgs.Select(x => x?.ToString() ?? "<null>"));
+            }
+            catch
+            {
+                // fall back to simple hash if messageArgs can't be stringified for some reason
+                key += "|args_hash:" + (messageArgs?.GetHashCode() ?? 0);
+            }
+        }
+
+        if (diagnosticKeys == null)
+        {
+            diagnosticKeys = new HashSet<string>();
+        }
+
+        if (!diagnosticKeys.Add(key))
+        {
+            // already reported
+            return;
+        }
+
         var diagnostic = Diagnostic.Create(diagnosticDescriptor, location, messageArgs);
         if (diagnostics == null)
         {
