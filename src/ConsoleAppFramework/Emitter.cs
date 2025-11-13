@@ -660,7 +660,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     {
                         var invokerArgument = commandArgs.TrimStart(',', ' ');
                         invokerArgument = (invokerArgument != "") ? $"this, {invokerArgument}" : "this";
-                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, new Command{command.Id}Invoker({invokerArgument}).BuildFilter(), cancellationToken)";
+                        var invokeCode = $"RunWithFilterAsync(\"{command.Command.Name}\", args, {depth}, new Command{command.Id}Invoker({invokerArgument}), cancellationToken)";
                         if (!isRunAsync)
                         {
                             sb.AppendLine($"{invokeCode}.GetAwaiter().GetResult();");
@@ -681,7 +681,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             if (needsCommand) commandType = $"{commandType} command";
             if (!string.IsNullOrEmpty(commandType)) commandType = ", " + commandType;
 
-            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker(ConsoleAppBuilder builder{commandType}) : ConsoleAppFilter(null!)"))
+            using (sb.BeginBlock($"sealed class Command{command.Id}Invoker(ConsoleAppBuilder builder{commandType}) : ConsoleAppFilter(null!), IFilterFactory"))
             {
                 using (sb.BeginBlock($"public ConsoleAppFilter BuildFilter()"))
                 {

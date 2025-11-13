@@ -199,6 +199,11 @@ internal class ConsoleAppFrameworkGeneratorOptionsAttribute : Attribute
     public bool DisableNamingConversion { get; set; }
 }
 
+internal interface IFilterFactory
+{
+    public ConsoleAppFilter BuildFilter();
+}
+
 internal delegate object FuncGlobalOptionsBuilderObject(ref ConsoleApp.GlobalOptionsBuilder builder);
 
 [UnconditionalSuppressMessage("Trimming", "IL2026")]
@@ -559,7 +564,7 @@ internal static partial class ConsoleApp
             return this;
         }
 
-        async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, ConsoleAppFilter invoker, CancellationToken cancellationToken)
+        async Task RunWithFilterAsync(string commandName, string[] args, int commandDepth, IFilterFactory filterFactory, CancellationToken cancellationToken)
         {
             using var posixSignalHandler = PosixSignalHandler.Register(Timeout, cancellationToken);
             try
@@ -587,6 +592,7 @@ internal static partial class ConsoleApp
                     await startHostTask;
                 }
 
+                var invoker = filterFactory.BuildFilter();
                 await Task.Run(() => invoker.InvokeAsync(context, posixSignalHandler.Token)).WaitAsync(posixSignalHandler.TimeoutToken);
             }
             catch (Exception ex)
