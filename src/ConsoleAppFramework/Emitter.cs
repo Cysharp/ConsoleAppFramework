@@ -801,6 +801,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             {
                 sb.AppendLine("Action<ConsoleAppContext, IServiceCollection>? configureServices;");
             }
+            sb.AppendLine("Func<IServiceCollection, IServiceProvider>? createServiceProvider;");
 
             // methods
             if (dllReference.HasConfiguration)
@@ -849,6 +850,20 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
+            }
+
+            sb.AppendLine();
+            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureContainer<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory, Action<TContainerBuilder>? configure = null) where TContainerBuilder : notnull"))
+            {
+                using (sb.BeginBlock("createServiceProvider = services =>"))
+                {
+                    sb.AppendLine("var containerBuilder = factory.CreateBuilder(services);");
+                    sb.AppendLine("configure?.Invoke(containerBuilder);");
+                    sb.AppendLine("return factory.CreateServiceProvider(containerBuilder);");
+                }
+                sb.AppendLine(";");
+
+                sb.AppendLine("return this;");
             }
 
             sb.AppendLine();
@@ -971,7 +986,14 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     }
                 }
 
-                sb.AppendLine("ConsoleApp.ServiceProvider = services.BuildServiceProvider();");
+                using (sb.BeginBlock("if (createServiceProvider != null)"))
+                {
+                    sb.AppendLine("ConsoleApp.ServiceProvider = createServiceProvider.Invoke(services);");
+                }
+                using (sb.BeginBlock("else"))
+                {
+                    sb.AppendLine("ConsoleApp.ServiceProvider = services.BuildServiceProvider();");
+                }
             }
         }
 

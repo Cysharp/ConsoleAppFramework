@@ -1223,7 +1223,7 @@ However, since the construction of the filters is performed before execution, au
 If you have other applications such as ASP.NET in the entire project and want to use common DI and configuration set up using `Microsoft.Extensions.Hosting`, you can call `ToConsoleAppBuilder` from `IHostBuilder` or `HostApplicationBuilder`.
 
 ```csharp
-// Package Import: Microsoft.Extensions.Hosting
+// dotnet add package Microsoft.Extensions.Hosting
 var app = Host.CreateApplicationBuilder()
     .ToConsoleAppBuilder();
 ```
@@ -1231,6 +1231,21 @@ var app = Host.CreateApplicationBuilder()
 In this case, it builds the HostBuilder, creates a Scope for the ServiceProvider, and disposes of all of them after execution.
 
 ConsoleAppFramework has its own lifetime management (see the [CancellationToken(Gracefully Shutdown) and Timeout](#cancellationtokengracefully-shutdown-and-timeout) section), therefore it is handled correctly even without using `ConsoleLifetime`.
+
+If you want to use other DI container(like [DryIoc](https://github.com/dadhi/DryIoc)) without Microsoft.Extensions.Hosting, you can use `ConfigureContainer` and setup `IServiceProviderFactory`.
+
+```csharp
+// dotnet add package Microsoft.Extensions.DependencyInjection
+// dotnet add package DryIoc.Microsoft.DependencyInjection
+var app = ConsoleApp.Create()
+    // setup DryIoc as the DI container
+    .ConfigureContainer(new DryIocServiceProviderFactory())
+    .ConfigureServices(services => services.AddSingleton<MyService>());
+
+app.Add("", ([FromServices] MyService service) => { });
+
+app.Run(args);
+```
 
 OpenTelemetry
 ---
