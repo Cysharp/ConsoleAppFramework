@@ -1239,8 +1239,10 @@ If you want to use other DI container(like [DryIoc](https://github.com/dadhi/Dry
 // dotnet add package DryIoc.Microsoft.DependencyInjection
 var app = ConsoleApp.Create()
     // setup DryIoc as the DI container
-    .ConfigureContainer(new DryIocServiceProviderFactory())
-    .ConfigureServices(services => services.AddSingleton<MyService>());
+    .ConfigureContainer(new DryIocServiceProviderFactory(), container =>
+    {
+        container.Register<MyService>();
+    });
 
 app.Add("", ([FromServices] MyService service) => { });
 

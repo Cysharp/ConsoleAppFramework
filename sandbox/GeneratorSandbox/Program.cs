@@ -2,15 +2,19 @@
 using DryIoc.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Tasks.Dataflow;
+using DryIoc;
 
 // args = "some-command hello --global-flag flag-value -- more args here".Split(" ");
 
 var app = ConsoleApp.Create()
     // setup DryIoc as the DI container
-    .ConfigureContainer(new DryIocServiceProviderFactory())
-    .ConfigureServices(services => services.AddSingleton<MyService>());
+    .ConfigureContainer(new DryIocServiceProviderFactory(), container =>
+    {
+        container.Register<MyService>();
+    });
 
-app.Add("", ([FromServices] MyService service) => { });
+app.UseFilter<MyFilter>();
+app.Add("", ([FromServices] MyService service) => service.Test());
 
 app.Run(args);
 
