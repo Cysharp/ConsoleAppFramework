@@ -338,25 +338,14 @@ public record class CommandParameter
             }
         }
 
+        // for floating-point number, need to use InvaliantCulture(some culture uses ',' as separator)
+        var formattedValue = string.Format(CultureInfo.InvariantCulture, "{0}", DefaultValue);
         if (!castValue)
         {
-            if (DefaultValue is float f)
-            {
-                return f.ToString(CultureInfo.InvariantCulture);
-            }
-            else if (DefaultValue is double d)
-            {
-                return d.ToString(CultureInfo.InvariantCulture);
-            }
-            else if (DefaultValue is decimal m)
-            {
-                return m.ToString(CultureInfo.InvariantCulture);
-            }
-
-            return DefaultValue.ToString();
+            return formattedValue;
         }
 
-        return $"({Type.ToFullyQualifiedFormatDisplayString()}){DefaultValue}";
+        return $"({Type.ToFullyQualifiedFormatDisplayString()}){formattedValue}";
     }
 
     public string ToTypeDisplayString()
