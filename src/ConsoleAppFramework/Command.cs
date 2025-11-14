@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 
 namespace ConsoleAppFramework;
@@ -337,7 +338,24 @@ public record class CommandParameter
             }
         }
 
-        if (!castValue) return DefaultValue.ToString();
+        if (!castValue)
+        {
+            if (DefaultValue is float f)
+            {
+                return f.ToString(CultureInfo.InvariantCulture);
+            }
+            else if (DefaultValue is double d)
+            {
+                return d.ToString(CultureInfo.InvariantCulture);
+            }
+            else if (DefaultValue is decimal m)
+            {
+                return m.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return DefaultValue.ToString();
+        }
+
         return $"({Type.ToFullyQualifiedFormatDisplayString()}){DefaultValue}";
     }
 
