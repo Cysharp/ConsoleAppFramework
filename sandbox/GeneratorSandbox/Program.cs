@@ -6,19 +6,36 @@ using DryIoc;
 
 // args = "some-command hello --global-flag flag-value -- more args here".Split(" ");
 
-var app = ConsoleApp.Create()
-    // setup DryIoc as the DI container
-    .ConfigureContainer(new DryIocServiceProviderFactory(), container =>
+
+// Create a CancellationTokenSource that will be cancelled when 'Q' is pressed.
+var cts = new CancellationTokenSource();
+_ = Task.Run(() =>
+{
+    while (Console.ReadKey().Key != ConsoleKey.Q) ;
+    Console.WriteLine();
+    cts.Cancel();
+});
+
+var app = ConsoleApp.Create();
+
+app.Add("", async (CancellationToken cancellationToken) =>
+{
+    // CancellationToken will be triggered when 'Q' is pressed or Ctrl+C(SIGINT/SIGTERM/SIGKILL) is sent.
+    try
     {
-        container.Register<MyService>();
-    });
+        for (int i = 0; i < 10; i++)
+        {
+            Console.WriteLine($"Running main task iteration {i + 1}/10. Press 'Q' to quit.");
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        Console.WriteLine("Main task was cancelled.");
+    }
+});
 
-app.UseFilter<MyFilter>();
-app.Add("", ([FromServices] MyService service) => service.Test());
-
-app.Run(args);
-
-
+await app.RunAsync(args, cts.Token); // pass external CancellationToken
 
 //app.UseFilter<MyFilter>();
 // app.Run(["cmd", "test"]);
@@ -37,12 +54,12 @@ internal class MyFilter(ConsoleAppFilter next, MyService myService) : ConsoleApp
     }
 }
 
-[RegisterCommands("cmd")]
-public class MyCommand
-{
-    [Command("test")]
-    public int Test()
-    {
-        return 1;
-    }
-}
+//[RegisterCommands("cmd")]
+//public class MyCommand
+//{
+//    [Command("test")]
+//    public int Test()
+//    {
+//        return 1;
+//    }
+//}
