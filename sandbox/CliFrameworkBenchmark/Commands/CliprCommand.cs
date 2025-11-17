@@ -1,6 +1,6 @@
 ﻿using clipr;
 
-namespace Cocona.Benchmark.External.Commands;
+namespace CliFrameworkBenchmarks.Commands;
 
 public class CliprCommand
 {

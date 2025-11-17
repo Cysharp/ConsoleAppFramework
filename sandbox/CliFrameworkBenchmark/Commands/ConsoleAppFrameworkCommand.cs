@@ -1,7 +1,4 @@
-﻿//using ConsoleAppFramework;
-
-//namespace Cocona.Benchmark.External.Commands;
-
+﻿namespace CliFrameworkBenchmarks.Commands;
 //public class ConsoleAppFrameworkCommand : ConsoleAppBase
 //{
 //    public void Execute(
@@ -14,8 +11,6 @@
 //    {
 //    }
 //}
-
-using ConsoleAppFramework;
 
 public class ConsoleAppFrameworkCommand
 {

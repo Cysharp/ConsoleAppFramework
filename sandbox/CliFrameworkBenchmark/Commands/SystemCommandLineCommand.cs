@@ -1,8 +1,6 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
-using System.CommandLine;
+﻿using System.CommandLine;
 
-namespace Cocona.Benchmark.External.Commands;
+namespace CliFrameworkBenchmarks.Commands;
 
 public class SystemCommandLineCommand
 {
