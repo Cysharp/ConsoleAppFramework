@@ -855,6 +855,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             sb.AppendLine();
             using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureContainer<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory, Action<TContainerBuilder>? configure = null) where TContainerBuilder : notnull"))
             {
+                sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                 using (sb.BeginBlock("createServiceProvider = services =>"))
                 {
                     sb.AppendLine("var containerBuilder = factory.CreateBuilder(services);");
@@ -936,17 +937,13 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         // Build
         using (sb.BeginBlock("partial void BuildAndSetServiceProvider(ConsoleAppContext context)"))
         {
-            if (dllReference.HasDependencyInjection && dllReference.HasLogging)
-            {
-                sb.AppendLine("if (configureServices == null && configureLogging == null) return;");
-            }
-            else if (dllReference.HasDependencyInjection)
-            {
-                sb.AppendLine("if (configureServices == null) return;");
-            }
-
             if (dllReference.HasDependencyInjection)
             {
+                using(sb.BeginBlock("if (!isRequireCallBuildAndSetServiceProvider)"))
+                {
+                    sb.AppendLine("return;");
+                }
+
                 if (dllReference.HasConfiguration)
                 {
                     sb.AppendLine("var config = configuration;");

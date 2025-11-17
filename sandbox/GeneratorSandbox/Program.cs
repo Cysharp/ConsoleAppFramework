@@ -1,4 +1,4 @@
-﻿using ConsoleAppFramework;
+using ConsoleAppFramework;
 
 args = "9999 --x 1000".Split(' ');
 
