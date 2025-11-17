@@ -4,16 +4,13 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
 
     <!-- NuGet -->
     <IsPackable>true</IsPackable>
-    <PackageId>ConsoleAppFramework.Abstractions</PackageId>
-    <Description>ConsoleAppFramework external abstractions library.</Description>
+    <PackageId>ConsoleAppFramework.CliSchema</PackageId>
+    <Description>ConsoleAppFramework cli-schema metadata library.</Description>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="ConsoleAppFramework.Abstractions.props" Pack="true" PackagePath="build" />
-  </ItemGroup>
 
 </Project>

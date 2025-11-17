@@ -155,9 +155,11 @@ As you can see from the generated output, the help display is also fast. In typi
 
 Getting Started
 --
-This library is distributed via NuGet, minimal requirement is .NET 8 and C# 13.
+This library is distributed via [NuGet](https://www.nuget.org/packages/ConsoleAppFramework), minimal requirement is .NET 8 and C# 13.
 
-> dotnet add package [ConsoleAppFramework](https://www.nuget.org/packages/ConsoleAppFramework)
+```bash
+dotnet add package ConsoleAppFramework
+```
 
 ConsoleAppFramework is an analyzer (Source Generator) and does not have any dll references. When referenced, the entry point class `ConsoleAppFramework.ConsoleApp` is generated internally.
 
@@ -423,6 +425,33 @@ app.Run(args);
 
 You can also combine this with `Add` or `Add<T>` to add more commands.
 
+### Alias command 
+
+Similar to option aliases, commands also support aliases. In the `Add` method, separating `commandName` or `[Command]` with `|` defines them as aliases.
+
+```csharp
+using ConsoleAppFramework;
+
+var app = ConsoleApp.Create();
+
+app.Add("build|b", () => { });
+app.Add("keyvault|kv", () => { });
+app.Add<Commands>();
+
+app.Run(args);
+
+public class Commands
+{
+    /// <summary>Executes the check command using the specified coordinates.</summary>
+    [Command("check|c")]
+    public void Check() { }
+
+    /// <summary>Build this packages's and its dependencies' documenation.</summary>
+    [Command("doc|d")]
+    public void Doc() { }
+}
+```
+
 ### Performance of Commands
 
 In `ConsoleAppFramework`, the number and types of registered commands are statically determined at compile time. For example, let's register the following four commands:
@@ -571,7 +600,15 @@ When using `ConsoleApp.Run`, you can check the syntax of the command line in the
 
 For the rules on converting parameter names to option names, aliases, and how to set documentation, refer to the [Option aliases](#option-aliases-and-help-version) section.
 
-Parameters marked with the `[Argument]` attribute receive values in order without parameter names. This attribute can only be set on sequential parameters from the beginning.
+Parameters marked with the `[Argument]` attribute receive values in order without parameter names. This attribute allows from first or last.
+
+```csharp
+// cmd.exe "input.txt" "output.txt"
+ConsoleApp.Run(args, ([Argument]string input, [Argument]string output, bool dryRun) => { });
+
+// cmd.exe --message "foo bar baz" "output1.txt" "output2.txt" "output3.txt"
+ConsoleApp.Run(args, (string message, [Argument]params string[] outputs) => { });
+```
 
 To convert from string arguments to various types, basic primitive types (`string`, `char`, `sbyte`, `byte`, `short`, `int`, `long`, `uint`, `ushort`, `ulong`, `decimal`, `float`, `double`) use `TryParse`. For types that implement `ISpanParsable<T>` (`DateTime`, `DateTimeOffset`, `Guid`, `BigInteger`, `Complex`, `Half`, `Int128`, etc.), [IParsable<TSelf>.TryParse](https://learn.microsoft.com/en-us/dotnet/api/system.iparsable-1.tryparse?view=net-8.0#system-ispanparsable-1-tryparse(system-readonlyspan((system-char))-system-iformatprovider-0@)) or [ISpanParsable<TSelf>.TryParse](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1.tryparse?view=net-8.0#system-ispanparsable-1-tryparse(system-readonlyspan((system-char))-system-iformatprovider-0@)) is used.
 
@@ -1428,6 +1465,55 @@ The framework doesn't support colorization directly; however, utilities like [Cy
 
 For more powerful Console UI support, you can also use it in combination with [Spectre.Console](https://spectreconsole.net/).
 
+Cli Schema
+---
+The dotnet command can output command and option information in JSON format using the `--cli-schema` option. In ConsoleAppFramework, by importing the `ConsoleAppFramework.CliSchema` package, you can call the `ConsoleAppBuilder.GetCliSchema()` method.
+
+```bash
+dotnet add package ConsoleAppFramework.CliSchema
+```
+
+```csharp
+var app = ConsoleApp.Create();
+app.Add("foo", (int x, int y) => { });
+
+// get cli-schema as objects
+CommandHelpDefinition[] schema = app.GetCliSchema();
+```
+
+`CommandHelpDefinition` is the same one used internally for help output.
+
+```csharp
+public record CommandHelpDefinition
+{
+    public string CommandName { get; }
+    public CommandOptionHelpDefinition[] Options { get; }
+    public string Description { get; }
+}
+
+public record CommandOptionHelpDefinition
+{
+    public string[] Options { get; }
+    public string Description { get; }
+    public string? DefaultValue { get; }
+    public string ValueTypeName { get; }
+    public int? Index { get; }
+    public bool IsRequired => DefaultValue == null && !IsParams;
+    public bool IsFlag { get; }
+    public bool IsParams { get; }
+    public bool IsHidden { get; }
+    public bool IsDefaultValueHidden { get; }
+    public string FormattedValueTypeName => "<" + ValueTypeName + ">";
+}
+```
+
+You can also convert it to JSON. Since `CliSchemaJsonSerializerContext` is provided, by passing it as a Serialize/Deserialize argument, you can perform Native AOT-compatible conversion.
+
+```csharp
+var json = JsonSerializer.Serialize(schema, CliSchemaJsonSerializerContext.Default.CommandHelpDefinitionArray);
+var schema2 = JsonSerializer.Deserialize(json, CliSchemaJsonSerializerContext.Default.CommandHelpDefinitionArray);
+```
+
 Publish to executable file
 ---
 There are multiple ways to run a CLI application in .NET:
@@ -1439,6 +1525,8 @@ There are multiple ways to run a CLI application in .NET:
 `run` is convenient when you want to execute the `csproj` directly, such as for starting command tools in CI. `build` and `publish` are quite similar, so it's possible to discuss them in general terms, but it's a bit difficult to talk about the precise differences. For more details, it's a good idea to check out [`build` vs `publish` -- can they be friends? · Issue #26247 · dotnet/sdk](https://github.com/dotnet/sdk/issues/26247).
 
 Also, to run with Native AOT, please refer to the [Native AOT deployment overview](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/). In any case, ConsoleAppFramework thoroughly implements a dependency-free and reflection-free approach, so it shouldn't be an obstacle to execution.
+
+There is a method of distributing CLI tools by packaging them as [.NET tools](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools). Also, starting from .NET 10, it is possible to execute them directly from the package manager using [dotnet tool exec(dnx)](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-tool-exec).
 
 v4 -> v5 Migration Guide
 ---

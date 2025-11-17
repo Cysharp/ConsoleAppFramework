@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System.Text;
 
 namespace ConsoleAppFramework;
@@ -45,6 +45,13 @@ public static class CommandHelpBuilder
     public static string BuildCommandHelpMessage(Command command)
     {
         return BuildHelpMessageCore(command, showCommandName: command.Name != "", showCommand: false);
+    }
+
+    public static string BuildCliSchema(IEnumerable<Command> commands)
+    {
+        return "return new[] {\n"
+            + string.Join(", \n", commands.Select(x => CreateCommandHelpDefinition(x).ToCliSchema()))
+            + "\n};";
     }
 
     static string BuildHelpMessageCore(Command command, bool showCommandName, bool showCommand)
@@ -333,6 +340,44 @@ public static class CommandHelpBuilder
             Options = options;
             Description = description;
         }
+
+        public string ToCliSchema()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"new CommandHelpDefinition(");
+            sb.AppendLine($"    \"{EscapeString(CommandName)}\",");
+            sb.AppendLine($"    new CommandOptionHelpDefinition[]");
+            sb.AppendLine($"    {{");
+
+            for (int i = 0; i < Options.Length; i++)
+            {
+                sb.Append("        ");
+                sb.Append(Options[i].ToCliSchema());
+                if (i < Options.Length - 1)
+                {
+                    sb.AppendLine(",");
+                }
+                else
+                {
+                    sb.AppendLine();
+                }
+            }
+
+            sb.AppendLine($"    }},");
+            sb.AppendLine($"    \"{EscapeString(Description)}\"");
+            sb.Append($")");
+
+            return sb.ToString();
+        }
+
+        private static string EscapeString(string str)
+        {
+            return str.Replace("\\", "\\\\")
+                      .Replace("\"", "\\\"")
+                      .Replace("\n", "\\n")
+                      .Replace("\r", "\\r")
+                      .Replace("\t", "\\t");
+        }
     }
 
     class CommandOptionHelpDefinition
@@ -360,6 +405,24 @@ public static class CommandHelpBuilder
             IsParams = isParams;
             IsHidden = isHidden;
             IsDefaultValueHidden = isDefaultValueHidden;
+        }
+
+        public string ToCliSchema()
+        {
+            var optionsArray = string.Join(", ", Options.Select(o => $"\"{EscapeString(o)}\""));
+            var defaultValueStr = DefaultValue == null ? "null" : $"\"{EscapeString(DefaultValue)}\"";
+            var indexStr = Index.HasValue ? Index.Value.ToString() : "null";
+
+            return $"new CommandOptionHelpDefinition(new[] {{ {optionsArray} }}, \"{EscapeString(Description)}\", \"{EscapeString(ValueTypeName)}\", {defaultValueStr}, {indexStr}, {IsFlag.ToString().ToLower()}, {IsParams.ToString().ToLower()}, {IsHidden.ToString().ToLower()}, {IsDefaultValueHidden.ToString().ToLower()})";
+        }
+
+        private static string EscapeString(string str)
+        {
+            return str.Replace("\\", "\\\\")
+                      .Replace("\"", "\\\"")
+                      .Replace("\n", "\\n")
+                      .Replace("\r", "\\r")
+                      .Replace("\t", "\\t");
         }
     }
 }

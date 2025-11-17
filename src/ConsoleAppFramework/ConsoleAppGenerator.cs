@@ -28,6 +28,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 var hasConfiguration = false;
                 var hasJsonConfiguration = false;
                 var hasHost = false;
+                var hasCliSchema = false;
 
                 foreach (var x in xs)
                 {
@@ -63,9 +64,15 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                         hasHost = true;
                         continue;
                     }
+
+                    if (!hasCliSchema && name.EndsWith("ConsoleAppFramework.CliSchema.dll")) // CliConfigurationSchema
+                    {
+                        hasCliSchema = true;
+                        continue;
+                    }
                 }
 
-                return new DllReference(hasDependencyInjection, hasLogging, hasConfiguration, hasJsonConfiguration, hasHost);
+                return new DllReference(hasDependencyInjection, hasLogging, hasConfiguration, hasJsonConfiguration, hasHost, hasCliSchema);
             });
 
         context.RegisterSourceOutput(hasReferences, EmitConsoleAppConfigure);
@@ -309,6 +316,11 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
             var emitter = new Emitter(dllReference);
             emitter.EmitHelp(help, commandIds!);
+
+            if (dllReference.HasCliSchema)
+            {
+                emitter.EmitCliSchema(help, commandIds!);
+            }
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.Help.g.cs", help.ToString().ReplaceLineEndings());
     }
@@ -496,7 +508,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             if (configureGlobalOptionsGroup.Count() >= 2)
             {
                 var node = configureGlobalOptionsGroup.Last().Item1.Node;
-                
+
                 DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateConfigureGlobalOptions, node.Expression.GetLocation());
             }
 

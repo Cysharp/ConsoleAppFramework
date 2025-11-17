@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1F399F98-7439-4F05-847B-CC1267B4B7F2}"
 EndProject
@@ -18,8 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
 		Directory.Build.props = Directory.Build.props
-		ReadMe.md = ReadMe.md
 		exclusion.dic = exclusion.dic
+		ReadMe.md = ReadMe.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleAppFramework", "src\ConsoleAppFramework\ConsoleAppFramework.csproj", "{09BEEA7B-B6D3-4011-BCAB-6DF976713695}"
@@ -37,6 +37,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FilterShareProject", "sandbox\FilterShareProject\FilterShareProject.csproj", "{2A1E8ED1-CEB9-47CB-8497-A0C4F5A8F025}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NativeAotTrimming", "tests\NativeAotTrimming\NativeAotTrimming.csproj", "{B14EB164-AC1E-4B0C-9CEB-312B233195E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppFramework.CliSchema", "src\ConsoleAppFramework.CliSchema\ConsoleAppFramework.CliSchema.csproj", "{52BC6A88-9699-420A-AAC3-A3C129EC7219}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -144,6 +146,18 @@ Global
 		{B14EB164-AC1E-4B0C-9CEB-312B233195E5}.Release|x64.Build.0 = Release|Any CPU
 		{B14EB164-AC1E-4B0C-9CEB-312B233195E5}.Release|x86.ActiveCfg = Release|Any CPU
 		{B14EB164-AC1E-4B0C-9CEB-312B233195E5}.Release|x86.Build.0 = Release|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Debug|x64.Build.0 = Debug|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Debug|x86.Build.0 = Debug|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Release|x64.ActiveCfg = Release|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Release|x64.Build.0 = Release|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Release|x86.ActiveCfg = Release|Any CPU
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -157,6 +171,7 @@ Global
 		{855B0D28-DC69-470B-B3D9-481EE52737AA} = {1F399F98-7439-4F05-847B-CC1267B4B7F2}
 		{2A1E8ED1-CEB9-47CB-8497-A0C4F5A8F025} = {A2CF2984-E8E2-48FC-B5A1-58D74A2467E6}
 		{B14EB164-AC1E-4B0C-9CEB-312B233195E5} = {AAD2D900-C305-4449-A9FC-6C7696FFEDFA}
+		{52BC6A88-9699-420A-AAC3-A3C129EC7219} = {1F399F98-7439-4F05-847B-CC1267B4B7F2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7F3E353A-C125-4020-8481-11DC6496358C}

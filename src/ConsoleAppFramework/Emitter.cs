@@ -746,6 +746,14 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
     }
 
+    public void EmitCliSchema(SourceBuilder sb, CommandWithId[] commands)
+    {
+        using (sb.BeginBlock("public CommandHelpDefinition[] GetCliSchema()"))
+        {
+            sb.AppendLine(CommandHelpBuilder.BuildCliSchema(commands.Select(x => x.Command)));
+        }
+    }
+
     public void EmitConfigure(SourceBuilder sb, DllReference dllReference)
     {
         // configuration

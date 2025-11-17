@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ConsoleAppFramework.Abstractions\ConsoleAppFramework.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ConsoleAppFramework.CliSchema\ConsoleAppFramework.CliSchema.csproj" />
     <ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj">
       <OutputItemType>Analyzer</OutputItemType>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
