@@ -259,7 +259,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             return;
         }
 
-        if (!hasRun && !hasRunAsync) return;
+        // need to generate template codes
+        // if (!hasRun && !hasRunAsync) return;
 
         var sb = new SourceBuilder(0);
         sb.AppendLine(ConsoleAppBaseCode.GeneratedCodeHeader);
