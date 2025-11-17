@@ -10,7 +10,7 @@ using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.CsProj;
 using Perfolizer.Horology;
 
-namespace Cocona.Benchmark.External;
+namespace CliFrameworkBenchmarks;
 
 class Program
 {

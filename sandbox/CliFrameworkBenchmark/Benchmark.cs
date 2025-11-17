@@ -4,11 +4,11 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Order;
 using CliFx;
-using Cocona.Benchmark.External.Commands;
+using CliFrameworkBenchmarks.Commands;
 using ConsoleAppFramework;
 using Spectre.Console.Cli;
 
-namespace Cocona.Benchmark.External;
+namespace CliFrameworkBenchmarks;
 
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 public class Benchmark

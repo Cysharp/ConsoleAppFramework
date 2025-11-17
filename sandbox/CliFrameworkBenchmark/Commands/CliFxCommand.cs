@@ -1,9 +1,9 @@
 ﻿using CliFx.Attributes;
 using CliFx.Infrastructure;
 
-namespace Cocona.Benchmark.External.Commands;
+namespace CliFrameworkBenchmarks.Commands;
 
-[CliFx.Attributes.Command]
+[Command]
 public class CliFxCommand : CliFx.ICommand
 {
     [CommandOption("str", 's')]

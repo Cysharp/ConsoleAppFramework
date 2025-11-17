@@ -1,4 +1,4 @@
-﻿namespace Cocona.Benchmark.External.Commands;
+﻿namespace CliFrameworkBenchmarks.Commands;
 
 public class McMasterCommand
 {
