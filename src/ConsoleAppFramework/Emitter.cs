@@ -386,7 +386,14 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
                 if (hasCancellationToken)
                 {
-                    invokeCommand = $"Task.Run(() => {invokeCommand}).WaitAsync(posixSignalHandler.TimeoutToken)";
+                    if (command.IsAsync)
+                    {
+                        invokeCommand = $"{invokeCommand}.WaitAsync(posixSignalHandler.TimeoutToken)";
+                    }
+                    else
+                    {
+                        invokeCommand = $"Task.Run(() => {invokeCommand}).WaitAsync(posixSignalHandler.TimeoutToken)";
+                    }
                 }
                 if (command.IsAsync || hasCancellationToken)
                 {
