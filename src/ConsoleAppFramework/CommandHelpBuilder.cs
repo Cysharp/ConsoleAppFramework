@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using System.Text;
 
 namespace ConsoleAppFramework;
@@ -222,7 +222,7 @@ public static class CommandHelpBuilder
             .Where(x => !x.IsHidden)
             .Select(x =>
             {
-                return (Command: x.Name, x.Description);
+                return (Command: string.Join(", ", x.Name.Split('|')), x.Description);
             })
             .ToArray();
         maxWidth = formatted.Max(x => x.Command.Length);

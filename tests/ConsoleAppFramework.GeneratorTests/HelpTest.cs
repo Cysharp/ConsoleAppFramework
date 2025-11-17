@@ -397,4 +397,40 @@ Options:
 
         return version;
     }
+
+    [Fact]
+    public void CommandAlias()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+
+app.Add("build|b", () => { Console.Write("build ok"); });
+app.Add("test|t", () => { Console.Write("test ok");  });
+app.Add<Commands>();
+
+app.Run(args);
+
+public class Commands
+{
+    /// <summary>Analyze the current package and report errors, but don't build object files.</summary>
+    [Command("check|c")]
+    public void Check() { Console.Write("check ok"); }
+
+    /// <summary>Build this packages's and its dependencies' documenation.</summary>
+    [Command("doc|d")]
+    public void Doc() { Console.Write("doc ok"); }
+}
+""";
+
+        verifier.Execute(code, "--help", """
+Usage: [command] [-h|--help] [--version]
+
+Commands:
+  build, b
+  check, c    Analyze the current package and report errors, but don't build object files.
+  doc, d      Build this packages's and its dependencies' documenation.
+  test, t
+
+""");
+    }
 }

@@ -278,4 +278,38 @@ internal class NopFilter2(ConsoleAppFilter next)
 
         verifier.Execute(code, "nomunomu", "filter1-filter2-command");
     }
+
+    [Fact]
+    public void CommandAlias()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+
+app.Add("build|b", () => { Console.Write("build ok"); });
+app.Add("test|t", () => { Console.Write("test ok");  });
+app.Add<Commands>();
+
+app.Run(args);
+
+public class Commands
+{
+    /// <summary>Analyze the current package and report errors, but don't build object files.</summary>
+    [Command("check|c")]
+    public void Check() { Console.Write("check ok"); }
+
+    /// <summary>Build this packages's and its dependencies' documenation.</summary>
+    [Command("doc|d")]
+    public void Doc() { Console.Write("doc ok"); }
+}
+""";
+
+        verifier.Execute(code, "b", "build ok");
+        verifier.Execute(code, "build", "build ok");
+        verifier.Execute(code, "t", "test ok");
+        verifier.Execute(code, "test", "test ok");
+        verifier.Execute(code, "c", "check ok");
+        verifier.Execute(code, "check", "check ok");
+        verifier.Execute(code, "d", "doc ok");
+        verifier.Execute(code, "doc", "doc ok");
+    }
 }

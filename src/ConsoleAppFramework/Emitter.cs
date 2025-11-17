@@ -465,8 +465,10 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
     public void EmitBuilder(SourceBuilder sb, CommandWithId[] commandIds, bool emitSync, bool emitAsync)
     {
-        // grouped by path
-        var commandGroup = commandIds.ToLookup(x => x.Command.Name.Split(' ')[0]);
+        // split command-alias and grouped by path
+        var commandGroup = commandIds
+            .SelectMany(x => x.Command.Name.Split('|'), (command, name) => command with { Command = command.Command with { Name = name } })
+            .ToLookup(x => x.Command.Name.Split(' ')[0]);
         var hasRootCommand = commandIds.Any(x => x.Command.IsRootCommand);
 
         using (sb.BeginBlock("partial class ConsoleAppBuilder"))
@@ -939,7 +941,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         {
             if (dllReference.HasDependencyInjection)
             {
-                using(sb.BeginBlock("if (!isRequireCallBuildAndSetServiceProvider)"))
+                using (sb.BeginBlock("if (!isRequireCallBuildAndSetServiceProvider)"))
                 {
                     sb.AppendLine("return;");
                 }
