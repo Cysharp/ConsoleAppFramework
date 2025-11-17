@@ -161,7 +161,7 @@ public static class CommandHelpBuilder
         var optionsFormatted = definition.Options
             .Where(x => !x.Index.HasValue)
             .Where(x => !x.IsHidden)
-            .Select(x => (Options: string.Join("|", x.Options) + (x.IsFlag ? string.Empty : $" {x.FormattedValueTypeName}{(x.IsParams ? "..." : "")}"), x.Description, x.IsRequired, x.IsFlag, x.DefaultValue, x.IsDefaultValueHidden))
+            .Select(x => (Options: string.Join(", ", x.Options) + (x.IsFlag ? string.Empty : $" {x.FormattedValueTypeName}{(x.IsParams ? "..." : "")}"), x.Description, x.IsRequired, x.IsFlag, x.DefaultValue, x.IsDefaultValueHidden))
             .ToArray();
 
         if (!optionsFormatted.Any()) return string.Empty;

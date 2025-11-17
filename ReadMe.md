@@ -260,7 +260,7 @@ Usage: [options...] [-h|--help] [--version]
 Display Hello.
 
 Options:
-  -m|--message <string>    Message to show. (Required)
+  -m, --message <string>    Message to show. (Required)
 ```
 
 To add aliases to parameters, list the aliases separated by `|` before the comma in the comment. For example, if you write a comment like `-a|-b|--abcde, Description.`, then `-a`, `-b`, and `--abcde` will be treated as aliases, and `Description.` will be the description.
@@ -342,7 +342,7 @@ Usage: [command] [options...] [-h|--help] [--version]
 Root command test.
 
 Options:
-  -m|--msg <string>    Message to show. (Required)
+  -m, --msg <string>    Message to show. (Required)
 
 Commands:
   echo    Display message.

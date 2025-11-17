@@ -203,7 +203,7 @@ Usage: hello-world [options...] [-h|--help] [--version]
 hello my world.
 
 Options:
-  -f|-fb|--foo-bar <string>    my foo is not bar. (Required)
+  -f, -fb, --foo-bar <string>    my foo is not bar. (Required)
 
 """);
     }
@@ -316,7 +316,7 @@ Arguments:
   [0] <int>    my boo is not boo.
 
 Options:
-  -f|-fb|--foo-bar <string>    my foo, is not bar. (Required)
+  -f, -fb, --foo-bar <string>    my foo, is not bar. (Required)
 
 """);
     }
@@ -342,7 +342,7 @@ Usage: [options...] [-h|--help] [--version]
 Display Hello.
 
 Options:
-  -m|--message <string>    Message to show.
+  -m, --message <string>    Message to show.
 
 """);
     }
@@ -376,7 +376,7 @@ Options:
   --y <int>             (Required)
   --parameter <int>    param global (Default: 1000)
   --dry-run            run dry dry (Optional)
-  --p2|--p3 <int>      param 2 (Required)
+  --p2, --p3 <int>     param 2 (Required)
 
 """);
     }
