@@ -66,16 +66,17 @@ public class DiagnosticsTest(ITestOutputHelper output)
         verifier.Ok("ConsoleApp.RunAsync(args, Run); async Task<int> Run(int x, int y) => -1;");
     }
 
-    [Fact]
-    public void Argument()
-    {
-        verifier.Verify(4, "ConsoleApp.Run(args, (int x, [Argument]int y) => { })", "[Argument]int y");
-        verifier.Verify(4, "ConsoleApp.Run(args, ([Argument]int x, int y, [Argument]int z) => { })", "[Argument]int z");
-        verifier.Verify(4, "ConsoleApp.Run(args, Run); void Run(int x, [Argument]int y) { };", "[Argument]int y");
+    // v5.7.7 supports non-first argument parameters
+    //[Fact]
+    //public void Argument()
+    //{
+    //    verifier.Verify(4, "ConsoleApp.Run(args, (int x, [Argument]int y) => { })", "[Argument]int y");
+    //    verifier.Verify(4, "ConsoleApp.Run(args, ([Argument]int x, int y, [Argument]int z) => { })", "[Argument]int z");
+    //    verifier.Verify(4, "ConsoleApp.Run(args, Run); void Run(int x, [Argument]int y) { };", "[Argument]int y");
 
-        verifier.Ok("ConsoleApp.Run(args, ([Argument]int x, [Argument]int y) => { })");
-        verifier.Ok("ConsoleApp.Run(args, Run); void Run([Argument]int x, [Argument]int y) { };");
-    }
+    //    verifier.Ok("ConsoleApp.Run(args, ([Argument]int x, [Argument]int y) => { })");
+    //    verifier.Ok("ConsoleApp.Run(args, Run); void Run([Argument]int x, [Argument]int y) { };");
+    //}
 
     [Fact]
     public void FunctionPointerValidation()

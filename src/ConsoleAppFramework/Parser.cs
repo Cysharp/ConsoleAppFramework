@@ -424,6 +424,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         }
 
         var parsableIndex = 0;
+        var argumentIndexCounter = 0;
         var parameters = lambda.ParameterList.Parameters
             .Where(x => x.Type != null)
             .Select(x =>
@@ -554,7 +555,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 {
                     if (hasArgument)
                     {
-                        argumentIndex = parsableIndex++;
+                        argumentIndex = argumentIndexCounter++;
                     }
                     else
                     {
@@ -727,6 +728,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         }
 
         var parsableIndex = 0;
+        var argumentIndexCounter = 0;
         var parameters = methodSymbol.Parameters
             .Select(x =>
             {
@@ -759,7 +761,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 {
                     if (hasArgument)
                     {
-                        argumentIndex = parsableIndex++;
+                        argumentIndex = argumentIndexCounter++;
                     }
                     else
                     {
@@ -817,23 +819,23 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
     {
         var hasDiagnostic = false;
 
-        // Sequential Argument
-        var existsNotArgument = false;
-        foreach (var parameter in command.Parameters)
-        {
-            if (!parameter.IsParsable) continue;
+        // Sequential Argument(v5.7.7 support it).
+        //var existsNotArgument = false;
+        //foreach (var parameter in command.Parameters)
+        //{
+        //    if (!parameter.IsParsable) continue;
 
-            if (!parameter.IsArgument)
-            {
-                existsNotArgument = true;
-            }
+        //    if (!parameter.IsArgument)
+        //    {
+        //        existsNotArgument = true;
+        //    }
 
-            if (parameter.IsArgument && existsNotArgument)
-            {
-                context.ReportDiagnostic(DiagnosticDescriptors.SequentialArgument, parameter.Location);
-                hasDiagnostic = true;
-            }
-        }
+        //    if (parameter.IsArgument && existsNotArgument)
+        //    {
+        //        context.ReportDiagnostic(DiagnosticDescriptors.SequentialArgument, parameter.Location);
+        //        hasDiagnostic = true;
+        //    }
+        //}
 
         // FunctionPointer can not use validation
         if (command.MethodKind == MethodKind.FunctionPointer)

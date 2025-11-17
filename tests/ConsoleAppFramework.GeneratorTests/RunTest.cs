@@ -271,4 +271,17 @@ public class FileCommand
         verifier.Execute(code, "--input sample.txt", "sample.txt");
         verifier.Execute(code, "-i sample.txt", "sample.txt");
     }
+
+    [Fact]
+    public void ArgumentLastParams()
+    {
+        var code = """
+ConsoleApp.Run(args, (string opt1, [Argument]params string[] args) =>
+{
+    Console.Write($"{opt1}, {string.Join("|", args)}");
+});
+""";
+
+        verifier.Execute(code, "--opt1 abc a b c d", "abc, a|b|c|d");
+    }
 }

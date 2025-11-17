@@ -70,9 +70,10 @@ internal static class DiagnosticDescriptors
         "Command method return type must be void or int or async Task or async Task<int>.",
         "Command method return type must be void or int or async Task or async Task<int> but returned '{0}'.");
 
-    public static DiagnosticDescriptor SequentialArgument { get; } = Create(
-        4,
-        "All Argument parameters must be sequential from first.");
+    // v5.7.7 supports non-first argument parameters
+    //public static DiagnosticDescriptor SequentialArgument { get; } = Create(
+    //    4,
+    //    "All Argument parameters must be sequential from first.");
 
     public static DiagnosticDescriptor FunctionPointerCanNotHaveValidation { get; } = Create(
         5,
