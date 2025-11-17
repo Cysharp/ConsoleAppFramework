@@ -1467,7 +1467,7 @@ For more powerful Console UI support, you can also use it in combination with [S
 
 Cli Schema
 ---
-The dotnet command can output command and option information in JSON format using the `--cli-schema` option. In ConsoleAppFramework, by importing the `ConsoleAppFramework.CliSchema` package, you can call the `ConsoleAppBuilder.GetCliSchema()` method.
+The dotnet command can output command and option information in JSON format using the `--cli-schema` option. These are useful when generating documentation or when trying to help LLM AI understand how to use command tools. In ConsoleAppFramework, by importing the `ConsoleAppFramework.CliSchema` package, you can call the `ConsoleAppBuilder.GetCliSchema()` method.
 
 ```bash
 dotnet add package ConsoleAppFramework.CliSchema
