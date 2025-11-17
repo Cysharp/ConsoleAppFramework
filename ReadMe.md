@@ -452,6 +452,19 @@ public class Commands
 }
 ```
 
+It also supports aliases for nested commands.
+
+```csharp
+var app = ConsoleApp.Create();
+
+app.Add("dotnet package add|dotnet add package", () => { });
+app.Add("dotnet package list|dotnet list package", () => { });
+app.Add("dotnet package remove|dotnet remove package", () => { });
+app.Add("dotnet reference add|dotnet add reference", () => { });
+
+app.Run(args);
+```
+
 ### Performance of Commands
 
 In `ConsoleAppFramework`, the number and types of registered commands are statically determined at compile time. For example, let's register the following four commands:
