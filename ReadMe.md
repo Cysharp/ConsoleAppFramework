@@ -1479,6 +1479,8 @@ app.Add("foo", (int x, int y) => { });
 
 // get cli-schema as objects
 CommandHelpDefinition[] schema = app.GetCliSchema();
+
+app.Run(args); // needs geenerate trigger of ConsoleAppFramework.
 ```
 
 `CommandHelpDefinition` is the same one used internally for help output.
