@@ -221,7 +221,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         {
             var emitter = new Emitter(null);
             var withId = new Emitter.CommandWithId(null, command, -1);
-            emitter.EmitRun(sb, withId, command.IsAsync, null);
+            emitter.EmitRun(sb, withId, commandContext.IsAsync, null);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString().ReplaceLineEndings());
 

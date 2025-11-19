@@ -1,13 +1,11 @@
 ﻿using ConsoleAppFramework;
 
-var app = ConsoleApp.Create();
 
-app.ConfigureServices(_ => { Console.WriteLine("ConfigureServices"); });
-app.Add("test", () => Console.WriteLine("test output"));
+args = ["--x", "3", "--y", "5"];
 
-for (var i = 0; i < 3; i++)
+await ConsoleApp.RunAsync(args, async (int x, int y) => { });
+
+static void Foo(int x, int y)
 {
-    app.Run(["test"], startHost: false, stopHost: false, disposeServiceProvider: false);
+    Console.WriteLine(x + y);
 }
-
-
