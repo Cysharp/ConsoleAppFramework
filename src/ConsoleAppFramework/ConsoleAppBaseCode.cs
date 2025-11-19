@@ -235,7 +235,7 @@ internal static partial class ConsoleApp
     /// ConsoleApp.Run(args, Foo);<br/>
     /// ConsoleApp.Run(args, &amp;Foo);<br/>
     /// </summary>
-    public static void Run(string[] args)
+    public static void Run(string[] args, Delegate command)
     {
     }
 
@@ -245,7 +245,7 @@ internal static partial class ConsoleApp
     /// ConsoleApp.RunAsync(args, Foo);<br/>
     /// ConsoleApp.RunAsync(args, &amp;Foo);<br/>
     /// </summary>
-    public static Task RunAsync(string[] args)
+    public static Task RunAsync(string[] args, Delegate command)
     {
         return Task.CompletedTask;
     }
