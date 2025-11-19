@@ -1,6 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
-using System.Reflection.Metadata;
-using System.Text;
+﻿using System.Text;
+using Microsoft.CodeAnalysis;
 
 namespace ConsoleAppFramework;
 
@@ -16,7 +15,6 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         var hasArgument = command.Parameters.Any(x => x.IsArgument);
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
-        var requiredParsableParameterCount = command.Parameters.Count(x => x.IsParsable && x.RequireCheckArgumentParsed);
 
         if (command.HasFilter)
         {
@@ -43,7 +41,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             sb.AppendLine();
         }
 
-        var cancellationTokenName = (emitForBuilder) ? "cancellationToken" : null;
+        var cancellationTokenName = emitForBuilder ? "cancellationToken" : null;
         var cancellationTokenParameter = cancellationTokenName != null ? "CancellationToken cancellationToken" : null;
 
         if (!emitForBuilder)
@@ -94,13 +92,13 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     {
                         noCommandArgsMemory = true; // emit help directly
                         sb.AppendLine($"ReadOnlySpan<string> commandArgs = args;");
-                        sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
+                        sb.AppendLine($"if (TryShowHelpOrVersion(commandArgs, {commandWithId.RequiredParsableParameterCount}, {commandWithId.Id})) return;");
                     }
                 }
 
                 if (!noCommandArgsMemory)
                 {
-                    sb.AppendLine($"if (TryShowHelpOrVersion(commandArgsMemory.Span, {requiredParsableParameterCount}, {commandWithId.Id})) return;");
+                    sb.AppendLine($"if (TryShowHelpOrVersion(commandArgsMemory.Span, {commandWithId.RequiredParsableParameterCount}, {commandWithId.Id})) return;");
                 }
                 sb.AppendLine();
 
@@ -595,7 +593,12 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             {
                 ifBlock = sb.BeginBlock($"if (args.Length == {depth})");
             }
-            EmitLeafCommand(leafCommand);
+
+            var shouldShowGlobalHelp =
+                ifBlock != null &&
+                leafCommand is { Command.IsRootCommand: true, RequiredParsableParameterCount: > 0 };
+
+            EmitLeafCommand(shouldShowGlobalHelp ? null : leafCommand);
             if (ifBlock != null)
             {
                 sb.AppendLine("return;");
@@ -1137,7 +1140,7 @@ internal static class ConsoleAppHostBuilderExtensions
         return sb.ToString();
     }
 
-    internal record CommandWithId(string? FieldType, Command Command, int Id)
+    internal record CommandWithId(string? FieldType, Command Command, int Id, int RequiredParsableParameterCount)
     {
         public static string BuildCustomDelegateTypeName(int id)
         {
