@@ -99,8 +99,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             {
                 if (node.IsKind(SyntaxKind.InvocationExpression))
                 {
-                    var invocationExpression = (node as InvocationExpressionSyntax);
-                    if (invocationExpression == null) return false;
+                    if (node is not InvocationExpressionSyntax invocationExpression) return false;
 
                     var expr = invocationExpression.Expression as MemberAccessExpressionSyntax;
                     if ((expr?.Expression as IdentifierNameSyntax)?.Identifier.Text == "ConsoleApp")
@@ -220,7 +219,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
             var emitter = new Emitter(null);
-            var withId = new Emitter.CommandWithId(null, command, -1);
+            var requiredParsableParameterCount = command.Parameters.Count(p => p.IsParsable && p.RequireCheckArgumentParsed);
+            var withId = new Emitter.CommandWithId(null, command, -1, requiredParsableParameterCount);
             emitter.EmitRun(sb, withId, command.IsAsync, null);
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.g.cs", sb.ToString().ReplaceLineEndings());
@@ -274,7 +274,9 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 var command = new Emitter.CommandWithId(
                     FieldType: x!.BuildDelegateSignature(Emitter.CommandWithId.BuildCustomDelegateTypeName(i), out var delegateDef),
                     Command: x!,
-                    Id: i
+                    Id: i,
+
+                    RequiredParsableParameterCount: x!.Parameters.Count(p => p.IsParsable && p.RequireCheckArgumentParsed)
                 );
                 if (delegateDef != null)
                 {
