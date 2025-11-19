@@ -2,21 +2,12 @@
 
 var app = ConsoleApp.Create();
 
-app.Add("build|b", () => { });
-app.Add("keyvault|kv", () => { });
-app.Add<Commands>();
+app.ConfigureServices(_ => { Console.WriteLine("ConfigureServices"); });
+app.Add("test", () => Console.WriteLine("test output"));
 
-app.Run(args);
-
-public class Commands
+for (var i = 0; i < 3; i++)
 {
-    /// <summary>
-    /// Executes the check command using the specified coordinates.
-    /// </summary>
-    [Command("check|c")]
-    public void Check() { }
-
-    /// <summary>Build this packages's and its dependencies' documenation.</summary>
-    [Command("doc|d")]
-    public void Doc() { }
+    app.Run(["test"], startHost: false, stopHost: false, disposeServiceProvider: false);
 }
+
+
