@@ -963,6 +963,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 {
                     sb.AppendLine("return;");
                 }
+                sb.AppendLine("isRequireCallBuildAndSetServiceProvider = false;");
 
                 if (dllReference.HasConfiguration)
                 {

@@ -49,7 +49,7 @@ public static class CommandHelpBuilder
 
     public static string BuildCliSchema(IEnumerable<Command> commands)
     {
-        return "return new[] {\n"
+        return "return new CommandHelpDefinition[] {\n"
             + string.Join(", \n", commands.Select(x => CreateCommandHelpDefinition(x).ToCliSchema()))
             + "\n};";
     }

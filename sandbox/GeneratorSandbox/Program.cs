@@ -1,22 +1,11 @@
 ﻿using ConsoleAppFramework;
 
-var app = ConsoleApp.Create();
 
-app.Add("build|b", () => { });
-app.Add("keyvault|kv", () => { });
-app.Add<Commands>();
+args = ["--x", "3", "--y", "5"];
 
-app.Run(args);
+await ConsoleApp.RunAsync(args, async (int x, int y) => { });
 
-public class Commands
+static void Foo(int x, int y)
 {
-    /// <summary>
-    /// Executes the check command using the specified coordinates.
-    /// </summary>
-    [Command("check|c")]
-    public void Check() { }
-
-    /// <summary>Build this packages's and its dependencies' documenation.</summary>
-    [Command("doc|d")]
-    public void Doc() { }
+    Console.WriteLine(x + y);
 }

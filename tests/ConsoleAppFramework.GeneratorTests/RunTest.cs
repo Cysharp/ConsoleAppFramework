@@ -284,4 +284,44 @@ ConsoleApp.Run(args, (string opt1, [Argument]params string[] args) =>
 
         verifier.Execute(code, "--opt1 abc a b c d", "abc, a|b|c|d");
     }
+
+    [Fact]
+    public void RunAndRunAsyncOverloads()
+    {
+        verifier.Execute("""
+ConsoleApp.Run(args, () => Console.Write("sync"));
+""", "", "sync");
+
+        verifier.Execute("""
+ConsoleApp.Run(args, async () => Console.Write("async"));
+""", "", "async");
+
+        verifier.Execute("""
+await ConsoleApp.RunAsync(args, () => Console.Write("sync"));
+""", "", "sync");
+
+        verifier.Execute("""
+await ConsoleApp.RunAsync(args, async () => Console.Write("async"));
+""", "", "async");
+    }
+
+    [Fact]
+    public void RunAndRunAsyncOverloadsWithCancellationToken()
+    {
+        verifier.Execute("""
+ConsoleApp.Run(args, (CancellationToken cancellationToken) => Console.Write("sync"));
+""", "", "sync");
+
+        verifier.Execute("""
+ConsoleApp.Run(args, async (CancellationToken cancellationToken) => Console.Write("async"));
+""", "", "async");
+
+        verifier.Execute("""
+await ConsoleApp.RunAsync(args, (CancellationToken cancellationToken) => Console.Write("sync"));
+""", "", "sync");
+
+        verifier.Execute("""
+await ConsoleApp.RunAsync(args, async (CancellationToken cancellationToken) => Console.Write("async"));
+""", "", "async");
+    }
 }
