@@ -1131,6 +1131,8 @@ app.Run(args);
 
 When passing to a lambda expression or method, the `[FromServices]` attribute is used to distinguish it from command parameters. When passing a class, Constructor Injection can be used, resulting in a simpler appearance. Lambda, method, constructor, filter, etc, all DI supported parameter also supports `[FromKeyedServices]`.
 
+`ConfigureServices` is called after command routing is completed and just before the actual parameter parsing process begins, and the generated ServiceProvider is set to the static `ConsoleApp.ServiceProvider`. If you set it without calling `ConfigureServices`, you can use DI without needing to reference `Microsoft.Extensions.DependencyInjection`.
+
 Let's try injecting a logger and enabling output to a file. The libraries used are Microsoft.Extensions.Logging and [Cysharp/ZLogger](https://github.com/Cysharp/ZLogger/) (a high-performance logger built on top of MS.E.Logging). If you are referencing `Microsoft.Extensions.Logging`, you can call `ConfigureLogging` from `ConsoleAppBuilder`.
 
 ```csharp
@@ -1157,43 +1159,22 @@ public class MyCommand(ILogger<MyCommand> logger)
 }
 ```
 
-For building an `IServiceProvider`, `ConfigureServices/ConfigureLogging` uses `Microsoft.Extensions.DependencyInjection.ServiceCollection`. If you want to set a custom ServiceProvider or a ServiceProvider built from Host, or if you want to execute DI with `ConsoleApp.Run`, set it to `ConsoleApp.ServiceProvider`.
+`ConsoleApp` has replaceable default logging methods `ConsoleApp.Log` and `ConsoleApp.LogError` used for Help display and exception handling. If using `ILogger<T>`, it's better to replace these as well. `PostConfigureServices(Action<IServiceProvider> configure)` allows you to change own logger.
 
 ```csharp
-// Microsoft.Extensions.DependencyInjection
-var services = new ServiceCollection();
-services.AddTransient<MyService>();
-
-using var serviceProvider = services.BuildServiceProvider();
-
-// Any DI library can be used as long as it can create an IServiceProvider
-ConsoleApp.ServiceProvider = serviceProvider;
-
-// When passing to a lambda expression/method, using [FromServices] indicates that it is passed via DI, not as a parameter
-ConsoleApp.Run(args, ([FromServices]MyService service, int x, int y) => Console.WriteLine(x + y));
-```
-
-`ConsoleApp` has replaceable default logging methods `ConsoleApp.Log` and `ConsoleApp.LogError` used for Help display and exception handling. If using `ILogger<T>`, it's better to replace these as well.
-
-```csharp
-app.UseFilter<ReplaceLogFilter>();
-
-// inject logger to filter
-internal sealed class ReplaceLogFilter(ConsoleAppFilter next, ILogger<Program> logger)
-    : ConsoleAppFilter(next)
+app.PostConfigureServices((serviceProvider) =>
 {
-    public override Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
-    {
-        ConsoleApp.Log = msg => logger.LogInformation(msg);
-        ConsoleApp.LogError = msg => logger.LogError(msg);
+    var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 
-        return Next.InvokeAsync(context, cancellationToken);
-    }
-}
+    ConsoleApp.Log = msg => logger.LogInformation(msg);
+    ConsoleApp.LogError = msg => logger.LogError(msg);
+});
 ```
 
 > I don't recommend using `ConsoleApp.Log` and `ConsoleApp.LogError` directly as an application logging method, as they are intended to be used as output destinations for internal framework output.
 > For error handling, it would be better to define your own custom filters for error handling, which would allow you to record more details when handling errors.
+
+> Since the help display is executed before routing, `ConfigureServices` is not called. In other words, it is impossible to change the logger for the help display using this method.
 
 DI can also be effectively used when reading application configuration from `appsettings.json`. For example, suppose you have the following JSON file.
 
@@ -1275,6 +1256,7 @@ internal class ServiceProviderScopeFilter(IServiceProvider serviceProvider, Cons
         // create Microsoft.Extensions.DependencyInjection scope
         await using var scope = serviceProvider.CreateAsyncScope();
 
+        // replace static ServiceProvider
         var originalServiceProvider = ConsoleApp.ServiceProvider;
         ConsoleApp.ServiceProvider = scope.ServiceProvider;
         try

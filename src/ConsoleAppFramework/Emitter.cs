@@ -819,6 +819,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine("Action<ConsoleAppContext, IServiceCollection>? configureServices;");
             }
             sb.AppendLine("Func<IServiceCollection, IServiceProvider>? createServiceProvider;");
+            sb.AppendLine("Action<IServiceProvider>? postConfigureServices;");
 
             // methods
             if (dllReference.HasConfiguration)
@@ -867,6 +868,14 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
                     sb.AppendLine("return this;");
                 }
+            }
+
+            sb.AppendLine();
+            using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder PostConfigureServices(Action<IServiceProvider> configure)"))
+            {
+                sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
+                sb.AppendLine("this.postConfigureServices = configure;");
+                sb.AppendLine("return this;");
             }
 
             sb.AppendLine();
@@ -1009,6 +1018,8 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 {
                     sb.AppendLine("ConsoleApp.ServiceProvider = services.BuildServiceProvider();");
                 }
+
+                sb.AppendLine("postConfigureServices?.Invoke(ConsoleApp.ServiceProvider);");
             }
         }
 
