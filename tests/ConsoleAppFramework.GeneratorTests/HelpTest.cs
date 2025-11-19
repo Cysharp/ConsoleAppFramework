@@ -149,6 +149,23 @@ Commands:
     }
 
     [Fact]
+    public void NoArgsOnRootShowsSameHelpTextAsHelpWhenParametersAreRequired()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add("", (int x, int y) => { });
+app.Add("a", (int x, int y) => { });
+app.Add("ab", (int x, int y) => { });
+app.Add("a b c", (int x, int y) => { });
+app.Run(args);
+""";
+        var noArgsOutput = verifier.Error(code, "");
+        var helpOutput = verifier.Error(code, "--help");
+
+        noArgsOutput.ShouldBe(helpOutput);
+    }
+
+    [Fact]
     public void SelectLeafHelp()
     {
         var code = """
