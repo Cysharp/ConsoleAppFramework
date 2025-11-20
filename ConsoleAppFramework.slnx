@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/sandbox/">
+    <Project Path="sandbox/CliFrameworkBenchmark/CliFrameworkBenchmark.csproj" />
+    <Project Path="sandbox/FilterShareProject/FilterShareProject.csproj" />
+    <Project Path="sandbox/GeneratorSandbox/GeneratorSandbox.csproj" />
+    <Project Path="sandbox/NativeAot/NativeAot.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="exclusion.dic" />
+    <File Path="ReadMe.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ConsoleAppFramework.Abstractions/ConsoleAppFramework.Abstractions.csproj" />
+    <Project Path="src/ConsoleAppFramework.CliSchema/ConsoleAppFramework.CliSchema.csproj" />
+    <Project Path="src/ConsoleAppFramework/ConsoleAppFramework.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <File Path="tests/Directory.Build.props" />
+    <Project Path="tests/ConsoleAppFramework.GeneratorTests/ConsoleAppFramework.GeneratorTests.csproj" />
+    <Project Path="tests/NativeAotTrimming/NativeAotTrimming.csproj" />
+  </Folder>
+</Solution>
