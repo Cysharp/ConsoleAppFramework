@@ -1302,6 +1302,24 @@ app.Add("", ([FromServices] MyService service) => { });
 app.Run(args);
 ```
 
+Similarly, when using [Autofac](https://github.com/autofac/Autofac), pass the `IServiceProviderFactory` provided by Autofac.
+
+```csharp
+// dotnet add package Microsoft.Extensions.DependencyInjection
+// dotnet add package Autofac.Extensions.DependencyInjection
+var app = ConsoleApp.Create()
+    .ConfigureContainer(new AutofacServiceProviderFactory(), builder =>
+    {
+        builder.RegisterType<MyService>();
+    });
+
+app.Add("", ([FromServices] MyService service) => { });
+
+app.Run(args);
+```
+
+If there is no class implementing `IServiceProviderFactory` in the DI library, you must implement it yourself.
+
 OpenTelemetry
 ---
 It's important to be conscious of observability in console applications as well. Visualizing not just logging but also traces will be helpful for performance tuning and troubleshooting. In ConsoleAppFramework, you can use this smoothly by utilizing the OpenTelemetry support of HostApplicationBuilder.

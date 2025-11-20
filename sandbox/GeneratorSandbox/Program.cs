@@ -1,28 +1,20 @@
-﻿using ConsoleAppFramework;
+﻿using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 
-args = ["--x", "3", "--y", "5"];
+var app = ConsoleApp.Create()
+    .ConfigureContainer(new AutofacServiceProviderFactory(), builder =>
+    {
+        builder.RegisterType<MyService>();
+    });
 
-// args = ["--help"];
-
-var app = ConsoleApp.Create();
-
-app.Add("", (int x, int y) => { throw new Exception(); });
-
-app.ConfigureLogging(x =>
-{
-    x.SetMinimumLevel(LogLevel.Trace);
-    x.AddSimpleConsole();
-});
-
-app.PostConfigureServices((serviceProvider) =>
-{
-    var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-
-    ConsoleApp.Log = msg => logger.LogInformation(msg);
-    ConsoleApp.LogError = msg => logger.LogError(msg);
-});
+app.Add("", ([FromServices] MyService service) => { service.Hello(); });
 
 app.Run(args);
+
+public class MyService
+{
+    public void Hello() => Console.WriteLine("Hello from MyService");
+}
