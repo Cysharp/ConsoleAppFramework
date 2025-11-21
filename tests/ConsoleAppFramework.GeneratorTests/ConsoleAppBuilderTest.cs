@@ -1,10 +1,8 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class ConsoleAppBuilderTest : IDisposable
+public class ConsoleAppBuilderTest
 {
     VerifyHelper verifier = new VerifyHelper("CAF");
-
-    public void Dispose() => Environment.ExitCode = 0;
 
     [Test]
     public async Task BuilderRun()
@@ -19,11 +17,10 @@ builder.Run(args);
 """;
         await verifier.Execute(code, "foo --x 10 --y 20", "30");
         await verifier.Execute(code, "bar --x 20 --y 30", "50");
-        await verifier.Execute(code, "bar --x 20", "30");
-        await Assert.That(Environment.ExitCode).IsZero();
-        await verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
-        await Assert.That(Environment.ExitCode).IsEqualTo(10);
-        Environment.ExitCode = 0;
+        var exitCode = await verifier.Execute(code, "bar --x 20", "30");
+        await Assert.That(exitCode).IsZero();
+        exitCode = await verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
+        await Assert.That(exitCode).IsEqualTo(10);
 
         await verifier.Execute(code, "boz --x 40", "80");
     }
@@ -42,11 +39,10 @@ await builder.RunAsync(args);
 
         await verifier.Execute(code, "foo --x 10 --y 20", "30");
         await verifier.Execute(code, "bar --x 20 --y 30", "50");
-        await verifier.Execute(code, "bar --x 20", "30");
-        await Assert.That(Environment.ExitCode).IsZero();
-        await verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
-        await Assert.That(Environment.ExitCode).IsEqualTo(10);
-        Environment.ExitCode = 0;
+        var exitCode = await verifier.Execute(code, "bar --x 20", "30");
+        await Assert.That(exitCode).IsZero();
+        exitCode = await verifier.Execute(code, "baz --x 40 --y takoyaki", "40takoyaki");
+        await Assert.That(exitCode).IsEqualTo(10);
 
         await verifier.Execute(code, "boz --x 40", "80");
     }

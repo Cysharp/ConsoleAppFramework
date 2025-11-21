@@ -129,7 +129,7 @@ app.Add("", (int x, int y, ConsoleAppContext context) =>
 app.Run(args);
 """, "--x 10 --dry-run --y 20");
 
-        error.Contains("Required argument '--parameter' was not specified.");
+        error.Stdout.Contains("Required argument '--parameter' was not specified.");
     }
 
     [Test]

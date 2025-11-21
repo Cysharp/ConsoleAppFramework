@@ -9,6 +9,7 @@ public class HiddenAtttributeTest
     {
         var code =
             """
+            ConsoleApp.Log = x => Console.WriteLine(x);
             ConsoleApp.Run(args, (int x, [Hidden]int y) => { });
             """;
 
@@ -28,6 +29,7 @@ public class HiddenAtttributeTest
     {
         var code =
             """
+            ConsoleApp.Log = x => Console.WriteLine(x);
             var builder = ConsoleApp.Create();
             builder.Add<Commands>();
             await builder.RunAsync(args);
@@ -87,6 +89,7 @@ public class HiddenAtttributeTest
     {
         var code =
             """
+                ConsoleApp.Log = x => Console.WriteLine(x);
                 var builder = ConsoleApp.Create();
             
                 builder.Add("", () => { Console.Write("root"); });

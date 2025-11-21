@@ -12,9 +12,14 @@ var app = ConsoleApp.Create()
 
 app.Add("", ([FromServices] MyService service) => { service.Hello(); });
 
+
+// Environment
+
 app.Run(args);
 
 public class MyService
 {
-    public void Hello() => Console.WriteLine("Hello from MyService");
+    public void Hello() => throw new Exception();
 }
+
+

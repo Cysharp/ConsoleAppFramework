@@ -17,6 +17,7 @@ public class HelpTest
         var version = GetEntryAssemblyVersion();
 
         await verifier.Execute(code: $$"""
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, (int x, int y) => { });
 """,
     args: "--version",
@@ -26,6 +27,7 @@ ConsoleApp.Run(args, (int x, int y) => { });
 """);
         // custom
         await verifier.Execute(code: $$"""
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Version = "9999.9999999abcdefg";
 ConsoleApp.Run(args, (int x, int y) => { });
 """,
@@ -42,6 +44,7 @@ ConsoleApp.Run(args, (int x, int y) => { });
         var version = GetEntryAssemblyVersion();
 
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Run(args);
 """,
@@ -56,6 +59,7 @@ app.Run(args);
     public async Task Run()
     {
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, (int x, int y) => { });
 """,
             args: "--help",
@@ -73,6 +77,7 @@ Options:
     public async Task RunVoid()
     {
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, () => { });
 """,
             args: "--help",
@@ -86,6 +91,7 @@ Usage: [-h|--help] [--version]
     public async Task RootOnly()
     {
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Add("", (int x, int y) => { });
 app.Run(args);
@@ -105,6 +111,7 @@ Options:
     public async Task ListWithoutRoot()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Add("a", (int x, int y) => { });
 app.Add("ab", (int x, int y) => { });
@@ -126,6 +133,7 @@ Commands:
     public async Task ListWithRoot()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Add("", (int x, int y) => { });
 app.Add("a", (int x, int y) => { });
@@ -152,6 +160,7 @@ Commands:
     public async Task NoArgsOnRootShowsSameHelpTextAsHelpWhenParametersAreRequired()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Add("", (int x, int y) => { });
 app.Add("a", (int x, int y) => { });
@@ -169,6 +178,7 @@ app.Run(args);
     public async Task SelectLeafHelp()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Add("", (int x, int y) => { });
 app.Add("a", (int x, int y) => { });
@@ -190,6 +200,7 @@ Options:
     public async Task Summary()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Add<MyClass>();
 app.Run(args);
@@ -229,6 +240,7 @@ Options:
     public async Task ArgumentOnly()
     {
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, ([Argument]int x, [Argument]int y) => { });
 """,
             args: "--help",
@@ -246,6 +258,7 @@ Arguments:
     public async Task ArgumentWithParams()
     {
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, ([Argument]int x, [Argument]int y, params string[] yyy) => { });
 """,
             args: "--help",
@@ -268,6 +281,7 @@ Options:
     public async Task Nullable()
     {
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, (int? x = null, string? y = null) => { });
 """,
             args: "--help",
@@ -285,6 +299,7 @@ Options:
     public async Task EnumTest()
     {
         await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, (Fruit myFruit = Fruit.Apple, Fruit? moreFruit = null) => { });
 
 enum Fruit
@@ -307,6 +322,7 @@ Options:
     public async Task Summary2()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Add<MyClass>();
 app.Run(args);
@@ -342,6 +358,7 @@ Options:
     public async Task HideDefaultValue()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, Commands.Hello);
 
 static class Commands
@@ -368,6 +385,7 @@ Options:
     public async Task GlobalOptions()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
@@ -421,6 +439,7 @@ Options:
     public async Task CommandAlias()
     {
         var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 
 app.Add("build|b", () => { Console.Write("build ok"); });

@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
@@ -54,13 +55,43 @@ global using ConsoleAppFramework;
             driver = (Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver)driver.WithUpdatedAnalyzerConfigOptions(options);
         }
 
-        var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions));
+        // overwrite System.Console.Write/WriteLine, Environment.ExitCode to capture output
+        var captureStaticCode = """
+public static class Console
+{
+    static global::System.IO.TextWriter textWriter = default!;
+
+    public static void SetOut(global::System.IO.TextWriter textWriter)
+    {
+        Console.textWriter = textWriter;
+    }
+
+    public static void Write(object value)
+    {
+        textWriter.Write(value);
+    }
+
+    public static void WriteLine(object value)
+    {
+        textWriter.WriteLine(value);
+    }
+}
+
+namespace ConsoleAppFramework
+{
+    public static class Environment
+    {
+        public static int ExitCode { get; set; }
+    }
+}
+""";
+        var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions), CSharpSyntaxTree.ParseText(captureStaticCode, parseOptions));
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics);
         return (newCompilation, diagnostics);
     }
 
-    public static (Compilation, ImmutableArray<Diagnostic>, string) CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics, string Stdout, int ExitCode) CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
         var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options);
 
@@ -73,28 +104,21 @@ global using ConsoleAppFramework;
 
         ms.Position = 0;
 
-        // capture stdout log
-        // modify global stdout so can't run in parallel unit-test
-#pragma warning disable TUnit0055 // Do not overwrite the Console writer
-        var originalOut = Console.Out;
-        try
-        {
-            var stringWriter = new StringWriter();
-            Console.SetOut(stringWriter);
+        var stringWriter = new StringWriter();
 
-            // load and invoke Main(args)
-            var loadContext = new AssemblyLoadContext("source-generator", isCollectible: true); // isCollectible to support Unload
-            var assembly = loadContext.LoadFromStream(ms);
-            assembly.EntryPoint!.Invoke(null, new object[] { args });
-            loadContext.Unload();
+        // load and invoke Main(args)
+        var loadContext = new AssemblyLoadContext("source-generator", isCollectible: true); // isCollectible to support Unload
+        var assembly = loadContext.LoadFromStream(ms);
 
-            return (compilation, diagnostics, stringWriter.ToString());
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
-#pragma warning restore TUnit0055 // Do not overwrite the Console writer
+        assembly.GetType("Console")!.InvokeMember("SetOut", BindingFlags.Public | BindingFlags.Static | BindingFlags.InvokeMethod, null, null, [stringWriter]);
+
+        assembly.EntryPoint!.Invoke(null, [args]);
+
+        var exitCode = (int)assembly.GetType("ConsoleAppFramework.Environment")!.GetProperty("ExitCode")!.GetValue(null)!;
+
+        loadContext.Unload();
+
+        return (compilation, diagnostics, stringWriter.ToString(), exitCode);
     }
 
     public static (string Key, string Reasons)[][] GetIncrementalGeneratorTrackedStepsReasons(string keyPrefixFilter, params string[] sources)
@@ -188,11 +212,11 @@ public class VerifyHelper(string idPrefix)
 
     // Execute and check stdout result
 
-    public async Task Execute([StringSyntax("C#-test")] string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public async Task<int> Execute([StringSyntax("C#-test")] string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         Console.WriteLine(codeExpr!);
 
-        var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
+        var (compilation, diagnostics, stdout, exitCode) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
         foreach (var item in diagnostics)
         {
             Console.WriteLine(item.ToString());
@@ -200,20 +224,21 @@ public class VerifyHelper(string idPrefix)
         OutputGeneratedCode(compilation);
 
         await Assert.That(stdout).IsEqualTo(expected);
+        return exitCode;
     }
 
-    public string Error([StringSyntax("C#-test")] string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public (string Stdout, int ExitCode) Error([StringSyntax("C#-test")] string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         Console.WriteLine(codeExpr!);
 
-        var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
+        var (compilation, diagnostics, stdout, exitCode) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
         foreach (var item in diagnostics)
         {
             Console.WriteLine(item.ToString());
         }
         OutputGeneratedCode(compilation);
 
-        return stdout;
+        return (stdout, exitCode);
     }
 
     string GetLocationText(Diagnostic diagnostic, IEnumerable<SyntaxTree> syntaxTrees)

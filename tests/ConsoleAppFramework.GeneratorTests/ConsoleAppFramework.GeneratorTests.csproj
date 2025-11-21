@@ -18,10 +18,4 @@
     <ProjectReference Include="..\..\src\ConsoleAppFramework\ConsoleAppFramework.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- CSharpGeneratorRunner.CompileAndExecute captures stdout log -->
-    <!-- It does not allow parallel invocation -->
-    <AssemblyAttribute Include="TUnit.Core.NotInParallel" />
-  </ItemGroup>
-
 </Project>

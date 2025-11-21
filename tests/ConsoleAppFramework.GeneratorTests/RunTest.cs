@@ -1,10 +1,8 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class Test : IDisposable
+public class Test
 {
     VerifyHelper verifier = new VerifyHelper("CAF");
-
-    public void Dispose() => Environment.ExitCode = 0;
 
     [Test]
     public async Task SyncRun()
@@ -16,13 +14,14 @@ public class Test : IDisposable
     public async Task OptionTokenShouldNotFillArgumentSlot()
     {
         var code = """
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, ([Argument] string path, bool dryRun) =>
 {
     Console.Write((dryRun, path).ToString());
 });
 """;
 
-        await Assert.That(verifier.Error(code, "--dry-run")).Contains("Required argument 'path' was not specified.");
+        await Assert.That(verifier.Error(code, "--dry-run").Stdout).Contains("Required argument 'path' was not specified.");
         await verifier.Execute(code, "--dry-run sample.txt", "(True, sample.txt)");
     }
 
@@ -30,6 +29,7 @@ ConsoleApp.Run(args, ([Argument] string path, bool dryRun) =>
     public async Task OptionTokenAllowsMultipleArguments()
     {
         var code = """
+ConsoleApp.Log = x => Console.Write(x);    
 ConsoleApp.Run(args, ([Argument] string source, [Argument] string destination, bool dryRun) =>
 {
     Console.Write((dryRun, source, destination).ToString());
@@ -83,16 +83,22 @@ ConsoleApp.Run(args, ([Argument] int count, bool dryRun) =>
     [Test]
     public async Task SyncRunShouldFailed()
     {
-        await Assert.That(verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x")).Contains("Argument 'x' failed to parse");
+        await Assert.That(verifier.Error("""
+ConsoleApp.Log = x => Console.Write(x);           
+ConsoleApp.Run(args, (int x) => { Console.Write((x)); });
+""", "--x").Stdout).Contains("Argument 'x' failed to parse");
+            
     }
 
     [Test]
     public async Task MissingArgument()
     {
-        await Assert.That(verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20")).Contains("Argument 'y' is not recognized.");
-
-        await Assert.That(Environment.ExitCode).IsEqualTo(1);
-        Environment.ExitCode = 0;
+        var result = verifier.Error("""
+ConsoleApp.Log = x => Console.Write(x);    
+ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });
+""", "--x 10 y 20");
+        await Assert.That(result.Stdout).Contains("Argument 'y' is not recognized.");
+        await Assert.That(result.ExitCode).IsEqualTo(1);
     }
 
     [Test]
@@ -101,15 +107,14 @@ ConsoleApp.Run(args, ([Argument] int count, bool dryRun) =>
         var expected = """
 The field x must be between 1 and 10.
 
-
 """;
 
-        await verifier.Execute("""
+        var exitCode = await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, "--x 100 --y 140", expected);
 
-        await Assert.That(Environment.ExitCode).IsEqualTo(1);
-        Environment.ExitCode = 0;
+        await Assert.That(exitCode).IsEqualTo(1);
     }
 
     [Test]
@@ -119,20 +124,20 @@ ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.
 The field x must be between 1 and 10.
 The field y must be between 100 and 200.
 
-
 """;
 
-        await verifier.Execute("""
+        var exitCode = await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, "--x 100 --y 240", expected);
 
-        await Assert.That(Environment.ExitCode).IsEqualTo(1);
-        Environment.ExitCode = 0;
+        await Assert.That(exitCode).IsEqualTo(1);
     }
     [Test]
     public async Task Parameters()
     {
         await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, (int foo, string bar, Fruit ft, bool flag, Half half, int? itt, Takoyaki.Obj obj) => 
 {
     Console.Write(foo); 
@@ -165,10 +170,10 @@ namespace Takoyaki
         var expected = """
 The field value must be between 0 and 1.
 
-
 """;
 
         await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 var app = ConsoleApp.Create();
 app.Add<Test>();
 app.Run(args);
