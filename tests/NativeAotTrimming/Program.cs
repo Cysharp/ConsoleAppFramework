@@ -1,3 +1,5 @@
+﻿// This program called from ConsoleAppFramework.GeneratorTests/NativeAotTrimmingTests.cs
+
 using ConsoleAppFramework;
 using System.ComponentModel.DataAnnotations;
 

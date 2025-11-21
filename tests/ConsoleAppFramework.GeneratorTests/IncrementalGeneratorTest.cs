@@ -10,20 +10,20 @@ namespace ConsoleAppFramework.GeneratorTests;
 
 public class IncrementalGeneratorTest
 {
-    void VerifySourceOutputReasonIsCached((string Key, string Reasons)[] reasons)
+    async Task VerifySourceOutputReasonIsCached((string Key, string Reasons)[] reasons)
     {
         var reason = reasons.FirstOrDefault(x => x.Key == "SourceOutput").Reasons;
-        reason.ShouldBe("Cached");
+        await Assert.That(reason).IsEqualTo("Cached");
     }
 
-    void VerifySourceOutputReasonIsNotCached((string Key, string Reasons)[] reasons)
+    async Task VerifySourceOutputReasonIsNotCached((string Key, string Reasons)[] reasons)
     {
         var reason = reasons.FirstOrDefault(x => x.Key == "SourceOutput").Reasons;
-        reason.ShouldNotBe("Cached");
+        await Assert.That(reason).IsNotEqualTo("Cached");
     }
 
-    [Fact]
-    public void RunLambda()
+    [Test]
+    public async Task RunLambda()
     {
         var step1 = """
 using ConsoleAppFramework;
@@ -49,16 +49,16 @@ Console.WriteLine("foo"); // unrelated line
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
-        reasons[0][0].Reasons.ShouldBe("New");
-        reasons[1][0].Reasons.ShouldBe("Unchanged");
-        reasons[2][0].Reasons.ShouldBe("Modified");
+        await Assert.That(reasons[1][0].Reasons).IsEqualTo("Unchanged");
+        await Assert.That(reasons[2][0].Reasons).IsEqualTo("Modified");
+        await Assert.That(reasons[0][0].Reasons).IsEqualTo("New");
 
-        VerifySourceOutputReasonIsCached(reasons[1]);
-        VerifySourceOutputReasonIsNotCached(reasons[2]);
+        await VerifySourceOutputReasonIsCached(reasons[1]);
+        await VerifySourceOutputReasonIsNotCached(reasons[2]);
     }
 
-    [Fact]
-    public void RunMethod()
+    [Test]
+    public async Task RunMethod()
     {
         var step1 = """
 using ConsoleAppFramework;
@@ -116,15 +116,15 @@ public class Tako
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
-        reasons[0][0].Reasons.ShouldBe("New");
-        reasons[1][0].Reasons.ShouldBe("Unchanged");
-        reasons[2][0].Reasons.ShouldBe("Modified");
+        await Assert.That(reasons[0][0].Reasons).IsEqualTo("New");
+        await Assert.That(reasons[1][0].Reasons).IsEqualTo("Unchanged");
+        await Assert.That(reasons[2][0].Reasons).IsEqualTo("Modified");
 
-        VerifySourceOutputReasonIsCached(reasons[1]);
+        await VerifySourceOutputReasonIsCached(reasons[1]);
     }
 
-    [Fact]
-    public void RunMethodRef()
+    [Test]
+    public async Task RunMethodRef()
     {
         var step1 = """
 using ConsoleAppFramework;
@@ -171,15 +171,15 @@ static void DoHello(int x, int y) // change signature
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
-        reasons[0][0].Reasons.ShouldBe("New");
-        reasons[1][0].Reasons.ShouldBe("Unchanged");
-        reasons[2][0].Reasons.ShouldBe("Modified");
+        await Assert.That(reasons[0][0].Reasons).IsEqualTo("New");
+        await Assert.That(reasons[1][0].Reasons).IsEqualTo("Unchanged");
+        await Assert.That(reasons[2][0].Reasons).IsEqualTo("Modified");
 
-        VerifySourceOutputReasonIsCached(reasons[1]);
+        await VerifySourceOutputReasonIsCached(reasons[1]);
     }
 
-    [Fact]
-    public void Builder()
+    [Test]
+    public async Task Builder()
     {
         var step1 = """
 using Foo.Bar;
@@ -347,14 +347,14 @@ namespace Foo.Bar
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
-        VerifySourceOutputReasonIsNotCached(reasons[0]);
-        VerifySourceOutputReasonIsCached(reasons[1]);
-        VerifySourceOutputReasonIsNotCached(reasons[2]);
-        VerifySourceOutputReasonIsNotCached(reasons[3]);
+        await VerifySourceOutputReasonIsNotCached(reasons[0]);
+        await VerifySourceOutputReasonIsCached(reasons[1]);
+        await VerifySourceOutputReasonIsNotCached(reasons[2]);
+        await VerifySourceOutputReasonIsNotCached(reasons[3]);
     }
 
-    [Fact]
-    public void BuilderOtherType()
+    [Test]
+    public async Task BuilderOtherType()
     {
         var step1 = """
 var app = ConsoleApp.Create();
@@ -373,12 +373,12 @@ app.Run(args);
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
 
-        VerifySourceOutputReasonIsNotCached(reasons[0]);
-        VerifySourceOutputReasonIsCached(reasons[1]);
+        await VerifySourceOutputReasonIsNotCached(reasons[0]);
+        await VerifySourceOutputReasonIsCached(reasons[1]);
     }
 
-    [Fact]
-    public void BuilderClassChange()
+    [Test]
+    public async Task BuilderClassChange()
     {
         var step1 = """
 var app = ConsoleApp.Create();
@@ -438,14 +438,14 @@ public class Test
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
-        VerifySourceOutputReasonIsNotCached(reasons[0]);
-        VerifySourceOutputReasonIsNotCached(reasons[1]);
-        VerifySourceOutputReasonIsCached(reasons[2]);
-        VerifySourceOutputReasonIsCached(reasons[3]);
+        await VerifySourceOutputReasonIsNotCached(reasons[0]);
+        await VerifySourceOutputReasonIsNotCached(reasons[1]);
+        await VerifySourceOutputReasonIsCached(reasons[2]);
+        await VerifySourceOutputReasonIsCached(reasons[3]);
     }
 
-    [Fact]
-    public void BuilderClassInterface()
+    [Test]
+    public async Task BuilderClassInterface()
     {
         var step1 = """
 var app = ConsoleApp.Create();
@@ -487,13 +487,13 @@ public class Test : IDisposable, IAsyncDisposable
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3);
 
-        VerifySourceOutputReasonIsNotCached(reasons[0]);
-        VerifySourceOutputReasonIsNotCached(reasons[1]);
-        VerifySourceOutputReasonIsNotCached(reasons[2]);
+        await VerifySourceOutputReasonIsNotCached(reasons[0]);
+        await VerifySourceOutputReasonIsNotCached(reasons[1]);
+        await VerifySourceOutputReasonIsNotCached(reasons[2]);
     }
 
-    [Fact]
-    public void ConstructorChange()
+    [Test]
+    public async Task ConstructorChange()
     {
         var step1 = """
 var app = ConsoleApp.Create();
@@ -554,14 +554,14 @@ public class Test
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
-        VerifySourceOutputReasonIsNotCached(reasons[0]);
-        VerifySourceOutputReasonIsNotCached(reasons[1]);
-        VerifySourceOutputReasonIsNotCached(reasons[2]);
-        VerifySourceOutputReasonIsCached(reasons[3]);
+        await VerifySourceOutputReasonIsNotCached(reasons[0]);
+        await VerifySourceOutputReasonIsNotCached(reasons[1]);
+        await VerifySourceOutputReasonIsNotCached(reasons[2]);
+        await VerifySourceOutputReasonIsCached(reasons[3]);
     }
 
-    [Fact]
-    public void PrimaryConstructorChange()
+    [Test]
+    public async Task PrimaryConstructorChange()
     {
         var step1 = """
 var app = ConsoleApp.Create();
@@ -608,13 +608,13 @@ public class Test(IAsyncDisposable d)
 
         var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
-        VerifySourceOutputReasonIsNotCached(reasons[0]);
-        VerifySourceOutputReasonIsNotCached(reasons[1]);
-        VerifySourceOutputReasonIsNotCached(reasons[2]);
-        VerifySourceOutputReasonIsCached(reasons[3]);
+        await VerifySourceOutputReasonIsNotCached(reasons[0]);
+        await VerifySourceOutputReasonIsNotCached(reasons[1]);
+        await VerifySourceOutputReasonIsNotCached(reasons[2]);
+        await VerifySourceOutputReasonIsCached(reasons[3]);
     }
 
-    [Fact]
+    [Test]
     public void InvalidDefinition()
     {
         var step1 = """
@@ -655,7 +655,7 @@ app.Run(args);
 
     }
 
-    [Fact]
+    [Test]
     public void IncrDual()
     {
         var step1 = """

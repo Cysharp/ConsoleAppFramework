@@ -1,46 +1,46 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class Test(ITestOutputHelper output) : IDisposable
+public class Test
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    public void Dispose() => Environment.ExitCode = 0;
-
-    [Fact]
-    public void SyncRun()
+    [Test]
+    public async Task SyncRun()
     {
-        verifier.Execute("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 --y 20", "30");
+        await verifier.Execute("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 --y 20", "30");
     }
 
-    [Fact]
-    public void OptionTokenShouldNotFillArgumentSlot()
+    [Test]
+    public async Task OptionTokenShouldNotFillArgumentSlot()
     {
         var code = """
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, ([Argument] string path, bool dryRun) =>
 {
     Console.Write((dryRun, path).ToString());
 });
 """;
 
-        verifier.Error(code, "--dry-run").ShouldContain("Required argument 'path' was not specified.");
-        verifier.Execute(code, "--dry-run sample.txt", "(True, sample.txt)");
+        await Assert.That(verifier.Error(code, "--dry-run").Stdout).Contains("Required argument 'path' was not specified.");
+        await verifier.Execute(code, "--dry-run sample.txt", "(True, sample.txt)");
     }
 
-    [Fact]
-    public void OptionTokenAllowsMultipleArguments()
+    [Test]
+    public async Task OptionTokenAllowsMultipleArguments()
     {
         var code = """
+ConsoleApp.Log = x => Console.Write(x);    
 ConsoleApp.Run(args, ([Argument] string source, [Argument] string destination, bool dryRun) =>
 {
     Console.Write((dryRun, source, destination).ToString());
 });
 """;
 
-        verifier.Execute(code, "--dry-run input.json output.json", "(True, input.json, output.json)");
+        await verifier.Execute(code, "--dry-run input.json output.json", "(True, input.json, output.json)");
     }
 
-    [Fact]
-    public void OptionTokenRespectsArgumentDefaultValue()
+    [Test]
+    public async Task OptionTokenRespectsArgumentDefaultValue()
     {
         var code = """
 ConsoleApp.Run(args, ([Argument] string path = "default-path", bool dryRun = false) =>
@@ -49,11 +49,11 @@ ConsoleApp.Run(args, ([Argument] string path = "default-path", bool dryRun = fal
 });
 """;
 
-        verifier.Execute(code, "--dry-run", "(True, default-path)");
+        await verifier.Execute(code, "--dry-run", "(True, default-path)");
     }
 
-    [Fact]
-    public void OptionTokenHandlesParamsArguments()
+    [Test]
+    public async Task OptionTokenHandlesParamsArguments()
     {
         var code = """
 ConsoleApp.Run(args, ([Argument] string path, bool dryRun, params string[] extras) =>
@@ -62,12 +62,12 @@ ConsoleApp.Run(args, ([Argument] string path, bool dryRun, params string[] extra
 });
 """;
 
-        verifier.Execute(code, "--dry-run path.txt --extras src.txt dst.txt", "True:path.txt:src.txt|dst.txt");
-        verifier.Execute(code, "--dry-run path.txt", "True:path.txt:");
+        await verifier.Execute(code, "--dry-run path.txt --extras src.txt dst.txt", "True:path.txt:src.txt|dst.txt");
+        await verifier.Execute(code, "--dry-run path.txt", "True:path.txt:");
     }
 
-    [Fact]
-    public void ArgumentAllowsLeadingDashValue()
+    [Test]
+    public async Task ArgumentAllowsLeadingDashValue()
     {
         var code = """
 ConsoleApp.Run(args, ([Argument] int count, bool dryRun) =>
@@ -76,63 +76,68 @@ ConsoleApp.Run(args, ([Argument] int count, bool dryRun) =>
 });
 """;
 
-        verifier.Execute(code, "-5 --dry-run", "(-5, True)");
-        verifier.Execute(code, "-5", "(-5, False)");
+        await verifier.Execute(code, "-5 --dry-run", "(-5, True)");
+        await verifier.Execute(code, "-5", "(-5, False)");
     }
 
-    [Fact]
-    public void SyncRunShouldFailed()
+    [Test]
+    public async Task SyncRunShouldFailed()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x) => { Console.Write((x)); });", "--x").ShouldContain("Argument 'x' failed to parse");
+        await Assert.That(verifier.Error("""
+ConsoleApp.Log = x => Console.Write(x);           
+ConsoleApp.Run(args, (int x) => { Console.Write((x)); });
+""", "--x").Stdout).Contains("Argument 'x' failed to parse");
+            
     }
 
-    [Fact]
-    public void MissingArgument()
+    [Test]
+    public async Task MissingArgument()
     {
-        verifier.Error("ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });", "--x 10 y 20").ShouldContain("Argument 'y' is not recognized.");
-
-        Environment.ExitCode.ShouldBe(1);
-        Environment.ExitCode = 0;
+        var result = verifier.Error("""
+ConsoleApp.Log = x => Console.Write(x);    
+ConsoleApp.Run(args, (int x, int y) => { Console.Write((x + y)); });
+""", "--x 10 y 20");
+        await Assert.That(result.Stdout).Contains("Argument 'y' is not recognized.");
+        await Assert.That(result.ExitCode).IsEqualTo(1);
     }
 
-    [Fact]
-    public void ValidateOne()
+    [Test]
+    public async Task ValidateOne()
     {
         var expected = """
 The field x must be between 1 and 10.
 
-
 """;
 
-        verifier.Execute("""
+        var exitCode = await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, "--x 100 --y 140", expected);
 
-        Environment.ExitCode.ShouldBe(1);
-        Environment.ExitCode = 0;
+        await Assert.That(exitCode).IsEqualTo(1);
     }
 
-    [Fact]
-    public void ValidateTwo()
+    [Test]
+    public async Task ValidateTwo()
     {
         var expected = """
 The field x must be between 1 and 10.
 The field y must be between 100 and 200.
 
-
 """;
 
-        verifier.Execute("""
+        var exitCode = await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, ([Range(1, 10)]int x, [Range(100, 200)]int y) => { Console.Write((x + y)); });
 """, "--x 100 --y 240", expected);
 
-        Environment.ExitCode.ShouldBe(1);
-        Environment.ExitCode = 0;
+        await Assert.That(exitCode).IsEqualTo(1);
     }
-    [Fact]
-    public void Parameters()
+    [Test]
+    public async Task Parameters()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 ConsoleApp.Run(args, (int foo, string bar, Fruit ft, bool flag, Half half, int? itt, Takoyaki.Obj obj) => 
 {
     Console.Write(foo); 
@@ -159,31 +164,31 @@ namespace Takoyaki
 """, "--foo 10 --bar aiueo --ft Grape --flag --half 1.3 --itt 99 --obj {\"Foo\":1999}", "10aiueoGrapeTrue1.3991999");
     }
 
-    [Fact]
-    public void ValidateClass()
+    [Test]
+    public async Task ValidateClass()
     {
         var expected = """
 The field value must be between 0 and 1.
 
-
 """;
 
-        verifier.Execute("""
+        await verifier.Execute("""
+ConsoleApp.Log = x => Console.Write(x);  
 var app = ConsoleApp.Create();
 app.Add<Test>();
 app.Run(args);
 
 public class Test
 {
-    public void Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
+    public async Task Show(string aaa, [Range(0, 1)] double value) => ConsoleApp.Log($"{value}");
 }
 
 """, "show --aaa foo --value 100", expected);
 
     }
 
-    [Fact]
-    public void StringEscape()
+    [Test]
+    public async Task StringEscape()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -193,44 +198,44 @@ app.Run(args);
 public class MyCommands
 {
     [Command("Error1")]
-    public void Error1(string msg = @"\")
+    public async Task Error1(string msg = @"\")
     {
         Console.Write(msg);
     }
     [Command("Error2")]
-    public void Error2(string msg = "\\")
+    public async Task Error2(string msg = "\\")
     {
         Console.Write(msg);
     }
     [Command("Output")]
-    public void Output(string msg = @"\\")
+    public async Task Output(string msg = @"\\")
     {
         Console.Write(msg); 
     }
 }
 """;
 
-        verifier.Execute(code, "Error1", @"\");
-        verifier.Execute(code, "Error2", "\\");
-        verifier.Execute(code, "Output", @"\\");
+        await verifier.Execute(code, "Error1", @"\");
+        await verifier.Execute(code, "Error2", "\\");
+        await verifier.Execute(code, "Output", @"\\");
 
         // lambda
 
-        verifier.Execute("""
+        await verifier.Execute("""
 ConsoleApp.Run(args, (string msg = @"\") => Console.Write(msg));
 """, "", @"\");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 ConsoleApp.Run(args, (string msg = "\\") => Console.Write(msg));
 """, "", "\\");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 ConsoleApp.Run(args, (string msg = @"\\") => Console.Write(msg));
 """, "", @"\\");
     }
 
-    [Fact]
-    public void ShortNameAlias()
+    [Test]
+    public async Task ShortNameAlias()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -242,16 +247,16 @@ public class FileCommand
     /// <summary>Outputs the provided file name.</summary>
     /// <param name="inputFile">-i, InputFile</param>
     [Command("")]
-    public void Run(string inputFile) => Console.Write(inputFile);
+    public async Task Run(string inputFile) => Console.Write(inputFile);
 }
 """;
 
-        verifier.Execute(code, "--input-file sample.txt", "sample.txt");
-        verifier.Execute(code, "-i sample.txt", "sample.txt");
+        await verifier.Execute(code, "--input-file sample.txt", "sample.txt");
+        await verifier.Execute(code, "-i sample.txt", "sample.txt");
     }
 
-    [Fact]
-    public void ShortNameAndLongNameAlias()
+    [Test]
+    public async Task ShortNameAndLongNameAlias()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -263,17 +268,17 @@ public class FileCommand
     /// <summary>Outputs the provided file name.</summary>
     /// <param name="inputFile">-i|--input, InputFile</param>
     [Command("")]
-    public void Run(string inputFile) => Console.Write(inputFile);
+    public async Task Run(string inputFile) => Console.Write(inputFile);
 }
 """;
 
-        verifier.Execute(code, "--input-file sample.txt", "sample.txt");
-        verifier.Execute(code, "--input sample.txt", "sample.txt");
-        verifier.Execute(code, "-i sample.txt", "sample.txt");
+        await verifier.Execute(code, "--input-file sample.txt", "sample.txt");
+        await verifier.Execute(code, "--input sample.txt", "sample.txt");
+        await verifier.Execute(code, "-i sample.txt", "sample.txt");
     }
 
-    [Fact]
-    public void ArgumentLastParams()
+    [Test]
+    public async Task ArgumentLastParams()
     {
         var code = """
 ConsoleApp.Run(args, (string opt1, [Argument]params string[] args) =>
@@ -282,45 +287,45 @@ ConsoleApp.Run(args, (string opt1, [Argument]params string[] args) =>
 });
 """;
 
-        verifier.Execute(code, "--opt1 abc a b c d", "abc, a|b|c|d");
+        await verifier.Execute(code, "--opt1 abc a b c d", "abc, a|b|c|d");
     }
 
-    [Fact]
-    public void RunAndRunAsyncOverloads()
+    [Test]
+    public async Task RunAndRunAsyncOverloads()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 ConsoleApp.Run(args, () => Console.Write("sync"));
 """, "", "sync");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 ConsoleApp.Run(args, async () => Console.Write("async"));
 """, "", "async");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 await ConsoleApp.RunAsync(args, () => Console.Write("sync"));
 """, "", "sync");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 await ConsoleApp.RunAsync(args, async () => Console.Write("async"));
 """, "", "async");
     }
 
-    [Fact]
-    public void RunAndRunAsyncOverloadsWithCancellationToken()
+    [Test]
+    public async Task RunAndRunAsyncOverloadsWithCancellationToken()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 ConsoleApp.Run(args, (CancellationToken cancellationToken) => Console.Write("sync"));
 """, "", "sync");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 ConsoleApp.Run(args, async (CancellationToken cancellationToken) => Console.Write("async"));
 """, "", "async");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 await ConsoleApp.RunAsync(args, (CancellationToken cancellationToken) => Console.Write("sync"));
 """, "", "sync");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 await ConsoleApp.RunAsync(args, async (CancellationToken cancellationToken) => Console.Write("async"));
 """, "", "async");
     }

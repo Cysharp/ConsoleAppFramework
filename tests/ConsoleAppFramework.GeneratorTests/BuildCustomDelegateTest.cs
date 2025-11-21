@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class BuildCustomDelegateTest(ITestOutputHelper output)
+public class BuildCustomDelegateTest
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    [Fact]
-    public void Run()
+    [Test]
+    public async Task Run()
     {
         var code = """
 ConsoleApp.Run(args, (
@@ -34,7 +34,7 @@ bool a16 // ok it is Action
 ) => { Console.Write("ok"); });
 """;
 
-        verifier.Execute(code, "", "ok");
+        await verifier.Execute(code, "", "ok");
 
         var code2 = """
 ConsoleApp.Run(args, (
@@ -58,10 +58,10 @@ bool a17 // custom delegate
 ) => { Console.Write("ok"); });
 """;
 
-        verifier.Execute(code2, "", "ok");
+        await verifier.Execute(code2, "", "ok");
 
 
-        verifier.Execute("""
+        await verifier.Execute("""
 var t = new Test();
 ConsoleApp.Run(args, t.Handle);
 
@@ -96,7 +96,7 @@ public partial class Test
 
 
 
-        verifier.Execute("""
+        await verifier.Execute("""
 unsafe
 {
     ConsoleApp.Run(args, &Test.Handle);
@@ -132,10 +132,10 @@ public partial class Test
 """, "", "ok");
     }
 
-    [Fact]
-    public void Builder()
+    [Test]
+    public async Task Builder()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var t = new Test();
 
 var app = ConsoleApp.Create();

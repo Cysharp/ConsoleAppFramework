@@ -1,38 +1,38 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class NameConverterTest(ITestOutputHelper output)
+public class NameConverterTest
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    [Fact]
-    public void KebabCase()
+    [Test]
+    public async Task KebabCase()
     {
-        NameConverter.ToKebabCase("").ShouldBe("");
-        NameConverter.ToKebabCase("HelloWorld").ShouldBe("hello-world");
-        NameConverter.ToKebabCase("HelloWorldMyHome").ShouldBe("hello-world-my-home");
-        NameConverter.ToKebabCase("helloWorld").ShouldBe("hello-world");
-        NameConverter.ToKebabCase("hello-world").ShouldBe("hello-world");
-        NameConverter.ToKebabCase("A").ShouldBe("a");
-        NameConverter.ToKebabCase("AB").ShouldBe("ab");
-        NameConverter.ToKebabCase("ABC").ShouldBe("abc");
-        NameConverter.ToKebabCase("ABCD").ShouldBe("abcd");
-        NameConverter.ToKebabCase("ABCDeF").ShouldBe("abc-def");
-        NameConverter.ToKebabCase("XmlReader").ShouldBe("xml-reader");
-        NameConverter.ToKebabCase("XMLReader").ShouldBe("xml-reader");
-        NameConverter.ToKebabCase("MLLibrary").ShouldBe("ml-library");
+        await Assert.That(NameConverter.ToKebabCase("")).IsEqualTo("");
+        await Assert.That(NameConverter.ToKebabCase("HelloWorld")).IsEqualTo("hello-world");
+        await Assert.That(NameConverter.ToKebabCase("HelloWorldMyHome")).IsEqualTo("hello-world-my-home");
+        await Assert.That(NameConverter.ToKebabCase("helloWorld")).IsEqualTo("hello-world");
+        await Assert.That(NameConverter.ToKebabCase("hello-world")).IsEqualTo("hello-world");
+        await Assert.That(NameConverter.ToKebabCase("A")).IsEqualTo("a");
+        await Assert.That(NameConverter.ToKebabCase("AB")).IsEqualTo("ab");
+        await Assert.That(NameConverter.ToKebabCase("ABC")).IsEqualTo("abc");
+        await Assert.That(NameConverter.ToKebabCase("ABCD")).IsEqualTo("abcd");
+        await Assert.That(NameConverter.ToKebabCase("ABCDeF")).IsEqualTo("abc-def");
+        await Assert.That(NameConverter.ToKebabCase("XmlReader")).IsEqualTo("xml-reader");
+        await Assert.That(NameConverter.ToKebabCase("XMLReader")).IsEqualTo("xml-reader");
+        await Assert.That(NameConverter.ToKebabCase("MLLibrary")).IsEqualTo("ml-library");
     }
 
-    [Fact]
-    public void CommandName()
+    [Test]
+    public async Task CommandName()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 builder.Run(args);
 
 public class MyClass
 {
-    public void HelloWorld()
+    public async Task HelloWorld()
     {
         Console.Write("Hello World!");
     }
@@ -40,17 +40,17 @@ public class MyClass
 """, args: "hello-world", expected: "Hello World!");
     }
 
-    [Fact]
-    public void OptionName()
+    [Test]
+    public async Task OptionName()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var builder = ConsoleApp.Create();
 builder.Add<MyClass>();
 builder.Run(args);
 
 public class MyClass
 {
-    public void HelloWorld(string fooBar)
+    public async Task HelloWorld(string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
     }
@@ -58,7 +58,7 @@ public class MyClass
 """, args: "hello-world --foo-bar aiueo", expected: "Hello World! aiueo");
 
 
-        verifier.Execute("""
+        await verifier.Execute("""
 var builder = ConsoleApp.Create();
 var mc = new MyClass();
 builder.Add("hello-world", mc.HelloWorld);
@@ -66,7 +66,7 @@ builder.Run(args);
 
 public class MyClass
 {
-    public void HelloWorld(string fooBar)
+    public async Task HelloWorld(string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
     }
