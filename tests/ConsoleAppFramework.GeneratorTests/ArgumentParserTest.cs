@@ -1,41 +1,42 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
+
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class ArgumentParserTest(ITestOutputHelper output)
+public class ArgumentParserTest
 {
-    readonly VerifyHelper verifier = new(output, "CAF");
+    readonly VerifyHelper verifier = new("CAF");
 
-    [Fact]
-    public void Lamda()
+    [Test]
+    public async Task Lamda()
     {
-        verifier.Execute(HEAD + Body("""
+        await verifier.Execute(HEAD + Body("""
             ConsoleApp.Run(args, ([Vector3Parser] Vector3 v) => Console.Write(v));
             """) + TAIL, args: "--v 1,2,3", expected: "<1, 2, 3>");
-        verifier.Execute(HEAD + Body("""
+        await verifier.Execute(HEAD + Body("""
             var app = ConsoleApp.Create();
             app.Add("", ([Vector3Parser] Vector3 v) => Console.Write(v));
             app.Run(args);
             """) + TAIL, args: "--v 1,2,3", expected: "<1, 2, 3>");
     }
 
-    [Fact]
-    public void Method()
+    [Test]
+    public async Task Method()
     {
-        verifier.Execute(HEAD + Body("""
+        await verifier.Execute(HEAD + Body("""
             ConsoleApp.Run(args, MyCommands.Static);
             """) + TAIL, args: "--v 1,2,3", expected: "<1, 2, 3>");
-        verifier.Execute(HEAD + Body("""
+        await verifier.Execute(HEAD + Body("""
             var app = ConsoleApp.Create();
             app.Add("", MyCommands.Static);
             app.Run(args);
             """) + TAIL, args: "--v 1,2,3", expected: "<1, 2, 3>");
     }
 
-    [Fact]
-    public void Class()
+    [Test]
+    public async Task Class()
     {
-        verifier.Execute(HEAD + Body("""
+        await verifier.Execute(HEAD + Body("""
             var app = ConsoleApp.Create();
             app.Add<MyCommands>();
             app.Run(args);

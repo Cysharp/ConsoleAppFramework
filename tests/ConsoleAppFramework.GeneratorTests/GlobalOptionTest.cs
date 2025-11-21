@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class GlobalOptionTest(ITestOutputHelper output)
+public class GlobalOptionTest
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    [Fact]
-    public void BooleanParseCheck()
+    [Test]
+    public async Task BooleanParseCheck()
     {
         string BuildCode(string parameter)
         {
@@ -23,18 +23,18 @@ app.Run(args);
 """;
         }
 
-        verifier.Execute(BuildCode("-v"), "-v", "True");
-        verifier.Execute(BuildCode("-no"), "-v", "False");
-        verifier.Execute(BuildCode("-v|--verbose"), "-v", "True");
-        verifier.Execute(BuildCode("-v|--verbose"), "--verbose", "True");
-        verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "-v", "True");
-        verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "--verbose", "True");
-        verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "--vo-v", "True");
-        verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "--no", "False");
+        await verifier.Execute(BuildCode("-v"), "-v", "True");
+        await verifier.Execute(BuildCode("-no"), "-v", "False");
+        await verifier.Execute(BuildCode("-v|--verbose"), "-v", "True");
+        await verifier.Execute(BuildCode("-v|--verbose"), "--verbose", "True");
+        await verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "-v", "True");
+        await verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "--verbose", "True");
+        await verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "--vo-v", "True");
+        await verifier.Execute(BuildCode("-v|--verbose|--vo-v"), "--no", "False");
     }
 
-    [Fact]
-    public void ArgumentRemove()
+    [Test]
+    public async Task ArgumentRemove()
     {
         var code = $$"""
 var app = ConsoleApp.Create();
@@ -51,19 +51,19 @@ app.Run(args);
 """;
 
         // first
-        verifier.Execute(code, "--parameter 100 --x 10 --y 20", "100 -> (10, 20)");
+        await verifier.Execute(code, "--parameter 100 --x 10 --y 20", "100 -> (10, 20)");
 
         // middle
-        verifier.Execute(code, "--x 10 --parameter 100 --y 20", "100 -> (10, 20)");
+        await verifier.Execute(code, "--x 10 --parameter 100 --y 20", "100 -> (10, 20)");
 
         // last
-        verifier.Execute(code, "--x 10 --y 20 --parameter 100", "100 -> (10, 20)");
+        await verifier.Execute(code, "--x 10 --y 20 --parameter 100", "100 -> (10, 20)");
     }
 
-    [Fact]
-    public void EnumParse()
+    [Test]
+    public async Task EnumParse()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
@@ -85,10 +85,10 @@ enum Fruit
 """, "--parameter 100 --x 10 --dry-run --y 20 --fruit grape", "(100, True, Grape) -> (10, 20)");
     }
 
-    [Fact]
-    public void DefaultValueForOption()
+    [Test]
+    public async Task DefaultValueForOption()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
@@ -111,8 +111,8 @@ enum Fruit
 """, "--x 10 --y 20", "(-10, False, Apple) -> (10, 20)");
     }
 
-    [Fact]
-    public void RequiredParse()
+    [Test]
+    public async Task RequiredParse()
     {
         var error = verifier.Error("""
 var app = ConsoleApp.Create();
@@ -132,10 +132,10 @@ app.Run(args);
         error.Contains("Required argument '--parameter' was not specified.");
     }
 
-    [Fact]
-    public void NamedParameter()
+    [Test]
+    public async Task NamedParameter()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 {
@@ -151,10 +151,10 @@ app.Run(args);
 """, "--x 10 --dry-run --y 20", "(1000, True) -> (10, 20)");
     }
 
-    [Fact]
-    public void DoubleDashEscape()
+    [Test]
+    public async Task DoubleDashEscape()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var app = ConsoleApp.Create();
 
 app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
@@ -172,7 +172,7 @@ internal record GlobalOptions(string Flag);
 internal class Commands
 {
     [Command("some-command")]
-    public void SomeCommand([Argument] string commandArg, ConsoleAppContext context)
+    public async Task SomeCommand([Argument] string commandArg, ConsoleAppContext context)
     {
         Console.WriteLine($"ARG: {commandArg}");
         Console.WriteLine($"ESCAPED: {string.Join(", ", context.EscapedArguments.ToArray()!)}");

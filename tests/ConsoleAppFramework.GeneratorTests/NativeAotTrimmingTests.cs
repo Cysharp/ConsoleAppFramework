@@ -1,12 +1,12 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
 public class NativeAotTrimmingTests
 {
-    [Fact]
-    public void NativeAotTrimmingSample_PublishesAndRuns()
+    [Test]
+    public async Task NativeAotTrimmingSample_PublishesAndRuns()
     {
         var publishDir = Directory.CreateTempSubdirectory("caf-nativeaot").FullName;
 
@@ -24,21 +24,21 @@ public class NativeAotTrimmingTests
         var publishStdOut = publish.StandardOutput.ReadToEnd();
         var publishStdErr = publish.StandardError.ReadToEnd();
 
-        publish.ExitCode.ShouldBe(0, $"dotnet publish failed:{Environment.NewLine}{publishStdOut}{publishStdErr}");
+        await Assert.That(publish.ExitCode).IsZero().Because($"dotnet publish failed:{Environment.NewLine}{publishStdOut}{publishStdErr}");
 
         var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "NativeAotTrimming.exe"
             : "NativeAotTrimming";
         var exePath = Path.Combine(publishDir, exeName);
 
-        File.Exists(exePath).ShouldBeTrue($"Expected published executable at {exePath}");
+        await Assert.That(File.Exists(exePath)).IsTrue().Because($"Expected published executable at {exePath}");
 
         var app = StartProcess(exePath, [], workingDirectory: publishDir);
         app.WaitForExit();
         var appStdOut = app.StandardOutput.ReadToEnd();
         var appStdErr = app.StandardError.ReadToEnd();
 
-        app.ExitCode.ShouldBe(0, $"App should execute successfully after AOT trimming:{Environment.NewLine}stdout:{appStdOut}{Environment.NewLine}stderr:{appStdErr}");
+        await Assert.That(app.ExitCode).IsZero().Because($"App should execute successfully after AOT trimming:{Environment.NewLine}stdout:{appStdOut}{Environment.NewLine}stderr:{appStdErr}");
     }
 
     private static Process StartProcess(string fileName, IReadOnlyCollection<string> arguments, string? workingDirectory = null)

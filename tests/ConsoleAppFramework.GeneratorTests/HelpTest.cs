@@ -7,16 +7,16 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class HelpTest(ITestOutputHelper output)
+public class HelpTest
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    [Fact]
-    public void Version()
+    [Test]
+    public async Task Version()
     {
         var version = GetEntryAssemblyVersion();
 
-        verifier.Execute(code: $$"""
+        await verifier.Execute(code: $$"""
 ConsoleApp.Run(args, (int x, int y) => { });
 """,
     args: "--version",
@@ -25,7 +25,7 @@ ConsoleApp.Run(args, (int x, int y) => { });
 
 """);
         // custom
-        verifier.Execute(code: $$"""
+        await verifier.Execute(code: $$"""
 ConsoleApp.Version = "9999.9999999abcdefg";
 ConsoleApp.Run(args, (int x, int y) => { });
 """,
@@ -36,12 +36,12 @@ ConsoleApp.Run(args, (int x, int y) => { });
 """);
     }
 
-    [Fact]
-    public void VersionOnBuilder()
+    [Test]
+    public async Task VersionOnBuilder()
     {
         var version = GetEntryAssemblyVersion();
 
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 var app = ConsoleApp.Create();
 app.Run(args);
 """,
@@ -52,10 +52,10 @@ app.Run(args);
 """);
     }
 
-    [Fact]
-    public void Run()
+    [Test]
+    public async Task Run()
     {
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 ConsoleApp.Run(args, (int x, int y) => { });
 """,
             args: "--help",
@@ -69,10 +69,10 @@ Options:
 """);
     }
 
-    [Fact]
-    public void RunVoid()
+    [Test]
+    public async Task RunVoid()
     {
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 ConsoleApp.Run(args, () => { });
 """,
             args: "--help",
@@ -82,10 +82,10 @@ Usage: [-h|--help] [--version]
 """);
     }
 
-    [Fact]
-    public void RootOnly()
+    [Test]
+    public async Task RootOnly()
     {
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 var app = ConsoleApp.Create();
 app.Add("", (int x, int y) => { });
 app.Run(args);
@@ -101,8 +101,8 @@ Options:
 """);
     }
 
-    [Fact]
-    public void ListWithoutRoot()
+    [Test]
+    public async Task ListWithoutRoot()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -111,7 +111,7 @@ app.Add("ab", (int x, int y) => { });
 app.Add("a b c", (int x, int y) => { });
 app.Run(args);
 """;
-        verifier.Execute(code, args: "--help", expected: """
+        await verifier.Execute(code, args: "--help", expected: """
 Usage: [command] [-h|--help] [--version]
 
 Commands:
@@ -122,8 +122,8 @@ Commands:
 """);
     }
 
-    [Fact]
-    public void ListWithRoot()
+    [Test]
+    public async Task ListWithRoot()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -133,7 +133,7 @@ app.Add("ab", (int x, int y) => { });
 app.Add("a b c", (int x, int y) => { });
 app.Run(args);
 """;
-        verifier.Execute(code, args: "--help", expected: """
+        await verifier.Execute(code, args: "--help", expected: """
 Usage: [command] [options...] [-h|--help] [--version]
 
 Options:
@@ -148,8 +148,8 @@ Commands:
 """);
     }
 
-    [Fact]
-    public void NoArgsOnRootShowsSameHelpTextAsHelpWhenParametersAreRequired()
+    [Test]
+    public async Task NoArgsOnRootShowsSameHelpTextAsHelpWhenParametersAreRequired()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -162,11 +162,11 @@ app.Run(args);
         var noArgsOutput = verifier.Error(code, "");
         var helpOutput = verifier.Error(code, "--help");
 
-        noArgsOutput.ShouldBe(helpOutput);
+        await Assert.That(noArgsOutput).IsEqualTo(helpOutput);
     }
 
-    [Fact]
-    public void SelectLeafHelp()
+    [Test]
+    public async Task SelectLeafHelp()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -176,7 +176,7 @@ app.Add("ab", (int x, int y) => { });
 app.Add("a b c", (int x, int y) => { });
 app.Run(args);
 """;
-        verifier.Execute(code, args: "a b c --help", expected: """
+        await verifier.Execute(code, args: "a b c --help", expected: """
 Usage: a b c [options...] [-h|--help] [--version]
 
 Options:
@@ -186,8 +186,8 @@ Options:
 """);
     }
 
-    [Fact]
-    public void Summary()
+    [Test]
+    public async Task Summary()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -200,13 +200,13 @@ public class MyClass
     /// hello my world.
     /// </summary>
     /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
-    public void HelloWorld(string fooBar)
+    public async Task HelloWorld(string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
     }
 }
 """;
-        verifier.Execute(code, args: "--help", expected: """
+        await verifier.Execute(code, args: "--help", expected: """
 Usage: [command] [-h|--help] [--version]
 
 Commands:
@@ -214,7 +214,7 @@ Commands:
 
 """);
 
-        verifier.Execute(code, args: "hello-world --help", expected: """
+        await verifier.Execute(code, args: "hello-world --help", expected: """
 Usage: hello-world [options...] [-h|--help] [--version]
 
 hello my world.
@@ -225,10 +225,10 @@ Options:
 """);
     }
 
-    [Fact]
-    public void ArgumentOnly()
+    [Test]
+    public async Task ArgumentOnly()
     {
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 ConsoleApp.Run(args, ([Argument]int x, [Argument]int y) => { });
 """,
             args: "--help",
@@ -242,10 +242,10 @@ Arguments:
 """);
     }
 
-    [Fact]
-    public void ArgumentWithParams()
+    [Test]
+    public async Task ArgumentWithParams()
     {
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 ConsoleApp.Run(args, ([Argument]int x, [Argument]int y, params string[] yyy) => { });
 """,
             args: "--help",
@@ -264,10 +264,10 @@ Options:
 
     // Params
 
-    [Fact]
-    public void Nullable()
+    [Test]
+    public async Task Nullable()
     {
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 ConsoleApp.Run(args, (int? x = null, string? y = null) => { });
 """,
             args: "--help",
@@ -281,10 +281,10 @@ Options:
 """);
     }
 
-    [Fact]
-    public void EnumTest()
+    [Test]
+    public async Task EnumTest()
     {
-        verifier.Execute(code: """
+        await verifier.Execute(code: """
 ConsoleApp.Run(args, (Fruit myFruit = Fruit.Apple, Fruit? moreFruit = null) => { });
 
 enum Fruit
@@ -303,8 +303,8 @@ Options:
 """);
     }
 
-    [Fact]
-    public void Summary2()
+    [Test]
+    public async Task Summary2()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -318,13 +318,13 @@ public class MyClass
     /// </summary>
     /// <param name="boo">-b, my boo is not boo.</param>
     /// <param name="fooBar">-f|-fb, my foo, is not bar.</param>
-    public void HelloWorld([Argument]int boo, string fooBar)
+    public async Task HelloWorld([Argument]int boo, string fooBar)
     {
         Console.Write("Hello World! " + fooBar);
     }
 }
 """;
-        verifier.Execute(code, args: "hello-world --help", expected: """
+        await verifier.Execute(code, args: "hello-world --help", expected: """
 Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
 
 hello my world.
@@ -338,8 +338,8 @@ Options:
 """);
     }
 
-    [Fact]
-    public void HideDefaultValue()
+    [Test]
+    public async Task HideDefaultValue()
     {
         var code = """
 ConsoleApp.Run(args, Commands.Hello);
@@ -353,7 +353,7 @@ static class Commands
     public static void Hello([HideDefaultValue]string message = "ConsoleAppFramework") => Console.Write($"Hello, {message}");
 }
 """;
-        verifier.Execute(code, args: "--help", expected: """
+        await verifier.Execute(code, args: "--help", expected: """
 Usage: [options...] [-h|--help] [--version]
 
 Display Hello.
@@ -364,8 +364,8 @@ Options:
 """);
     }
 
-    [Fact]
-    public void GlobalOptions()
+    [Test]
+    public async Task GlobalOptions()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -385,7 +385,7 @@ app.Add("a b c", (int x, int y) => { });
 app.Run(args);
 """;
 
-        verifier.Execute(code, args: "a --help", expected: """
+        await verifier.Execute(code, args: "a --help", expected: """
 Usage: a [options...] [-h|--help] [--version]
 
 Options:
@@ -400,10 +400,12 @@ Options:
 
     private static string GetEntryAssemblyVersion()
     {
-        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var version = System.Reflection.Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
         if (version == null)
+        {
             return "1.0.0";
+        }
 
         // Trim SourceRevisionId (SourceLink feature is enabled by default when using .NET SDK 8 or later)
         var i = version.IndexOf('+');
@@ -415,8 +417,8 @@ Options:
         return version;
     }
 
-    [Fact]
-    public void CommandAlias()
+    [Test]
+    public async Task CommandAlias()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -431,15 +433,15 @@ public class Commands
 {
     /// <summary>Analyze the current package and report errors, but don't build object files.</summary>
     [Command("check|c")]
-    public void Check() { Console.Write("check ok"); }
+    public async Task Check() { Console.Write("check ok"); }
 
     /// <summary>Build this packages's and its dependencies' documenation.</summary>
     [Command("doc|d")]
-    public void Doc() { Console.Write("doc ok"); }
+    public async Task Doc() { Console.Write("doc ok"); }
 }
 """;
 
-        verifier.Execute(code, "--help", """
+        await verifier.Execute(code, "--help", """
 Usage: [command] [-h|--help] [--version]
 
 Commands:

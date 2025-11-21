@@ -1,11 +1,11 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class HiddenAtttributeTest(ITestOutputHelper output)
+public class HiddenAtttributeTest
 {
-    VerifyHelper verifier = new(output, "CAF");
+    VerifyHelper verifier = new("CAF");
 
-    [Fact]
-    public void VerifyHiddenOptions_Lambda()
+    [Test]
+    public async Task VerifyHiddenOptions_Lambda()
     {
         var code =
             """
@@ -13,7 +13,7 @@ public class HiddenAtttributeTest(ITestOutputHelper output)
             """;
 
         // Verify Hidden options is not shown on command help.
-        verifier.Execute(code, args: "--help", expected:
+        await verifier.Execute(code, args: "--help", expected:
             """
             Usage: [options...] [-h|--help] [--version]
 
@@ -23,8 +23,8 @@ public class HiddenAtttributeTest(ITestOutputHelper output)
             """);
     }
 
-    [Fact]
-    public void VerifyHiddenCommands_Class()
+    [Test]
+    public async Task VerifyHiddenCommands_Class()
     {
         var code =
             """
@@ -35,17 +35,17 @@ public class HiddenAtttributeTest(ITestOutputHelper output)
             public class Commands
             {
                 [Hidden]
-                public void Command1() { Console.Write("command1"); }
+                public async Task Command1() { Console.Write("command1"); }
 
-                public void Command2() { Console.Write("command2"); }
+                public async Task Command2() { Console.Write("command2"); }
 
                 [Hidden]
-                public void Command3(int x, [Hidden]int y) { Console.Write($"command3: x={x} y={y}"); }
+                public async Task Command3(int x, [Hidden]int y) { Console.Write($"command3: x={x} y={y}"); }
             }
             """;
 
         // Verify hidden command is not shown on root help commands.
-        verifier.Execute(code, args: "--help", expected:
+        await verifier.Execute(code, args: "--help", expected:
             """
             Usage: [command] [-h|--help] [--version]
 
@@ -55,19 +55,19 @@ public class HiddenAtttributeTest(ITestOutputHelper output)
             """);
 
         // Verify Hidden command help is shown when explicitly specify command name.
-        verifier.Execute(code, args: "command1 --help", expected:
+        await verifier.Execute(code, args: "command1 --help", expected:
             """
             Usage: command1 [-h|--help] [--version]
             
             """);
 
-        verifier.Execute(code, args: "command2 --help", expected:
+        await verifier.Execute(code, args: "command2 --help", expected:
             """
             Usage: command2 [-h|--help] [--version]
 
             """);
 
-        verifier.Execute(code, args: "command3 --help", expected:
+        await verifier.Execute(code, args: "command3 --help", expected:
             """
             Usage: command3 [options...] [-h|--help] [--version]
 
@@ -77,13 +77,13 @@ public class HiddenAtttributeTest(ITestOutputHelper output)
             """);
 
         // Verify commands involations
-        verifier.Execute(code, args: "command1", "command1");
-        verifier.Execute(code, args: "command2", "command2");
-        verifier.Execute(code, args: "command3 --x 1 --y 2", expected: "command3: x=1 y=2");
+        await verifier.Execute(code, args: "command1", "command1");
+        await verifier.Execute(code, args: "command2", "command2");
+        await verifier.Execute(code, args: "command3 --x 1 --y 2", expected: "command3: x=1 y=2");
     }
 
-    [Fact]
-    public void VerifyHiddenCommands_LocalFunctions()
+    [Test]
+    public async Task VerifyHiddenCommands_LocalFunctions()
     {
         var code =
             """
@@ -104,7 +104,7 @@ public class HiddenAtttributeTest(ITestOutputHelper output)
                 static void Command3(int x, [Hidden]int y) { Console.Write($"command3: x={x} y={y}"); }
             """;
 
-        verifier.Execute(code, args: "--help", expected:
+        await verifier.Execute(code, args: "--help", expected:
             """
             Usage: [command] [-h|--help] [--version]
 
@@ -114,8 +114,8 @@ public class HiddenAtttributeTest(ITestOutputHelper output)
             """);
 
         // Verify commands can be invoked.
-        verifier.Execute(code, args: "command1", expected: "command1");
-        verifier.Execute(code, args: "command2", expected: "command2");
-        verifier.Execute(code, args: "command3 --x 1 --y 2", expected: "command3: x=1 y=2");
+        await verifier.Execute(code, args: "command1", expected: "command1");
+        await verifier.Execute(code, args: "command2", expected: "command2");
+        await verifier.Execute(code, args: "command3 --x 1 --y 2", expected: "command3: x=1 y=2");
     }
 }

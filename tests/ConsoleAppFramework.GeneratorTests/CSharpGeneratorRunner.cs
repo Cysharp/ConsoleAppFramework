@@ -54,8 +54,6 @@ global using ConsoleAppFramework;
             driver = (Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver)driver.WithUpdatedAnalyzerConfigOptions(options);
         }
 
-        // MetadataReference.CreateFromFile("", MetadataReferenceProperties.
-
         var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions));
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics);
@@ -77,6 +75,7 @@ global using ConsoleAppFramework;
 
         // capture stdout log
         // modify global stdout so can't run in parallel unit-test
+#pragma warning disable TUnit0055 // Do not overwrite the Console writer
         var originalOut = Console.Out;
         try
         {
@@ -95,6 +94,7 @@ global using ConsoleAppFramework;
         {
             Console.SetOut(originalOut);
         }
+#pragma warning restore TUnit0055 // Do not overwrite the Console writer
     }
 
     public static (string Key, string Reasons)[][] GetIncrementalGeneratorTrackedStepsReasons(string keyPrefixFilter, params string[] sources)
@@ -143,45 +143,43 @@ global using ConsoleAppFramework;
     }
 }
 
-public class VerifyHelper(ITestOutputHelper output, string idPrefix)
+public class VerifyHelper(string idPrefix)
 {
-    // Diagnostics Verify
-
-    public void Ok([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public async Task Ok([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr!);
+        Console.WriteLine(codeExpr!);
 
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         foreach (var item in diagnostics)
         {
-            output.WriteLine(item.ToString());
+            Console.WriteLine(item.ToString());
         }
         OutputGeneratedCode(compilation);
 
-        diagnostics.Length.ShouldBe(0);
+        await Assert.That(diagnostics.Length).IsZero();
     }
 
-    public void Verify(int id, [StringSyntax("C#-test")] string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public async Task Verify(int id, [StringSyntax("C#-test")] string code, string diagnosticsCodeSpan, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr!);
+        Console.WriteLine(codeExpr!);
 
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         foreach (var item in diagnostics)
         {
-            output.WriteLine(item.ToString());
+            Console.WriteLine(item.ToString());
         }
         OutputGeneratedCode(compilation);
 
-        diagnostics.Length.ShouldBe(1);
-        diagnostics[0].Id.ShouldBe(idPrefix + id.ToString("000"));
+        await Assert.That(diagnostics.Length).IsEqualTo(1);
+        await Assert.That(diagnostics[0].Id).IsEqualTo(idPrefix + id.ToString("000"));
 
         var text = GetLocationText(diagnostics[0], compilation.SyntaxTrees);
-        text.ShouldBe(diagnosticsCodeSpan);
+        await Assert.That(text).IsEqualTo(diagnosticsCodeSpan);
     }
 
     public (string, string)[] Verify([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr!);
+        Console.WriteLine(codeExpr!);
 
         var (compilation, diagnostics) = CSharpGeneratorRunner.RunGenerator(code);
         OutputGeneratedCode(compilation);
@@ -190,28 +188,28 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
 
     // Execute and check stdout result
 
-    public void Execute([StringSyntax("C#-test")] string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public async Task Execute([StringSyntax("C#-test")] string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr!);
+        Console.WriteLine(codeExpr!);
 
         var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
         foreach (var item in diagnostics)
         {
-            output.WriteLine(item.ToString());
+            Console.WriteLine(item.ToString());
         }
         OutputGeneratedCode(compilation);
 
-        stdout.ShouldBe(expected, StringCompareShould.IgnoreLineEndings);
+        await Assert.That(stdout).IsEqualTo(expected);
     }
 
     public string Error([StringSyntax("C#-test")] string code, string args, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
-        output.WriteLine(codeExpr!);
+        Console.WriteLine(codeExpr!);
 
         var (compilation, diagnostics, stdout) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
         foreach (var item in diagnostics)
         {
-            output.WriteLine(item.ToString());
+            Console.WriteLine(item.ToString());
         }
         OutputGeneratedCode(compilation);
 
@@ -243,7 +241,7 @@ public class VerifyHelper(ITestOutputHelper output, string idPrefix)
         {
             // only shows ConsoleApp.Run/Builder generated code
             if (!syntaxTree.FilePath.Contains("g.cs")) continue;
-            output.WriteLine(syntaxTree.ToString());
+            Console.WriteLine(syntaxTree.ToString());
         }
     }
 }

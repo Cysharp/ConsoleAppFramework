@@ -1,13 +1,13 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class DITest(ITestOutputHelper output)
+public class DITest
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    [Fact]
-    public void ServiceProvider()
+    [Test]
+    public async Task ServiceProvider()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 #nullable enable
 
 var di = new MiniDI();
@@ -39,10 +39,10 @@ class MyClass(string name)
 """, args: "--x 10 --y 20", expected: "foo:10:20");
     }
 
-    [Fact]
-    public void WithFilter()
+    [Test]
+    public async Task WithFilter()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var app = ConsoleApp.Create();
 app.UseFilter<MyFilter>();
 app.Run(["cmd", "test"]);

@@ -6,30 +6,30 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class GeneratorOptionsTest(ITestOutputHelper output)
+public class GeneratorOptionsTest
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    [Fact]
-    public void DisableNamingConversionRun()
+    [Test]
+    public async Task DisableNamingConversionRun()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 [assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
 
 ConsoleApp.Run(args, (int fooBarBaz) => { Console.Write(fooBarBaz); });
 """, args: "--fooBarBaz 100", expected: "100");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 [assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = false)]
 
 ConsoleApp.Run(args, (int fooBarBaz) => { Console.Write(fooBarBaz); });
 """, args: "--foo-bar-baz 100", expected: "100");
     }
 
-    [Fact]
-    public void DisableNamingConversionBuilder()
+    [Test]
+    public async Task DisableNamingConversionBuilder()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 [assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = true)]
 
 var app = ConsoleApp.Create();
@@ -38,14 +38,14 @@ app.Run(args);
 
 class Commands
 {
-    public void FooBarBaz(int hogeMoge, int takoYaki)
+    public async Task FooBarBaz(int hogeMoge, int takoYaki)
     {
         Console.Write(hogeMoge + takoYaki);
     }
 }
 """, args: "FooBarBaz --hogeMoge 100 --takoYaki 200", expected: "300");
 
-        verifier.Execute("""
+        await verifier.Execute("""
 [assembly: ConsoleAppFrameworkGeneratorOptions(DisableNamingConversion = false)]
 
 var app = ConsoleApp.Create();
@@ -54,7 +54,7 @@ app.Run(args);
 
 class Commands
 {
-    public void FooBarBaz(int hogeMoge, int takoYaki)
+    public async Task FooBarBaz(int hogeMoge, int takoYaki)
     {
         Console.Write(hogeMoge + takoYaki);
     }

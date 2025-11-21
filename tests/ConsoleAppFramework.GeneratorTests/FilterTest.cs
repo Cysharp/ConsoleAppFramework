@@ -1,13 +1,13 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class FilterTest(ITestOutputHelper output)
+public class FilterTest
 {
-    VerifyHelper verifier = new VerifyHelper(output, "CAF");
+    VerifyHelper verifier = new VerifyHelper("CAF");
 
-    [Fact]
-    public void ForLambda()
+    [Test]
+    public async Task ForLambda()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var builder = ConsoleApp.Create();
 
 builder.UseFilter<NopFilter1>();
@@ -66,10 +66,10 @@ internal class NopFilter4(ConsoleAppFilter next)
 """, args: "", expected: "1234abcde");
     }
 
-    [Fact]
-    public void ForClass()
+    [Test]
+    public async Task ForClass()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var builder = ConsoleApp.Create();
 
 builder.UseFilter<NopFilter1>();
@@ -154,10 +154,10 @@ internal class NopFilter6(ConsoleAppFilter next)
     }
 
 
-    [Fact]
-    public void DI()
+    [Test]
+    public async Task DI()
     {
-        verifier.Execute("""
+        await verifier.Execute("""
 var serviceCollection = new MiniDI();
 serviceCollection.Register(typeof(string), "hoge!");
 serviceCollection.Register(typeof(int), 9999);

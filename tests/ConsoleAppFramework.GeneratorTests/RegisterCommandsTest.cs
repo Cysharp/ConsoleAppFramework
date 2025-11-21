@@ -6,26 +6,26 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class RegisterCommandsTest(ITestOutputHelper output)
+public class RegisterCommandsTest
 {
-    readonly VerifyHelper verifier = new(output, "CAF");
+    readonly VerifyHelper verifier = new("CAF");
 
-    [Fact]
-    public void VerifyDuplicate()
+    [Test]
+    public async Task VerifyDuplicate()
     {
-        verifier.Verify(7, """
+        await verifier.Verify(7, """
 var app = ConsoleApp.Create();
 app.Run(args);
 
 [RegisterCommands]
 public class Foo
 {
-    public void Bar(int x)
+    public async Task Bar(int x)
     {
         Console.Write(x);
     }
 
-    public void Baz(int y)
+    public async Task Baz(int y)
     {
         Console.Write(y);
     }
@@ -34,12 +34,12 @@ public class Foo
 [RegisterCommands]
 public class Hoge
 {
-    public void Bar(int x)
+    public async Task Bar(int x)
     {
         Console.Write(x);
     }
 
-    public void Baz(int y)
+    public async Task Baz(int y)
     {
         Console.Write(y);
     }
@@ -47,8 +47,8 @@ public class Hoge
 """, "Bar");
     }
 
-    [Fact]
-    public void Exec()
+    [Test]
+    public async Task Exec()
     {
         var code = """
 var app = ConsoleApp.Create();
@@ -57,12 +57,12 @@ app.Run(args);
 [RegisterCommands]
 public class Foo
 {
-    public void Bar(int x)
+    public async Task Bar(int x)
     {
         Console.Write(x);
     }
 
-    public void Baz(int y)
+    public async Task Baz(int y)
     {
         Console.Write(y);
     }
@@ -71,21 +71,21 @@ public class Foo
 [RegisterCommands("hoge")]
 public class Hoge
 {
-    public void Bar(int x)
+    public async Task Bar(int x)
     {
         Console.Write(x);
     }
 
-    public void Baz(int y)
+    public async Task Baz(int y)
     {
         Console.Write(y);
     }
 }
 """;
 
-        verifier.Execute(code, "bar --x 10", "10");
-        verifier.Execute(code, "baz --y 20", "20");
-        verifier.Execute(code, "hoge bar --x 10", "10");
-        verifier.Execute(code, "hoge baz --y 20", "20");
+        await verifier.Execute(code, "bar --x 10", "10");
+        await verifier.Execute(code, "baz --y 20", "20");
+        await verifier.Execute(code, "hoge bar --x 10", "10");
+        await verifier.Execute(code, "hoge baz --y 20", "20");
     }
 }

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
@@ -10,18 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shouldly" Version="4.3.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-    <PackageReference Include="xunit.v3" Version="2.0.3" />
-  </ItemGroup>
-
-  <!-- Following settings will be removed -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="TUnit" Version="1.2.11" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,7 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
-    <Using Include="Shouldly" />
+    <!-- CSharpGeneratorRunner.CompileAndExecute captures stdout log -->
+    <!-- It does not allow parallel invocation -->
+    <AssemblyAttribute Include="TUnit.Core.NotInParallel" />
   </ItemGroup>
+
 </Project>
