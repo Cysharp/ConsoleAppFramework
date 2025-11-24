@@ -120,8 +120,8 @@ internal static partial class ConsoleApp
 Usage: [options...] [-h|--help] [--version]
 
 Options:
-  --foo <int>     (Required)
-  --bar <int>     (Required)
+  --foo <int>     [Required]
+  --bar <int>     [Required]
 """);
     }
 }
@@ -240,7 +240,7 @@ ConsoleApp.Run(args, (string message) => Console.Write($"Hello, {message}"));
 Usage: [options...] [-h|--help] [--version]
 
 Options:
-  --message <string>     (Required)
+  --message <string>     [Required]
 ```
 
 In ConsoleAppFramework, instead of using attributes, you can provide descriptions and aliases for functions by writing Document Comments. This avoids the common issue in frameworks where arguments become cluttered with attributes, making the code difficult to read. With this approach, a natural writing style is achieved.
@@ -264,7 +264,7 @@ Usage: [options...] [-h|--help] [--version]
 Display Hello.
 
 Options:
-  -m, --message <string>    Message to show. (Required)
+  -m, --message <string>    Message to show. [Required]
 ```
 
 To add aliases to parameters, list the aliases separated by `|` before the comma in the comment. For example, if you write a comment like `-a|-b|--abcde, Description.`, then `-a`, `-b`, and `--abcde` will be treated as aliases, and `Description.` will be the description.
@@ -288,7 +288,7 @@ enum Fruit
 Usage: [options...] [-h|--help] [--version]
 
 Options:
-  --my-fruit <Fruit>      (Default: Apple)
+  --my-fruit <Fruit>      [Default: Apple]
   --my-fruit2 <Fruit>
 ```
 
@@ -346,7 +346,7 @@ Usage: [command] [options...] [-h|--help] [--version]
 Root command test.
 
 Options:
-  -m, --msg <string>    Message to show. (Required)
+  -m, --msg <string>    Message to show. [Required]
 
 Commands:
   echo    Display message.
