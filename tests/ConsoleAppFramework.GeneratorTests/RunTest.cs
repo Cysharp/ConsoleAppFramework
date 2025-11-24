@@ -91,6 +91,23 @@ ConsoleApp.Run(args, (int x) => { Console.Write((x)); });
     }
 
     [Test]
+    public async Task EnumErrorShowsValidValues()
+    {
+        var result = verifier.Error("""
+ConsoleApp.Log = x => Console.Write(x);           
+ConsoleApp.Run(args, (Fruit fruit) => { Console.Write(fruit); });
+
+enum Fruit
+{
+    Orange, Grape, Apple
+}
+""", "--fruit Potato");
+
+        await Assert.That(result.Stdout).Contains("Argument 'fruit' is invalid. Provided value: Potato. Valid values: Orange, Grape, Apple");
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task MissingArgument()
     {
         var result = verifier.Error("""
