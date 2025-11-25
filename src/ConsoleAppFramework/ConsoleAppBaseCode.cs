@@ -258,7 +258,7 @@ internal static partial class ConsoleApp
     }
 
     static void ThrowArgumentParseFailed<TEnum>(string argumentName, string value) where TEnum : struct, Enum {
-        var values = string.Join(", ", Enum.GetValues<TEnum>());
+        var values = string.Join(", ", Enum.GetNames<TEnum>());
         throw new ArgumentParseFailedException($"Argument '{argumentName}' is invalid. Provided value: {value}. Valid values: {values}");
     }
 
