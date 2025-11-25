@@ -257,6 +257,11 @@ internal static partial class ConsoleApp
         throw new ArgumentParseFailedException($"Argument '{argumentName}' failed to parse, provided value: {value}");
     }
 
+    static void ThrowArgumentParseFailed<TEnum>(string argumentName, string value) where TEnum : struct, Enum {
+        var values = string.Join(", ", Enum.GetValues<TEnum>());
+        throw new ArgumentParseFailedException($"Argument '{argumentName}' is invalid. Provided value: {value}. Valid values: {values}");
+    }
+
     static void ThrowRequiredArgumentNotParsed(string name)
     {
         throw new ArgumentParseFailedException($"Required argument '{name}' was not specified.");
