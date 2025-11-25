@@ -203,20 +203,20 @@ public static class CommandHelpBuilder
             sb.Append("    ");
             sb.Append(opt.Description);
 
-            if (opt.IsFlag)
+            // Flags are optional by default; leave them untagged.
+            if (!opt.IsFlag)
             {
-                sb.Append($" (Optional)");
-            }
-            else if (opt.DefaultValue != null)
-            {
-                if (!opt.IsDefaultValueHidden)
+                if (opt.DefaultValue != null)
                 {
-                    sb.Append($" (Default: {opt.DefaultValue})");
+                    if (!opt.IsDefaultValueHidden)
+                    {
+                        sb.Append($" [Default: {opt.DefaultValue}]");
+                    }
                 }
-            }
-            else if (opt.IsRequired)
-            {
-                sb.Append($" (Required)");
+                else if (opt.IsRequired)
+                {
+                    sb.Append($" [Required]");
+                }
             }
         }
 

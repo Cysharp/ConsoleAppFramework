@@ -19,7 +19,7 @@ public class HiddenAtttributeTest
             Usage: [options...] [-h|--help] [--version]
 
             Options:
-              --x <int>     (Required)
+              --x <int>     [Required]
 
             """);
     }
@@ -74,7 +74,7 @@ public class HiddenAtttributeTest
             Usage: command3 [options...] [-h|--help] [--version]
 
             Options:
-              --x <int>     (Required)
+              --x <int>     [Required]
 
             """);
 
