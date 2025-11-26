@@ -86,6 +86,32 @@ enum Fruit
     }
 
     [Test]
+    public async Task EnumErrorShowsValidValues()
+    {
+        var result = verifier.Error("""
+ConsoleApp.Log = x => Console.Write(x);
+
+var app = ConsoleApp.Create();
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
+{
+    var fruit = builder.AddGlobalOption("--fruit", "", Fruit.Apple);
+    return fruit;
+});
+
+app.Add("", (ConsoleAppContext context) => { });
+app.Run(args);
+
+enum Fruit
+{
+    Orange, Apple, Grape
+}
+""", "--fruit Potato");
+
+        await Assert.That(result.Stdout).Contains("Argument '--fruit' is invalid. Provided value: Potato. Valid values: Orange, Apple, Grape");
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task DefaultValueForOption()
     {
         await verifier.Execute("""

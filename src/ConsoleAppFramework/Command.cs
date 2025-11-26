@@ -255,7 +255,7 @@ public record class CommandParameter
                     if (type.TypeKind == TypeKind.Enum)
                     {
                         string typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                        return $"if ({incrementIndex}!Enum.TryParse<{typeName}>(commandArgs[i], true, {outArgVar})) {{ ThrowArgumentParseFailed<{typeName}>(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
+                        return $"if ({incrementIndex}!Enum.TryParse<{typeName}>(commandArgs[i], true, {outArgVar})) {{ ThrowArgumentParseFailedEnum(typeof({typeName}), \"{argumentName}\", commandArgs[i]); }}{elseExpr}";
                     }
 
                     // ParamsArray

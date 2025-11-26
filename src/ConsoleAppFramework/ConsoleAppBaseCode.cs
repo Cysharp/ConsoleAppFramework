@@ -257,8 +257,9 @@ internal static partial class ConsoleApp
         throw new ArgumentParseFailedException($"Argument '{argumentName}' failed to parse, provided value: {value}");
     }
 
-    static void ThrowArgumentParseFailed<TEnum>(string argumentName, string value) where TEnum : struct, Enum {
-        var values = string.Join(", ", Enum.GetNames<TEnum>());
+    static void ThrowArgumentParseFailedEnum(Type enumType, string argumentName, string value)
+    {
+        var values = string.Join(", ", Enum.GetNames(enumType));
         throw new ArgumentParseFailedException($"Argument '{argumentName}' is invalid. Provided value: {value}. Valid values: {values}");
     }
 
@@ -745,6 +746,11 @@ internal static partial class ConsoleApp
                     {
                         RemoveRange(ref args, i, 2);
                         return value;
+                    }
+
+                    if (typeof(T).IsEnum)
+                    {
+                        ThrowArgumentParseFailedEnum(typeof(T), args.Span[i], args.Span[i + 1]);
                     }
 
                     ThrowArgumentParseFailed(args.Span[i], args.Span[i + 1]);
