@@ -6,7 +6,8 @@
 
 ConsoleAppFramework v5 is Zero Dependency, Zero Overhead, Zero Reflection, Zero Allocation, AOT Safe CLI Framework powered by C# Source Generator; achieves exceptionally high performance, fastest start-up time(with NativeAOT) and minimal binary size. Leveraging the latest features of .NET 8 and C# 13 ([IncrementalGenerator](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md), [managed function pointer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers#function-pointers-1), [params arrays and default values lambda expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions#input-parameters-of-a-lambda-expression), [`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1), [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration), etc.), this library ensures maximum performance while maintaining flexibility and extensibility.
 
-![image](https://github.com/user-attachments/assets/4a10fd2b-fa56-467f-8d7f-e47bee634753)
+![image](https://github.com/user-attachments/assets/c9178260-be29-497c-a7ea-8f6da51f1682)
+
 > .NET 10.0 and Set `RunStrategy=ColdStart WarmupCount=0` to calculate the cold start benchmark, which is suitable for CLI application.
 
 The magical performance is achieved by statically generating everything and parsing inline. Let's take a look at a minimal example:
@@ -1476,9 +1477,11 @@ When `Microsoft.Extensions.Hosting` is referenced, `bool startHost, bool stopHos
 
 Colorize
 ---
-The framework doesn't support colorization directly; however, utilities like [Cysharp/Kokuban](https://github.com/Cysharp/Kokuban) make console colorization easy. Additionally, if you need spinners or updates single-line displays, you can also use it in combination with [mayuki/Kurukuru](https://github.com/mayuki/Kurukuru).
+The framework doesn't support colorization directly; however, utilities like [Cysharp/Kokuban](https://github.com/Cysharp/Kokuban) make console colorization easy. Additionally, if you need spinners or single-line updates, you can also use it in combination with [mayuki/Kurukuru](https://github.com/mayuki/Kurukuru).
 
-For more powerful Console UI support, you can also use it in combination with [Spectre.Console](https://spectreconsole.net/).
+For applications that require ultra-low-latency, high-throughput console output, consider using [PrettyConsole](https://github.com/dusrdev/PrettyConsole).
+
+For another console UI framework option, you can also use [Spectre.Console](https://spectreconsole.net/).
 
 Cli Schema
 ---
