@@ -1469,8 +1469,22 @@ Prevent ServiceProvider auto dispose
 When executing commands with `Run/RunAsync`, the ServiceProvider is automatically disposed. This becomes a problem when executing commands multiple times or when you want to use the ServiceProvider after the command finishes. In Run/RunAsync from ConsoleAppBuilder, you can stop the automatic disposal of ServiceProvider by setting `bool disposeServiceProvider` to `false`.
 
 ```csharp
-var app = ConsoleApp.Create();
-await app.RunAsync(args, disposeServiceProvider: false); // default is true
+try
+{
+    // If ConsoleAppFramework throws error/canceled, ExitCode will be set to non-zero.
+    while (Environment.ExitCode == 0)
+    {
+        var command = Console.ReadLine();
+        if (command == null) break;
+
+        await app.RunAsync(command.Split(' '), disposeServiceProvider: false);
+    }
+}
+finally
+{
+    // finally dispose ServiceProvider
+    (ConsoleApp.ServiceProvider as IDisposable)?.Dispose();
+}
 ```
 
 When `Microsoft.Extensions.Hosting` is referenced, `bool startHost, bool stopHost, bool disposeServiceProvider` become controllable. The defaults are all `true`.
