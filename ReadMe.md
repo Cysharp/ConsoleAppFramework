@@ -722,13 +722,13 @@ internal record GlobalOptions(bool DryRun, bool Verbose, int IntParameter);
 internal class Commands(GlobalOptions globalOptions)
 {
     [Command("cmd-a")]
-    public void CommandA(int x, int y)
+    public void CommandA([Argument] int x, [Argument] int y)
     {
         Console.WriteLine("A:" + globalOptions + ":" + (x, y));
     }
 
     [Command("cmd-b")]
-    public void CommandB(int x, int y)
+    public void CommandB([Argument] int x, [Argument] int y)
     {
         Console.WriteLine("B:" + globalOptions + ":" + (x, y));
     }
