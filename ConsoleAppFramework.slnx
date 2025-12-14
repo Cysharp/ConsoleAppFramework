@@ -21,6 +21,6 @@
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
     <Project Path="tests/ConsoleAppFramework.GeneratorTests/ConsoleAppFramework.GeneratorTests.csproj" />
-    <Project Path="tests/NativeAotTrimming/NativeAotTrimming.csproj" />
+    <Project Path="tests/ConsoleAppFramework.NativeAotTests/ConsoleAppFramework.NativeAotTests.csproj" Id="7e8dede0-5954-4474-b660-905dd18b6799" />
   </Folder>
 </Solution>

@@ -21,9 +21,12 @@ jobs:
     steps:
       - uses: Cysharp/Actions/.github/actions/checkout@main
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      # pack nuget
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet test -c Release --no-build
+      # Native AOT tests
+      - run: dotnet publish -r linux-x64 tests/ConsoleAppFramework.NativeAotTests/ConsoleAppFramework.NativeAotTests.csproj
+      - run: tests/ConsoleAppFramework.NativeAotTests/bin/Release/net10.0/linux-x64/publish/ConsoleAppFramework.NativeAotTests
+      # pack nuget
       - run: dotnet pack -c Release --no-build -p:Version=${{ inputs.tag }} -o ./publish
       - uses: Cysharp/Actions/.github/actions/upload-artifact@main
         with:
