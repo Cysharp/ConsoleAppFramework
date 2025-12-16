@@ -1,25 +1,15 @@
-﻿using Autofac;
-using Autofac.Extensions.DependencyInjection;
-using ConsoleAppFramework;
-using Microsoft.Extensions.DependencyInjection;
+﻿using ConsoleAppFramework;
 
+args = ["write", "--help"];
 
-var app = ConsoleApp.Create()
-    .ConfigureContainer(new AutofacServiceProviderFactory(), builder =>
-    {
-        builder.RegisterType<MyService>();
-    });
+var app = ConsoleApp.Create();
 
-app.Add("", ([FromServices] MyService service) => { service.Hello(); });
-
-
-// Environment
+app.Add("write", (Target target) => { });
 
 app.Run(args);
 
-public class MyService
+public enum Target
 {
-    public void Hello() => throw new Exception();
+    File,
+    Network
 }
-
-
