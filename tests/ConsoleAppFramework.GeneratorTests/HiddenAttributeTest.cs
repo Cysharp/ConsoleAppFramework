@@ -1,9 +1,8 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class HiddenAtttributeTest
+[ClassDataSource<VerifyHelper>]
+public class HiddenAtttributeTest(VerifyHelper verifier)
 {
-    VerifyHelper verifier = new("CAF");
-
     [Test]
     public async Task VerifyHiddenOptions_Lambda()
     {

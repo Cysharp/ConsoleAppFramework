@@ -1,9 +1,8 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class SubCommandTest
+[ClassDataSource<VerifyHelper>]
+public class SubCommandTest(VerifyHelper verifier)
 {
-    VerifyHelper verifier = new VerifyHelper("CAF");
-
     [Test]
     public async Task Zeroargs()
     {

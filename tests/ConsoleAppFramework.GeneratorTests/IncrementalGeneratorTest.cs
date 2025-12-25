@@ -1,14 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Intrinsics.X86;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class IncrementalGeneratorTest
+[ClassDataSource<CSharpGeneratorRunner>(Shared = SharedType.PerTestSession)]
+public class IncrementalGeneratorTest(CSharpGeneratorRunner runner)
 {
     async Task VerifySourceOutputReasonIsCached((string Key, string Reasons)[] reasons)
     {
@@ -47,7 +42,7 @@ ConsoleApp.Run(args, int (int x, int y) => 99); // change signature
 Console.WriteLine("foo"); // unrelated line
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
         await Assert.That(reasons[1][0].Reasons).IsEqualTo("Unchanged");
         await Assert.That(reasons[2][0].Reasons).IsEqualTo("Modified");
@@ -114,7 +109,7 @@ public class Tako
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
         await Assert.That(reasons[0][0].Reasons).IsEqualTo("New");
         await Assert.That(reasons[1][0].Reasons).IsEqualTo("Unchanged");
@@ -169,7 +164,7 @@ static void DoHello(int x, int y) // change signature
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
 
         await Assert.That(reasons[0][0].Reasons).IsEqualTo("New");
         await Assert.That(reasons[1][0].Reasons).IsEqualTo("Unchanged");
@@ -345,7 +340,7 @@ namespace Foo.Bar
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
         await VerifySourceOutputReasonIsNotCached(reasons[0]);
         await VerifySourceOutputReasonIsCached(reasons[1]);
@@ -371,7 +366,7 @@ app.Add("", () => { });
 app.Run(args);
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
 
         await VerifySourceOutputReasonIsNotCached(reasons[0]);
         await VerifySourceOutputReasonIsCached(reasons[1]);
@@ -436,7 +431,7 @@ public class Test
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
         await VerifySourceOutputReasonIsNotCached(reasons[0]);
         await VerifySourceOutputReasonIsNotCached(reasons[1]);
@@ -485,7 +480,7 @@ public class Test : IDisposable, IAsyncDisposable
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3);
 
         await VerifySourceOutputReasonIsNotCached(reasons[0]);
         await VerifySourceOutputReasonIsNotCached(reasons[1]);
@@ -552,7 +547,7 @@ public class Test
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
         await VerifySourceOutputReasonIsNotCached(reasons[0]);
         await VerifySourceOutputReasonIsNotCached(reasons[1]);
@@ -606,7 +601,7 @@ public class Test(IAsyncDisposable d)
 }
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2, step3, step4);
 
         await VerifySourceOutputReasonIsNotCached(reasons[0]);
         await VerifySourceOutputReasonIsNotCached(reasons[1]);
@@ -651,7 +646,7 @@ app.Run(args);
 
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
 
     }
 
@@ -675,6 +670,6 @@ app.Add("aaa", () =>{ });
 app.Run(args);
 """;
 
-        var reasons = CSharpGeneratorRunner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
+        var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
     }
 }

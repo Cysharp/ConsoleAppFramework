@@ -1,9 +1,8 @@
 ﻿namespace ConsoleAppFramework.GeneratorTests;
 
-public class ArrayParseTest
+[ClassDataSource<VerifyHelper>]
+public class ArrayParseTest(VerifyHelper verifier)
 {
-    VerifyHelper verifier = new VerifyHelper("CAF");
-
     [Test]
     public async Task Params()
     {

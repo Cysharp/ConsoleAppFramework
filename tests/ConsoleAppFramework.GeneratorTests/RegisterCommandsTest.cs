@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class RegisterCommandsTest
+[ClassDataSource<VerifyHelper>]
+public class RegisterCommandsTest(VerifyHelper verifier)
 {
-    readonly VerifyHelper verifier = new("CAF");
-
     [Test]
     public async Task VerifyDuplicate()
     {

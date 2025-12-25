@@ -1,4 +1,5 @@
-﻿using ConsoleAppFramework;
+﻿using Basic.Reference.Assemblies;
+using ConsoleAppFramework;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -8,12 +9,11 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
-public static class CSharpGeneratorRunner
+public class CSharpGeneratorRunner
 {
-    static Compilation baseCompilation = default!;
+    Compilation baseCompilation = default!;
 
-    [ModuleInitializer]
-    public static void InitializeCompilation()
+    public CSharpGeneratorRunner()
     {
         var globalUsings = """
 global using System;
@@ -23,25 +23,15 @@ global using System.ComponentModel.DataAnnotations;
 global using ConsoleAppFramework;
 """;
 
-        var references = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(x => !x.IsDynamic && !string.IsNullOrWhiteSpace(x.Location))
-            .Select(x => MetadataReference.CreateFromFile(x.Location))
-            .Concat([
-                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),                                                 // System.Console.dll
-                MetadataReference.CreateFromFile(typeof(IServiceProvider).Assembly.Location),                                        // System.ComponentModel.dll
-                MetadataReference.CreateFromFile(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute).Assembly.Location), // System.ComponentModel.DataAnnotations
-                MetadataReference.CreateFromFile(typeof(System.Text.Json.JsonDocument).Assembly.Location),                           // System.Text.Json.dll
-            ]);
-
         var compilation = CSharpCompilation.Create("generatortest",
-            references: references,
+            references: ReferenceAssemblies.Net80, // .NET 8
             syntaxTrees: [CSharpSyntaxTree.ParseText(globalUsings, path: "GlobalUsings.cs")],
             options: new CSharpCompilationOptions(OutputKind.ConsoleApplication, allowUnsafe: true)); // .exe
 
         baseCompilation = compilation;
     }
 
-    public static (Compilation, ImmutableArray<Diagnostic>) RunGenerator([StringSyntax("C#-test")] string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public (Compilation, ImmutableArray<Diagnostic>) RunGenerator([StringSyntax("C#-test")] string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
         if (preprocessorSymbols == null)
         {
@@ -91,7 +81,7 @@ namespace ConsoleAppFramework
         return (newCompilation, diagnostics);
     }
 
-    public static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics, string Stdout, int ExitCode) CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics, string Stdout, int ExitCode) CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
     {
         var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options);
 
@@ -121,7 +111,7 @@ namespace ConsoleAppFramework
         return (compilation, diagnostics, stringWriter.ToString(), exitCode);
     }
 
-    public static (string Key, string Reasons)[][] GetIncrementalGeneratorTrackedStepsReasons(string keyPrefixFilter, params string[] sources)
+    public (string Key, string Reasons)[][] GetIncrementalGeneratorTrackedStepsReasons(string keyPrefixFilter, params string[] sources)
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp13); // 13
         var driver = CSharpGeneratorDriver.Create(
@@ -167,8 +157,13 @@ namespace ConsoleAppFramework
     }
 }
 
-public class VerifyHelper(string idPrefix)
+public class VerifyHelper
 {
+    readonly string idPrefix = "CAF";
+
+    [ClassDataSource<CSharpGeneratorRunner>(Shared = SharedType.PerTestSession)]
+    public required CSharpGeneratorRunner CSharpGeneratorRunner { get; init; }
+
     public async Task Ok([StringSyntax("C#-test")] string code, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         Console.WriteLine(codeExpr!);

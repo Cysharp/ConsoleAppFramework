@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class GeneratorOptionsTest
+[ClassDataSource<VerifyHelper>]
+public class GeneratorOptionsTest(VerifyHelper verifier)
 {
-    VerifyHelper verifier = new VerifyHelper("CAF");
-
     [Test]
     public async Task DisableNamingConversionRun()
     {

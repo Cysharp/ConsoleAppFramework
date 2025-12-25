@@ -3,10 +3,9 @@
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class ArgumentParserTest
+[ClassDataSource<VerifyHelper>]
+public class ArgumentParserTest(VerifyHelper verifier)
 {
-    readonly VerifyHelper verifier = new("CAF");
-
     [Test]
     public async Task Lamda()
     {

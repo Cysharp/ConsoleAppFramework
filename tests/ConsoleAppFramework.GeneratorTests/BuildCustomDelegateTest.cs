@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class BuildCustomDelegateTest
+[ClassDataSource<VerifyHelper>]
+public class BuildCustomDelegateTest(VerifyHelper verifier)
 {
-    VerifyHelper verifier = new VerifyHelper("CAF");
-
     [Test]
     public async Task Run()
     {

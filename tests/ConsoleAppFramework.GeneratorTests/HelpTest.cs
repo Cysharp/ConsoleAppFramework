@@ -7,10 +7,9 @@ using System.Threading.Tasks;
 
 namespace ConsoleAppFramework.GeneratorTests;
 
-public class HelpTest
+[ClassDataSource<VerifyHelper>]
+public class HelpTest(VerifyHelper verifier)
 {
-    VerifyHelper verifier = new VerifyHelper("CAF");
-
     [Test]
     public async Task Version()
     {
