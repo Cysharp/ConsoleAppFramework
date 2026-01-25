@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
-internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, DiagnosticReporter context, SyntaxNode node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters)
+internal partial class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, DiagnosticReporter context, SyntaxNode node, SemanticModel model, WellKnownTypes wellKnownTypes, DelegateBuildType delegateBuildType, FilterInfo[] globalFilters, ITypeSymbol? knownGlobalOptionsType = null)
 {
     public Command? ParseAndValidateForRun() // for ConsoleApp.Run, lambda or method or &method
     {
@@ -174,6 +174,48 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 return command;
             })
             .ToArray();
+    }
+
+    /// <summary>
+    /// Parses ConfigureGlobalOptions&lt;T&gt;() and returns TypedGlobalOptionsInfo if T has [GlobalOptions] attribute.
+    /// </summary>
+    public TypedGlobalOptionsInfo? ParseTypedGlobalOptions()
+    {
+        var invocation = node as InvocationExpressionSyntax;
+        if (invocation == null) return null;
+
+        // Get the generic type argument from ConfigureGlobalOptions<T>()
+        var memberAccess = invocation.Expression as MemberAccessExpressionSyntax;
+        if (memberAccess == null) return null;
+
+        var genericName = memberAccess.Name as GenericNameSyntax;
+        if (genericName == null) return null;
+
+        if (genericName.TypeArgumentList.Arguments.Count != 1) return null;
+
+        var typeArg = genericName.TypeArgumentList.Arguments[0];
+        var typeSymbol = model.GetTypeInfo(typeArg).Type;
+        if (typeSymbol == null) return null;
+
+        // Use DiscoverObjectBinding to analyze the global options type (no prefix)
+        var objectBinding = DiscoverObjectBinding(typeSymbol, "", node.GetLocation());
+        if (objectBinding == null) return null;
+
+        // Validate that no properties are marked as arguments
+        foreach (var prop in objectBinding.Properties)
+        {
+            if (prop.ArgumentIndex >= 0)
+            {
+                context.ReportDiagnostic(DiagnosticDescriptors.GlobalOptionsCannotHaveArguments, typeArg.GetLocation(), typeSymbol.ToDisplayString(), prop.PropertyName);
+                return null;
+            }
+        }
+
+        return new TypedGlobalOptionsInfo
+        {
+            Type = new EquatableTypeSymbol(typeSymbol),
+            ObjectBinding = objectBinding
+        };
     }
 
     public GlobalOptionInfo[] ParseGlobalOptions()
@@ -547,11 +589,41 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                         return identifier is "Argument" or "ArgumentAttribute";
                     });
 
+                // Check for [Bind] attribute
+                string? bindPrefix = null;
+                var hasBind = x.AttributeLists.SelectMany(x => x.Attributes)
+                    .Any(attr =>
+                    {
+                        var name = attr.Name;
+                        if (attr.Name is QualifiedNameSyntax qns)
+                        {
+                            name = qns.Right;
+                        }
+
+                        var identifier = name.ToString();
+                        var result = identifier is "Bind" or "BindAttribute";
+                        if (result && attr.ArgumentList != null)
+                        {
+                            foreach (var arg in attr.ArgumentList.Arguments)
+                            {
+                                if (arg.NameEquals?.Name.Identifier.Text == "Prefix")
+                                {
+                                    var value = model.GetConstantValue(arg.Expression);
+                                    if (value.HasValue)
+                                    {
+                                        bindPrefix = value.Value as string;
+                                    }
+                                }
+                            }
+                        }
+                        return result;
+                    });
+
                 var isCancellationToken = SymbolEqualityComparer.Default.Equals(type.Type!, wellKnownTypes.CancellationToken);
                 var isConsoleAppContext = type.Type!.Name == "ConsoleAppContext";
 
                 var argumentIndex = -1;
-                if (!(isFromServices || isCancellationToken || isConsoleAppContext))
+                if (!(isFromServices || isCancellationToken || isConsoleAppContext || hasBind))
                 {
                     if (hasArgument)
                     {
@@ -565,33 +637,44 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
                 var isNullableReference = x.Type.IsKind(SyntaxKind.NullableType) && type.Type?.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
 
-                return new CommandParameter
-                {
-                    Name = generatorOptions.DisableNamingConversion ? x.Identifier.Text : NameConverter.ToKebabCase(x.Identifier.Text),
-                    WellKnownTypes = wellKnownTypes,
-                    OriginalParameterName = x.Identifier.Text,
-                    IsNullableReference = isNullableReference,
-                    IsConsoleAppContext = isConsoleAppContext,
-                    IsParams = hasParams,
-                    IsHidden = isHidden,
-                    IsDefaultValueHidden = isDefaultValueHidden,
-                    Type = new EquatableTypeSymbol(type.Type!),
-                    Location = x.GetLocation(),
-                    HasDefaultValue = hasDefault,
-                    DefaultValue = defaultValue,
-                    CustomParserType = customParserType?.ToEquatable(),
-                    HasValidation = hasValidation,
-                    IsCancellationToken = isCancellationToken,
-                    IsFromServices = isFromServices,
-                    IsFromKeyedServices = isFromKeyedServices,
-                    KeyedServiceKey = keyedServiceKey,
-                    Aliases = [],
-                    Description = "",
-                    ArgumentIndex = argumentIndex,
-                };
+                return new BindParameterCandidate(
+                    Parameter: new CommandParameter
+                    {
+                        Name = generatorOptions.DisableNamingConversion ? x.Identifier.Text : NameConverter.ToKebabCase(x.Identifier.Text),
+                        WellKnownTypes = wellKnownTypes,
+                        OriginalParameterName = x.Identifier.Text,
+                        IsNullableReference = isNullableReference,
+                        IsConsoleAppContext = isConsoleAppContext,
+                        IsParams = hasParams,
+                        IsHidden = isHidden,
+                        IsDefaultValueHidden = isDefaultValueHidden,
+                        Type = new EquatableTypeSymbol(type.Type!),
+                        Location = x.GetLocation(),
+                        HasDefaultValue = hasDefault,
+                        DefaultValue = defaultValue,
+                        CustomParserType = customParserType?.ToEquatable(),
+                        HasValidation = hasValidation,
+                        IsCancellationToken = isCancellationToken,
+                        IsFromServices = isFromServices,
+                        IsFromKeyedServices = isFromKeyedServices,
+                        KeyedServiceKey = keyedServiceKey,
+                        Aliases = [],
+                        Description = "",
+                        ArgumentIndex = argumentIndex,
+                        ObjectBinding = null, // Will be filled in post-processing
+                    },
+                    HasBind: hasBind,
+                    BindPrefix: bindPrefix,
+                    TypeSymbol: type.Type!
+                );
             })
-            .Where(x => x.Type != null)
+            .Where(x => x.TypeSymbol != null)
             .ToArray();
+
+        // Post-process parameters to create ObjectBinding for [Bind] parameters
+        var processedParameters = ProcessBindParameters(parameters, lambda.GetLocation());
+        if (processedParameters == null)
+            return null; // Error already reported
 
         var cmd = new Command
         {
@@ -599,7 +682,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             IsAsync = isAsync,
             IsVoid = isVoid,
             IsHidden = false, // Anonymous lambda don't support attribute.
-            Parameters = parameters,
+            Parameters = processedParameters,
             MethodKind = MethodKind.Lambda,
             Description = "",
             DelegateBuildType = delegateBuildType,
@@ -742,6 +825,21 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 var isHiddenParameter = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HiddenAttribute");
                 var isDefaultValueHidden = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HideDefaultValueAttribute");
 
+                // Check for [Bind] attribute
+                string? bindPrefix = null;
+                var bindAttr = x.GetAttributes().FirstOrDefault(a => a.AttributeClass?.Name == "BindAttribute");
+                var hasBind = bindAttr != null;
+                if (bindAttr != null)
+                {
+                    foreach (var namedArg in bindAttr.NamedArguments)
+                    {
+                        if (namedArg.Key == "Prefix" && namedArg.Value.Value is string prefixValue)
+                        {
+                            bindPrefix = prefixValue;
+                        }
+                    }
+                }
+
                 object? keyedServiceKey = null;
                 if (hasFromKeyedServices)
                 {
@@ -757,7 +855,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 }
 
                 var argumentIndex = -1;
-                if (!(hasFromServices || isCancellationToken))
+                if (!(hasFromServices || isCancellationToken || hasBind))
                 {
                     if (hasArgument)
                     {
@@ -771,32 +869,45 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
                 var isNullableReference = x.NullableAnnotation == NullableAnnotation.Annotated && x.Type.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
 
-                return new CommandParameter
-                {
-                    Name = generatorOptions.DisableNamingConversion ? x.Name : NameConverter.ToKebabCase(x.Name),
-                    WellKnownTypes = wellKnownTypes,
-                    OriginalParameterName = x.Name,
-                    IsNullableReference = isNullableReference,
-                    IsConsoleAppContext = isConsoleAppContext,
-                    IsParams = x.IsParams,
-                    IsHidden = isHiddenParameter,
-                    IsDefaultValueHidden = isDefaultValueHidden,
-                    Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
-                    Type = new EquatableTypeSymbol(x.Type),
-                    HasDefaultValue = x.HasExplicitDefaultValue,
-                    DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
-                    CustomParserType = customParserType?.AttributeClass?.ToEquatable(),
-                    IsCancellationToken = isCancellationToken,
-                    IsFromServices = hasFromServices,
-                    IsFromKeyedServices = hasFromKeyedServices,
-                    KeyedServiceKey = keyedServiceKey,
-                    HasValidation = hasValidation,
-                    Aliases = aliases,
-                    ArgumentIndex = argumentIndex,
-                    Description = description
-                };
+                return new BindParameterCandidate(
+                    Parameter: new CommandParameter
+                    {
+                        Name = generatorOptions.DisableNamingConversion ? x.Name : NameConverter.ToKebabCase(x.Name),
+                        WellKnownTypes = wellKnownTypes,
+                        OriginalParameterName = x.Name,
+                        IsNullableReference = isNullableReference,
+                        IsConsoleAppContext = isConsoleAppContext,
+                        IsParams = x.IsParams,
+                        IsHidden = isHiddenParameter,
+                        IsDefaultValueHidden = isDefaultValueHidden,
+                        Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
+                        Type = new EquatableTypeSymbol(x.Type),
+                        HasDefaultValue = x.HasExplicitDefaultValue,
+                        DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
+                        CustomParserType = customParserType?.AttributeClass?.ToEquatable(),
+                        IsCancellationToken = isCancellationToken,
+                        IsFromServices = hasFromServices,
+                        IsFromKeyedServices = hasFromKeyedServices,
+                        KeyedServiceKey = keyedServiceKey,
+                        HasValidation = hasValidation,
+                        Aliases = aliases,
+                        ArgumentIndex = argumentIndex,
+                        Description = description,
+                        ObjectBinding = null, // Will be filled in post-processing
+                    },
+                    HasBind: hasBind,
+                    BindPrefix: bindPrefix,
+                    TypeSymbol: x.Type
+                );
             })
             .ToArray();
+
+        // Post-process parameters to create ObjectBinding for [Bind] parameters
+        var processedParameters = ProcessBindParameters(parameters, methodSymbol.Locations[0]);
+        if (processedParameters == null)
+        {
+            return null; // Error already reported
+        }
 
         var cmd = new Command
         {
@@ -804,7 +915,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             IsAsync = isAsync,
             IsVoid = isVoid,
             IsHidden = isHiddenCommand,
-            Parameters = parameters,
+            Parameters = processedParameters,
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
             Description = summary,
             DelegateBuildType = delegateBuildType,

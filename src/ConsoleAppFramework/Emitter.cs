@@ -1,9 +1,8 @@
 ﻿using System.Text;
-using Microsoft.CodeAnalysis;
 
 namespace ConsoleAppFramework;
 
-internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, null.
+internal partial class Emitter(DllReference? dllReference, TypedGlobalOptionsInfo? typedGlobalOptions = null) // from EmitConsoleAppRun, null.
 {
     public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName)
     {
@@ -12,7 +11,8 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         var emitForBuilder = methodName != null;
         var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
         var hasConsoleAppContext = command.Parameters.Any(x => x.IsConsoleAppContext);
-        var hasArgument = command.Parameters.Any(x => x.IsArgument);
+        var hasArgument = command.Parameters.Any(x => x.IsArgument) ||
+                          command.Parameters.Any(x => x.IsBound && x.ObjectBinding!.Properties.Any(p => p.IsArgument));
         var hasValidation = command.Parameters.Any(x => x.HasValidation);
         var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
 
@@ -117,16 +117,24 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                         sb.AppendLine("ConsoleAppContext context;");
                         using (hasConsoleAppContext ? sb.Nop : sb.BeginBlock("if (isRequireCallBuildAndSetServiceProvider)"))
                         {
-                            using (sb.BeginBlock("if (configureGlobalOptions == null)"))
+                            if (typedGlobalOptions != null)
                             {
-                                sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, commandArgsMemory, null, null, commandDepth, escapeIndex);");
+                                // Use the pre-parsed typedGlobalOptions (parsed at RunCore level)
+                                sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, commandArgsMemory, null, typedGlobalOptions, commandDepth, escapeIndex);");
                             }
-                            using (sb.BeginBlock("else"))
+                            else
                             {
-                                sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgsMemory);");
-                                sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
-                                sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, builder.RemainingArgs, null, globalOptions, commandDepth, escapeIndex);");
-                                sb.AppendLine("commandArgsMemory = builder.RemainingArgs;");
+                                using (sb.BeginBlock("if (configureGlobalOptions == null)"))
+                                {
+                                    sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, commandArgsMemory, null, null, commandDepth, escapeIndex);");
+                                }
+                                using (sb.BeginBlock("else"))
+                                {
+                                    sb.AppendLine("var builder = new GlobalOptionsBuilder(commandArgsMemory);");
+                                    sb.AppendLine("var globalOptions = configureGlobalOptions(ref builder);");
+                                    sb.AppendLine($"context = new ConsoleAppContext(\"{command.Name}\", args, builder.RemainingArgs, null, globalOptions, commandDepth, escapeIndex);");
+                                    sb.AppendLine("commandArgsMemory = builder.RemainingArgs;");
+                                }
                             }
                             sb.AppendLine("BuildAndSetServiceProvider(context);");
                         }
@@ -157,7 +165,12 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 for (var i = 0; i < command.Parameters.Length; i++)
                 {
                     var parameter = command.Parameters[i];
-                    if (parameter.IsParsable)
+                    if (parameter.IsBound)
+                    {
+                        // Emit variables for each bindable property
+                        EmitBoundVariableDeclarations(sb, parameter, i);
+                    }
+                    else if (parameter.IsParsable)
                     {
                         var defaultValue = parameter.IsParams ? $"({parameter.ToTypeDisplayString()})[]"
                                          : parameter.HasDefaultValue ? parameter.DefaultValueToString()
@@ -215,7 +228,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     }
                     sb.AppendLine();
 
-                    if (!command.Parameters.All(p => !p.IsParsable || p.IsArgument))
+                    // Check if there are any non-argument options to parse (including [Bind] parameters)
+                var hasNonArgumentOptions = command.Parameters.Any(p => (p.IsParsable && !p.IsArgument) || p.IsBound);
+                if (hasNonArgumentOptions)
                     {
                         using (hasArgument ? sb.BeginBlock("if (optionCandidate)") : sb.Nop)
                         {
@@ -225,6 +240,12 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                 for (int i = 0; i < command.Parameters.Length; i++)
                                 {
                                     var parameter = command.Parameters[i];
+                                    if (parameter.IsBound)
+                                    {
+                                        // Emit switch cases for each bindable property
+                                        EmitBoundSwitchCases(sb, parameter, i);
+                                        continue;
+                                    }
                                     if (!parameter.IsParsable) continue;
                                     if (parameter.IsArgument) continue;
 
@@ -250,6 +271,12 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                     for (int i = 0; i < command.Parameters.Length; i++)
                                     {
                                         var parameter = command.Parameters[i];
+                                        if (parameter.IsBound)
+                                        {
+                                            // Emit case-insensitive cases for each bindable property
+                                            EmitBoundCaseInsensitiveCases(sb, parameter, i);
+                                            continue;
+                                        }
                                         if (!parameter.IsParsable) continue;
                                         if (parameter.IsArgument) continue;
 
@@ -280,6 +307,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     // parse indexed argument([Argument] parameter)
                     if (hasArgument)
                     {
+                        // Regular [Argument] parameters
                         for (int i = 0; i < command.Parameters.Length; i++)
                         {
                             var parameter = command.Parameters[i];
@@ -297,6 +325,25 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                 sb.AppendLine("continue;");
                             }
                         }
+
+                        // [Argument] properties within [Bind] parameters
+                        // Calculate base argument index (after regular [Argument] params)
+                        var baseArgIndex = command.Parameters.Count(p => p.IsArgument);
+                        for (int i = 0; i < command.Parameters.Length; i++)
+                        {
+                            var parameter = command.Parameters[i];
+                            if (!parameter.IsBound) continue;
+
+                            var binding = parameter.ObjectBinding!;
+                            var hasBoundArgs = binding.Properties.Any(p => p.IsArgument);
+                            if (hasBoundArgs)
+                            {
+                                EmitBoundArgumentParsing(sb, parameter, i, baseArgIndex);
+                                // Increment base index for next [Bind] parameter
+                                baseArgIndex += binding.Properties.Count(p => p.IsArgument);
+                            }
+                        }
+
                         sb.AppendLine();
                     }
 
@@ -310,12 +357,27 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 for (int i = 0; i < command.Parameters.Length; i++)
                 {
                     var parameter = command.Parameters[i];
+                    if (parameter.IsBound)
+                    {
+                        // Validate required properties for [Bind] parameters
+                        EmitBoundValidation(sb, parameter, i);
+                        continue;
+                    }
                     if (!parameter.IsParsable) continue;
 
                     if (parameter.RequireCheckArgumentParsed)
                     {
                         sb.AppendLine($"if (!arg{i}Parsed) ThrowRequiredArgumentNotParsed(\"{parameter.Name}\");");
                     }
+                }
+
+                // Construct [Bind] objects
+                for (int i = 0; i < command.Parameters.Length; i++)
+                {
+                    var parameter = command.Parameters[i];
+                    if (!parameter.IsBound) continue;
+
+                    EmitBoundObjectConstruction(sb, parameter, i);
                 }
 
                 // attribute validation
@@ -484,6 +546,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine($"{item.FieldType} command{item.Id} = default!;");
             }
 
+            // Typed global options field
+            EmitTypedGlobalOptionsField(sb);
+
             // AddCore
             sb.AppendLine();
             using (sb.BeginBlock("partial void AddCore(string commandName, Delegate command)"))
@@ -511,6 +576,12 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine();
                 using (sb.BeginBlock("partial void RunCore(string[] args, CancellationToken cancellationToken)"))
                 {
+                    // Parse typed global options BEFORE command routing
+                    if (typedGlobalOptions != null)
+                    {
+                        EmitTypedGlobalOptionsPreParsing(sb);
+                    }
+
                     if (hasRootCommand)
                     {
                         using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
@@ -530,6 +601,12 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine();
                 using (sb.BeginBlock("partial void RunAsyncCore(string[] args, CancellationToken cancellationToken, ref Task result)"))
                 {
+                    // Parse typed global options BEFORE command routing
+                    if (typedGlobalOptions != null)
+                    {
+                        EmitTypedGlobalOptionsPreParsing(sb);
+                    }
+
                     if (hasRootCommand)
                     {
                         using (sb.BeginBlock("if (args.Length == 1 && args[0] is \"--help\" or \"-h\")"))
@@ -748,7 +825,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 using (sb.BeginIndent("default:"))
                 {
                     sb.AppendLine("Log(\"\"\"");
-                    sb.AppendWithoutIndent(CommandHelpBuilder.BuildRootHelpMessage(commands.Select(x => x.Command).ToArray()));
+                    sb.AppendWithoutIndent(CommandHelpBuilder.BuildRootHelpMessage(commands.Select(x => x.Command).ToArray(), typedGlobalOptions));
                     sb.AppendLineWithoutIndent("\"\"\");");
                     sb.AppendLine("break;");
                 }
@@ -764,15 +841,15 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
     }
 
-    public void EmitConfigure(SourceBuilder sb, DllReference dllReference)
+    public void EmitConfigure(SourceBuilder sb, DllReference dllRef)
     {
         // configuration
-        if (dllReference.HasConfiguration)
+        if (dllRef.HasConfiguration)
         {
             sb.AppendLine("bool requireConfiguration;");
             sb.AppendLine("IConfiguration? configuration;");
 
-            if (dllReference.HasJsonConfiguration)
+            if (dllRef.HasJsonConfiguration)
             {
                 sb.AppendLine();
                 sb.AppendLine("/// <summary>Create configuration with SetBasePath(Directory.GetCurrentDirectory()) and AddJsonFile(appsettings.json).</summary>");
@@ -810,10 +887,10 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
 
         // DependencyInjection
-        if (dllReference.HasDependencyInjection)
+        if (dllRef.HasDependencyInjection)
         {
             // field
-            if (dllReference.HasConfiguration)
+            if (dllRef.HasConfiguration)
             {
                 sb.AppendLine("Action<ConsoleAppContext, IConfiguration, IServiceCollection>? configureServices;");
             }
@@ -825,7 +902,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             sb.AppendLine("Action<IServiceProvider>? postConfigureServices;");
 
             // methods
-            if (dllReference.HasConfiguration)
+            if (dllRef.HasConfiguration)
             {
                 sb.AppendLine();
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IServiceCollection> configure)"))
@@ -900,10 +977,10 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
 
         // Logging
-        if (dllReference.HasLogging)
+        if (dllRef.HasLogging)
         {
             // field
-            if (dllReference.HasConfiguration)
+            if (dllRef.HasConfiguration)
             {
                 sb.AppendLine("Action<ConsoleAppContext, IConfiguration, ILoggingBuilder>? configureLogging;");
             }
@@ -913,7 +990,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             }
 
             // methods
-            if (dllReference.HasConfiguration)
+            if (dllRef.HasConfiguration)
             {
                 sb.AppendLine();
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureLogging(Action<ILoggingBuilder> configure)"))
@@ -966,7 +1043,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         // Build
         using (sb.BeginBlock("partial void BuildAndSetServiceProvider(ConsoleAppContext context)"))
         {
-            if (dllReference.HasDependencyInjection)
+            if (dllRef.HasDependencyInjection)
             {
                 using (sb.BeginBlock("if (!isRequireCallBuildAndSetServiceProvider)"))
                 {
@@ -974,7 +1051,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 }
                 sb.AppendLine("isRequireCallBuildAndSetServiceProvider = false;");
 
-                if (dllReference.HasConfiguration)
+                if (dllRef.HasConfiguration)
                 {
                     sb.AppendLine("var config = configuration;");
                     using (sb.BeginBlock("if (requireConfiguration && config == null)"))
@@ -984,7 +1061,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 }
 
                 sb.AppendLine("var services = new ServiceCollection();");
-                if (dllReference.HasConfiguration)
+                if (dllRef.HasConfiguration)
                 {
                     sb.AppendLine("configureServices?.Invoke(context, config!, services);");
                 }
@@ -993,14 +1070,14 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     sb.AppendLine("configureServices?.Invoke(context, services);");
                 }
 
-                if (dllReference.HasLogging)
+                if (dllRef.HasLogging)
                 {
                     using (sb.BeginBlock("if (configureLogging != null)"))
                     {
                         sb.AppendLine("var configure = configureLogging;");
                         using (sb.BeginIndent("services.AddLogging(logging => {"))
                         {
-                            if (dllReference.HasConfiguration)
+                            if (dllRef.HasConfiguration)
                             {
                                 sb.AppendLine("configure!(context, config!, logging);");
                             }
@@ -1027,7 +1104,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
 
         // HostStart(for filter)
-        if (dllReference.HasHost)
+        if (dllRef.HasHost)
         {
             sb.AppendLine();
             using (sb.BeginBlock("partial void StartHostAsyncIfNeeded(CancellationToken cancellationToken, ref Task task)"))
@@ -1041,7 +1118,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         }
     }
 
-    public void EmitAsConsoleAppBuilder(SourceBuilder sb, DllReference dllReference)
+    public void EmitAsConsoleAppBuilder(SourceBuilder sb)
     {
         sb.AppendLine("""
 
@@ -1078,14 +1155,14 @@ internal static class ConsoleAppHostBuilderExtensions
             }
             host.Dispose();
         }
-        
+
         public async ValueTask DisposeAsync()
         {
             await CastAndDispose(serviceProvider);
             await CastAndDispose(scope);
             await CastAndDispose(serviceServiceProvider);
             await CastAndDispose(host);
-            
+
             static async ValueTask CastAndDispose<T>(T resource)
             {
                 if (resource is IAsyncDisposable resourceAsyncDisposable)
@@ -1107,7 +1184,7 @@ internal static class ConsoleAppHostBuilderExtensions
         var scope = serviceServiceProvider.CreateScope();
         var serviceProvider = scope.ServiceProvider;
         ConsoleApp.ServiceProvider = new CompositeDisposableServiceProvider(host, serviceServiceProvider, scope, serviceProvider);
-                
+
         return ConsoleApp.Create();
     }
 
@@ -1118,7 +1195,7 @@ internal static class ConsoleAppHostBuilderExtensions
         var scope = serviceServiceProvider.CreateScope();
         var serviceProvider = scope.ServiceProvider;
         ConsoleApp.ServiceProvider = new CompositeDisposableServiceProvider(host, serviceServiceProvider, scope, serviceProvider);
-                
+
         return ConsoleApp.Create();
     }
 }

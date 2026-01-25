@@ -131,4 +131,34 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor InvalidGlobalOptionsType { get; } = Create(
         18,
         "GlobalOption parameter type only allows compile-time constant(primitives, string, enum) and there nullable.");
+
+    public static DiagnosticDescriptor BindTypeNoValidConstructor { get; } = Create(
+        20,
+        "Type used with [Bind] must have a parameterless constructor or a primary constructor.",
+        "Type '{0}' used with [Bind] must have a parameterless constructor or a primary constructor.");
+
+    public static DiagnosticDescriptor BindUnsupportedPropertyType { get; } = Create(
+        21,
+        "Property has unsupported type for binding.",
+        "Property '{0}' has unsupported type for binding.");
+
+    public static DiagnosticDescriptor BindCircularReference { get; } = Create(
+        22,
+        "Circular reference detected in type.",
+        "Circular reference detected in type '{0}'.");
+
+    public static DiagnosticDescriptor BindConstructorParameterNotMatched { get; } = Create(
+        24,
+        "Constructor parameter cannot be matched to preceding [Argument] parameters.",
+        "Constructor parameter '{0}' in type '{1}' cannot be matched to preceding [Argument] parameters.");
+
+    public static DiagnosticDescriptor BindMultipleConstructors { get; } = Create(
+        25,
+        "Multiple constructors found; [Bind] requires exactly one public constructor.",
+        "Multiple constructors found for type '{0}'; [Bind] requires exactly one public constructor.");
+
+    public static DiagnosticDescriptor GlobalOptionsCannotHaveArguments { get; } = Create(
+        26,
+        "GlobalOptions cannot have positional arguments",
+        "GlobalOptions type '{0}' cannot have positional arguments. Property '{1}' is marked as an argument with [Argument] or 'argument,' comment.");
 }

@@ -192,7 +192,9 @@ public record class CommandParameter
     public bool IsArgument => ArgumentIndex != -1;
     public required EquatableArray<string> Aliases { get; init; }
     public required string Description { get; init; }
-    public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams || IsFlag);
+    public required ObjectBindingInfo? ObjectBinding { get; init; }
+    public bool IsBound => ObjectBinding != null;
+    public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams || IsFlag || IsBound);
 
     // increment = false when passed from [Argument]
     public string BuildParseMethod(int argCount, string argumentName, bool increment)
@@ -518,6 +520,7 @@ public record class GlobalOptionInfo
             HasValidation = false,
             ArgumentIndex = -1,
             IsDefaultValueHidden = false,
+            ObjectBinding = null,
 
             Type = Type,
             HasDefaultValue = !IsRequired, // if not required, needs defaultValue
@@ -527,4 +530,114 @@ public record class GlobalOptionInfo
             Aliases = Name.Split(['|'], StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray()
         };
     }
+}
+
+/// <summary>
+/// Represents typed global options registered via ConfigureGlobalOptions&lt;T&gt;()
+/// </summary>
+public record class TypedGlobalOptionsInfo
+{
+    public required EquatableTypeSymbol Type { get; init; }
+    public required ObjectBindingInfo ObjectBinding { get; init; }
+}
+
+/// <summary>
+/// Represents a bindable property (either from constructor parameter or settable property)
+/// </summary>
+public sealed record class BindablePropertyInfo : IEquatable<BindablePropertyInfo>
+{
+    public required string CliName { get; init; }                   // "--force" or "[0]" for arguments
+    public required EquatableTypeSymbol Type { get; init; }
+    public required bool HasDefaultValue { get; init; }
+    public required object? DefaultValue { get; init; }
+    public required string PropertyName { get; init; }              // "Force"
+    public required string PropertyAccessPath { get; init; }        // "Nested.Force" for nested objects
+    public required EquatableArray<string> ParentPath { get; init; } // ["Nested"] for nested objects
+    public required string Description { get; init; }
+    public required EquatableArray<string> Aliases { get; init; }   // Short aliases like "-f" for "--force"
+    public required bool IsRequired { get; init; }
+    public required bool IsConstructorParameter { get; init; }      // True if from primary constructor
+    public required int ConstructorParameterIndex { get; init; }    // Position in constructor (-1 if not)
+    public required bool IsInitOnly { get; init; }                  // True if init-only property
+    public required int ArgumentIndex { get; init; }                // -1 if not an argument, otherwise the positional index
+    public required bool IsFromGlobalOptions { get; init; }         // True if inherited from [GlobalOptions] type
+    public required ParseInfo ParseInfo { get; init; }              // Type classification for parsing
+    public bool IsArgument => ArgumentIndex != -1;
+    public bool IsFlag => Type.SpecialType == SpecialType.System_Boolean;
+
+    public bool Equals(BindablePropertyInfo? other)
+    {
+        if (other is null) return false;
+        return CliName == other.CliName &&
+               Type.Equals(other.Type) &&
+               HasDefaultValue == other.HasDefaultValue &&
+               Equals(DefaultValue, other.DefaultValue) &&
+               PropertyName == other.PropertyName &&
+               PropertyAccessPath == other.PropertyAccessPath &&
+               ParentPath.Equals(other.ParentPath) &&
+               Description == other.Description &&
+               Aliases.Equals(other.Aliases) &&
+               IsRequired == other.IsRequired &&
+               IsConstructorParameter == other.IsConstructorParameter &&
+               ConstructorParameterIndex == other.ConstructorParameterIndex &&
+               IsInitOnly == other.IsInitOnly &&
+               ArgumentIndex == other.ArgumentIndex &&
+               IsFromGlobalOptions == other.IsFromGlobalOptions &&
+               ParseInfo.Equals(other.ParseInfo);
+    }
+
+    public override int GetHashCode() => CliName.GetHashCode();
+}
+
+/// <summary>
+/// Represents the binding info for a [Bind] parameter's type
+/// </summary>
+public sealed record class ObjectBindingInfo : IEquatable<ObjectBindingInfo>
+{
+    public required EquatableTypeSymbol BoundType { get; init; }
+    public required EquatableArray<BindablePropertyInfo> Properties { get; init; }
+    public required bool HasPrimaryConstructor { get; init; }
+    public required EquatableArray<ConstructorParameterInfo> ConstructorParameters { get; init; }
+    public required string? CustomPrefix { get; init; }             // Custom prefix if specified in attribute
+    public EquatableTypeSymbol? GlobalOptionsBaseType { get; init; } // The [GlobalOptions] base type if inheriting from one
+
+    public bool Equals(ObjectBindingInfo? other)
+    {
+        if (other is null) return false;
+        return BoundType.Equals(other.BoundType) &&
+               Properties.Equals(other.Properties) &&
+               HasPrimaryConstructor == other.HasPrimaryConstructor &&
+               ConstructorParameters.Equals(other.ConstructorParameters) &&
+               CustomPrefix == other.CustomPrefix &&
+               Equals(GlobalOptionsBaseType, other.GlobalOptionsBaseType);
+    }
+
+    public override int GetHashCode() => BoundType.GetHashCode();
+}
+
+/// <summary>
+/// Represents a constructor parameter for object binding
+/// </summary>
+public sealed record class ConstructorParameterInfo : IEquatable<ConstructorParameterInfo>
+{
+    public required string Name { get; init; }
+    public required EquatableTypeSymbol Type { get; init; }
+    public required bool HasDefaultValue { get; init; }
+    public required object? DefaultValue { get; init; }
+    public required int Index { get; init; }
+    public required int ArgumentIndex { get; init; }                // -1 if not an argument, otherwise the positional index
+    public bool IsArgument => ArgumentIndex != -1;
+
+    public bool Equals(ConstructorParameterInfo? other)
+    {
+        if (other is null) return false;
+        return Name == other.Name &&
+               Type.Equals(other.Type) &&
+               HasDefaultValue == other.HasDefaultValue &&
+               Equals(DefaultValue, other.DefaultValue) &&
+               Index == other.Index &&
+               ArgumentIndex == other.ArgumentIndex;
+    }
+
+    public override int GetHashCode() => Name.GetHashCode();
 }
