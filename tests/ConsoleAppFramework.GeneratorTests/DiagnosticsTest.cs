@@ -510,4 +510,53 @@ app.Run(args);
 """, "builder.AddGlobalOption<System.Version>(\"foo\")");
     }
 
+    [Test]
+    public async Task AsParametersTargetMustBeRecordClass()
+    {
+        await verifier.Verify(19, """
+ConsoleApp.Run(args, ([AsParameters] Options options) => { });
+
+public class Options
+{
+    public string Name { get; set; } = "";
+}
+""", "[AsParameters] Options options");
+    }
+
+    [Test]
+    public async Task AsParametersTargetMustHaveSinglePublicConstructor()
+    {
+        await verifier.Verify(20, """
+ConsoleApp.Run(args, ([AsParameters] Options options) => { });
+
+public record class Options(string Name)
+{
+    public Options() : this("x")
+    {
+    }
+}
+""", "[AsParameters] Options options");
+    }
+
+    [Test]
+    public async Task AsParametersNestedNotSupported()
+    {
+        await verifier.Verify(21, """
+ConsoleApp.Run(args, ([AsParameters] Outer options) => { });
+
+public record class Inner(string Name);
+public record class Outer([AsParameters] Inner Inner);
+""", "[AsParameters] Inner Inner");
+    }
+
+    [Test]
+    public async Task AsParametersParamsNotSupported()
+    {
+        await verifier.Verify(22, """
+ConsoleApp.Run(args, ([AsParameters] Options options) => { });
+
+public record class Options(params string[] Values);
+""", "params string[] Values");
+    }
+
 }

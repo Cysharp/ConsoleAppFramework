@@ -25,6 +25,8 @@ public record class Command
     public required string Name { get; init; }
 
     public required EquatableArray<CommandParameter> Parameters { get; init; }
+    public required EquatableArray<CommandParameter> EffectiveParseParameters { get; init; }
+    public required EquatableArray<AsParametersBinding> AsParametersExpansionBindings { get; init; }
     public required string Description { get; init; }
     public required MethodKind MethodKind { get; init; }
     public required DelegateBuildType DelegateBuildType { get; init; }
@@ -164,6 +166,13 @@ public record class Command
         var containingType = dynamicDependencyMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         return $"[global::System.Diagnostics.CodeAnalysis.DynamicDependency(\"{memberSignature}\", typeof({containingType}))]";
     }
+}
+
+public record class AsParametersBinding
+{
+    public required int RuntimeParameterIndex { get; init; }
+    public required EquatableTypeSymbol TargetType { get; init; }
+    public required EquatableArray<int> ParseParameterIndexes { get; init; }
 }
 
 public record class CommandParameter
@@ -339,7 +348,7 @@ public record class CommandParameter
             }
         }
 
-        // for floating-point number, need to use InvaliantCulture(some culture uses ',' as separator)
+        // for floating-point number, need to use InvariantCulture(some culture uses ',' as separator)
         var formattedValue = string.Format(CultureInfo.InvariantCulture, "{0}", DefaultValue);
         if (!castValue)
         {

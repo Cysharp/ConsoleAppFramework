@@ -1,10 +1,7 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Immutable;
-using System.Runtime.InteropServices.ComTypes;
-using System.Security.Cryptography;
-using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -178,8 +175,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
     public GlobalOptionInfo[] ParseGlobalOptions()
     {
-        var lambdaExpr = (node as InvocationExpressionSyntax);
-        if (lambdaExpr == null) return [];
+        if (node is not InvocationExpressionSyntax lambdaExpr) return [];
 
         var addOptions = node
             .DescendantNodes()
@@ -339,8 +335,11 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
     Command? ExpressionToCommand(ExpressionSyntax expression, string commandName)
     {
-        var lambda = expression as ParenthesizedLambdaExpressionSyntax;
-        if (lambda == null)
+        if (expression is ParenthesizedLambdaExpressionSyntax lambda)
+        {
+            return ParseFromLambda(lambda, commandName);
+        }
+        else
         {
             if (expression.IsKind(SyntaxKind.AddressOfExpression))
             {
@@ -365,10 +364,6 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                     return cmd;
                 }
             }
-        }
-        else
-        {
-            return ParseFromLambda(lambda, commandName);
         }
 
         return null;
@@ -423,175 +418,16 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             }
         }
 
-        var parsableIndex = 0;
-        var argumentIndexCounter = 0;
-        var parameters = lambda.ParameterList.Parameters
+        var parameterSymbols = lambda.ParameterList.Parameters
             .Where(x => x.Type != null)
-            .Select(x =>
-            {
-                var type = model.GetTypeInfo(x.Type!);
+            .Select(x => model.GetDeclaredSymbol(x))
+            .OfType<IParameterSymbol>()
+            .ToImmutableArray();
 
-                var hasDefault = x.Default != null;
-                object? defaultValue = null;
-                if (x.Default?.Value is LiteralExpressionSyntax literal)
-                {
-                    var token = literal.Token;
-                    if (token.IsKind(SyntaxKind.DefaultKeyword))
-                    {
-                        defaultValue = null;
-                    }
-                    else
-                    {
-                        defaultValue = token.Value;
-                    }
-                }
-                else if (x.Default != null)
-                {
-                    var value = model.GetConstantValue(x.Default.Value);
-                    if (value.HasValue)
-                    {
-                        defaultValue = value.Value;
-                    }
-                }
-
-                var hasParams = x.Modifiers.Any(x => x.IsKind(SyntaxKind.ParamsKeyword));
-
-                var isHidden = x.AttributeLists
-                                .SelectMany(x => x.Attributes)
-                                .Any(x => model.GetTypeInfo(x).Type?.Name == "HiddenAttribute");
-
-                var isDefaultValueHidden = x.AttributeLists
-                                .SelectMany(x => x.Attributes)
-                                .Any(x => model.GetTypeInfo(x).Type?.Name == "HideDefaultValueAttribute");
-
-                var customParserType = x.AttributeLists.SelectMany(x => x.Attributes)
-                    .Select(x =>
-                    {
-                        var attr = model.GetTypeInfo(x).Type;
-                        if (attr != null && attr.AllInterfaces.Any(x => x.Name == "IArgumentParser"))
-                        {
-                            return attr;
-                        }
-                        return null;
-                    })
-                    .FirstOrDefault(x => x != null);
-
-                var hasValidation = x.AttributeLists.SelectMany(x => x.Attributes)
-                    .Any(x =>
-                    {
-                        var attr = model.GetTypeInfo(x).Type as INamedTypeSymbol;
-                        if (attr != null && attr.GetBaseTypes().Any(x => x.Name == "ValidationAttribute"))
-                        {
-                            return true;
-                        }
-                        return false;
-                    });
-
-                var isFromServices = x.AttributeLists.SelectMany(x => x.Attributes)
-                    .Any(x =>
-                    {
-                        var name = x.Name;
-                        if (x.Name is QualifiedNameSyntax qns)
-                        {
-                            name = qns.Right;
-                        }
-
-                        var identifier = name.ToString();
-                        return identifier is "FromServices" or "FromServicesAttribute";
-                    });
-
-                object? keyedServiceKey = null;
-                var isFromKeyedServices = x.AttributeLists.SelectMany(x => x.Attributes)
-                    .Any(x =>
-                    {
-                        var name = x.Name;
-                        if (x.Name is QualifiedNameSyntax qns)
-                        {
-                            name = qns.Right;
-                        }
-
-                        var identifier = name.ToString();
-                        var result = identifier is "FromKeyedServices" or "FromKeyedServicesAttribute";
-                        if (result)
-                        {
-                            SemanticModel semanticModel = model; // we can use SemanticModel
-                            if (x.ArgumentList?.Arguments.Count > 0)
-                            {
-                                var argumentExpression = x.ArgumentList.Arguments[0].Expression;
-
-                                var constantValue = semanticModel.GetConstantValue(argumentExpression);
-                                if (constantValue.HasValue)
-                                {
-                                    keyedServiceKey = constantValue.Value;
-                                }
-                                else if (argumentExpression is TypeOfExpressionSyntax typeOf)
-                                {
-                                    var typeInfo = semanticModel.GetTypeInfo(typeOf.Type);
-                                    keyedServiceKey = typeInfo.Type;
-                                }
-                            }
-                        }
-                        return result;
-                    });
-
-                var hasArgument = x.AttributeLists.SelectMany(x => x.Attributes)
-                    .Any(x =>
-                    {
-                        var name = x.Name;
-                        if (x.Name is QualifiedNameSyntax qns)
-                        {
-                            name = qns.Right;
-                        }
-
-                        var identifier = name.ToString();
-                        return identifier is "Argument" or "ArgumentAttribute";
-                    });
-
-                var isCancellationToken = SymbolEqualityComparer.Default.Equals(type.Type!, wellKnownTypes.CancellationToken);
-                var isConsoleAppContext = type.Type!.Name == "ConsoleAppContext";
-
-                var argumentIndex = -1;
-                if (!(isFromServices || isCancellationToken || isConsoleAppContext))
-                {
-                    if (hasArgument)
-                    {
-                        argumentIndex = argumentIndexCounter++;
-                    }
-                    else
-                    {
-                        parsableIndex++;
-                    }
-                }
-
-                var isNullableReference = x.Type.IsKind(SyntaxKind.NullableType) && type.Type?.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
-
-                return new CommandParameter
-                {
-                    Name = generatorOptions.DisableNamingConversion ? x.Identifier.Text : NameConverter.ToKebabCase(x.Identifier.Text),
-                    WellKnownTypes = wellKnownTypes,
-                    OriginalParameterName = x.Identifier.Text,
-                    IsNullableReference = isNullableReference,
-                    IsConsoleAppContext = isConsoleAppContext,
-                    IsParams = hasParams,
-                    IsHidden = isHidden,
-                    IsDefaultValueHidden = isDefaultValueHidden,
-                    Type = new EquatableTypeSymbol(type.Type!),
-                    Location = x.GetLocation(),
-                    HasDefaultValue = hasDefault,
-                    DefaultValue = defaultValue,
-                    CustomParserType = customParserType?.ToEquatable(),
-                    HasValidation = hasValidation,
-                    IsCancellationToken = isCancellationToken,
-                    IsFromServices = isFromServices,
-                    IsFromKeyedServices = isFromKeyedServices,
-                    KeyedServiceKey = keyedServiceKey,
-                    Aliases = [],
-                    Description = "",
-                    ArgumentIndex = argumentIndex,
-                };
-            })
-            .Where(x => x.Type != null)
-            .ToArray();
+        if (!TryBuildRuntimeAndParseParameters(parameterSymbols, null, out var parameters, out var effectiveParseParameters, out var asParametersExpansionBindings))
+        {
+            return null;
+        }
 
         var cmd = new Command
         {
@@ -600,6 +436,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             IsVoid = isVoid,
             IsHidden = false, // Anonymous lambda don't support attribute.
             Parameters = parameters,
+            EffectiveParseParameters = effectiveParseParameters,
+            AsParametersExpansionBindings = asParametersExpansionBindings,
             MethodKind = MethodKind.Lambda,
             Description = "",
             DelegateBuildType = delegateBuildType,
@@ -635,8 +473,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             isVoid = true;
 
             // check `async void`
-            var syntax = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax() as MethodDeclarationSyntax;
-            if (syntax != null)
+            if (methodSymbol.DeclaringSyntaxReferences[0].GetSyntax() is MethodDeclarationSyntax syntax)
             {
                 var asyncKeyword = syntax.Modifiers.FirstOrDefault(x => x.IsKind(SyntaxKind.AsyncKeyword));
                 if (asyncKeyword != default)
@@ -727,76 +564,22 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             }
         }
 
-        var parsableIndex = 0;
-        var argumentIndexCounter = 0;
-        var parameters = methodSymbol.Parameters
-            .Select(x =>
-            {
-                var customParserType = x.GetAttributes().FirstOrDefault(x => x.AttributeClass?.AllInterfaces.Any(y => y.Name == "IArgumentParser") ?? false);
-                var hasFromServices = x.GetAttributes().Any(x => x.AttributeClass?.Name == "FromServicesAttribute");
-                var hasFromKeyedServices = x.GetAttributes().Any(x => x.AttributeClass?.Name == "FromKeyedServicesAttribute");
-                var hasArgument = x.GetAttributes().Any(x => x.AttributeClass?.Name == "ArgumentAttribute");
-                var hasValidation = x.GetAttributes().Any(x => x.AttributeClass?.GetBaseTypes().Any(y => y.Name == "ValidationAttribute") ?? false);
-                var isCancellationToken = SymbolEqualityComparer.Default.Equals(x.Type, wellKnownTypes.CancellationToken);
-                var isConsoleAppContext = x.Type!.Name == "ConsoleAppContext";
-                var isHiddenParameter = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HiddenAttribute");
-                var isDefaultValueHidden = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HideDefaultValueAttribute");
-
-                object? keyedServiceKey = null;
-                if (hasFromKeyedServices)
+        Dictionary<string, ParameterDescription>? parameterDescriptionMetadata = null;
+        if (parameterDescriptions != null)
+        {
+            parameterDescriptionMetadata = parameterDescriptions.ToDictionary(
+                static x => x.Key,
+                x =>
                 {
-                    var attr = x.GetAttributes().First(x => x.AttributeClass?.Name == "FromKeyedServicesAttribute");
-                    keyedServiceKey = attr.ConstructorArguments[0].Value;
-                }
+                    ParseParameterDescription(x.Value, out var aliases, out var description);
+                    return new ParameterDescription(aliases, description);
+                });
+        }
 
-                string description = "";
-                string[] aliases = [];
-                if (parameterDescriptions != null && parameterDescriptions.TryGetValue(x.Name, out var desc))
-                {
-                    ParseParameterDescription(desc, out aliases, out description);
-                }
-
-                var argumentIndex = -1;
-                if (!(hasFromServices || isCancellationToken))
-                {
-                    if (hasArgument)
-                    {
-                        argumentIndex = argumentIndexCounter++;
-                    }
-                    else
-                    {
-                        parsableIndex++;
-                    }
-                }
-
-                var isNullableReference = x.NullableAnnotation == NullableAnnotation.Annotated && x.Type.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
-
-                return new CommandParameter
-                {
-                    Name = generatorOptions.DisableNamingConversion ? x.Name : NameConverter.ToKebabCase(x.Name),
-                    WellKnownTypes = wellKnownTypes,
-                    OriginalParameterName = x.Name,
-                    IsNullableReference = isNullableReference,
-                    IsConsoleAppContext = isConsoleAppContext,
-                    IsParams = x.IsParams,
-                    IsHidden = isHiddenParameter,
-                    IsDefaultValueHidden = isDefaultValueHidden,
-                    Location = x.DeclaringSyntaxReferences[0].GetSyntax().GetLocation(),
-                    Type = new EquatableTypeSymbol(x.Type),
-                    HasDefaultValue = x.HasExplicitDefaultValue,
-                    DefaultValue = x.HasExplicitDefaultValue ? x.ExplicitDefaultValue : null,
-                    CustomParserType = customParserType?.AttributeClass?.ToEquatable(),
-                    IsCancellationToken = isCancellationToken,
-                    IsFromServices = hasFromServices,
-                    IsFromKeyedServices = hasFromKeyedServices,
-                    KeyedServiceKey = keyedServiceKey,
-                    HasValidation = hasValidation,
-                    Aliases = aliases,
-                    ArgumentIndex = argumentIndex,
-                    Description = description
-                };
-            })
-            .ToArray();
+        if (!TryBuildRuntimeAndParseParameters(methodSymbol.Parameters, parameterDescriptionMetadata, out var parameters, out var effectiveParseParameters, out var asParametersExpansionBindings))
+        {
+            return null;
+        }
 
         var cmd = new Command
         {
@@ -805,6 +588,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             IsVoid = isVoid,
             IsHidden = isHiddenCommand,
             Parameters = parameters,
+            EffectiveParseParameters = effectiveParseParameters,
+            AsParametersExpansionBindings = asParametersExpansionBindings,
             MethodKind = addressOf ? MethodKind.FunctionPointer : MethodKind.Method,
             Description = summary,
             DelegateBuildType = delegateBuildType,
@@ -840,7 +625,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         // FunctionPointer can not use validation
         if (command.MethodKind == MethodKind.FunctionPointer)
         {
-            foreach (var p in command.Parameters)
+            foreach (var p in command.EffectiveParseParameters)
             {
                 if (p.HasValidation)
                 {
@@ -853,6 +638,368 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         if (hasDiagnostic) return null;
 
         return command;
+    }
+
+    readonly record struct ParameterDescription(EquatableArray<string> Aliases, string Description)
+    {
+        public static ParameterDescription Empty { get; } = new([], "");
+    }
+
+    struct ParameterBuildState
+    {
+        public int ParsableIndex;
+        public int ArgumentIndexCounter;
+    }
+
+    bool TryBuildRuntimeAndParseParameters(
+        IEnumerable<IParameterSymbol> runtimeParameterSymbols,
+        IReadOnlyDictionary<string, ParameterDescription>? runtimeParameterDescriptions,
+        out EquatableArray<CommandParameter> runtimeParameters,
+        out EquatableArray<CommandParameter> effectiveParseParameters,
+        out EquatableArray<AsParametersBinding> asParametersExpansionBindings)
+    {
+        var runtimeParameterCount = runtimeParameterSymbols switch
+        {
+            IReadOnlyCollection<IParameterSymbol> readOnlyCollection => readOnlyCollection.Count,
+            ICollection<IParameterSymbol> collection => collection.Count,
+            _ => -1
+        };
+        var runtimeParameterBuffer = runtimeParameterCount >= 0 ? new CommandParameter[runtimeParameterCount] : null;
+        var runtimeParameterList = runtimeParameterBuffer == null ? new List<CommandParameter>() : null;
+        List<CommandParameter>? parseParameterList = null;
+        var bindingBuffer = runtimeParameterCount > 0 ? new AsParametersBinding[runtimeParameterCount] : null;
+        var bindingCount = 0;
+        List<AsParametersBinding>? bindingList = null;
+
+        var runtimeBuildState = new ParameterBuildState();
+        var parseBuildState = new ParameterBuildState();
+
+        var runtimeParameterIndex = 0;
+        foreach (var runtimeParameterSymbol in runtimeParameterSymbols)
+        {
+            var parameterDescription = TryGetParameterDescription(runtimeParameterDescriptions, runtimeParameterSymbol.Name);
+            var runtimeParameter = BuildCommandParameter(runtimeParameterSymbol, parameterDescription, ref runtimeBuildState);
+            if (runtimeParameterBuffer == null)
+            {
+                runtimeParameterList!.Add(runtimeParameter);
+            }
+            else
+            {
+                runtimeParameterBuffer[runtimeParameterIndex] = runtimeParameter;
+            }
+
+            if (!HasAttribute(runtimeParameterSymbol, "AsParametersAttribute"))
+            {
+                if (parseParameterList != null)
+                {
+                    parseParameterList.Add(BuildEffectiveParseParameter(runtimeParameter, ref parseBuildState));
+                }
+                else
+                {
+                    AdvanceEffectiveParseState(runtimeParameter, ref parseBuildState);
+                }
+                runtimeParameterIndex++;
+                continue;
+            }
+
+            if (parseParameterList == null)
+            {
+                parseParameterList = new List<CommandParameter>(runtimeParameterIndex + 4);
+                if (runtimeParameterBuffer == null)
+                {
+                    for (int i = 0; i < runtimeParameterList!.Count - 1; i++)
+                    {
+                        parseParameterList.Add(runtimeParameterList[i]);
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < runtimeParameterIndex; i++)
+                    {
+                        parseParameterList.Add(runtimeParameterBuffer[i]);
+                    }
+                }
+            }
+
+            if (!TryGetAsParametersConstructor(runtimeParameterSymbol, out var targetType, out var constructor))
+            {
+                runtimeParameters = [];
+                effectiveParseParameters = [];
+                asParametersExpansionBindings = [];
+                return false;
+            }
+
+            var constructorParameterDescriptions = BuildAsParametersConstructorParameterDescriptions(constructor);
+            var parseIndexes = new int[constructor.Parameters.Length];
+            var parseIndex = 0;
+            foreach (var constructorParameter in constructor.Parameters)
+            {
+                if (HasAttribute(constructorParameter, "AsParametersAttribute"))
+                {
+                    context.ReportDiagnostic(
+                        DiagnosticDescriptors.AsParametersNestedNotSupported,
+                        GetParameterLocation(constructorParameter),
+                        constructorParameter.Name,
+                        targetType.ToDisplayString());
+                    runtimeParameters = [];
+                    effectiveParseParameters = [];
+                    asParametersExpansionBindings = [];
+                    return false;
+                }
+
+                if (constructorParameter.IsParams)
+                {
+                    context.ReportDiagnostic(
+                        DiagnosticDescriptors.AsParametersParamsNotSupported,
+                        GetParameterLocation(constructorParameter),
+                        constructorParameter.Name,
+                        targetType.ToDisplayString());
+                    runtimeParameters = [];
+                    effectiveParseParameters = [];
+                    asParametersExpansionBindings = [];
+                    return false;
+                }
+
+                parseIndexes[parseIndex++] = parseParameterList.Count;
+                var constructorParameterDescription = TryGetParameterDescription(constructorParameterDescriptions, constructorParameter.Name);
+                parseParameterList.Add(BuildCommandParameter(constructorParameter, constructorParameterDescription, ref parseBuildState));
+            }
+
+            var binding = new AsParametersBinding
+            {
+                RuntimeParameterIndex = runtimeParameterIndex,
+                TargetType = new EquatableTypeSymbol(targetType),
+                ParseParameterIndexes = parseIndexes
+            };
+            if (bindingBuffer == null)
+            {
+                (bindingList ??= new List<AsParametersBinding>(1)).Add(binding);
+            }
+            else
+            {
+                bindingBuffer[bindingCount++] = binding;
+            }
+
+            runtimeParameterIndex++;
+        }
+
+        runtimeParameters = runtimeParameterBuffer ?? runtimeParameterList!.ToArray();
+        effectiveParseParameters = parseParameterList == null ? runtimeParameters : parseParameterList.ToArray();
+        if (bindingBuffer == null)
+        {
+            asParametersExpansionBindings = bindingList == null ? [] : bindingList.ToArray();
+        }
+        else if (bindingCount == 0)
+        {
+            asParametersExpansionBindings = [];
+        }
+        else if (bindingCount == bindingBuffer.Length)
+        {
+            asParametersExpansionBindings = bindingBuffer;
+        }
+        else
+        {
+            var trimmedBindings = new AsParametersBinding[bindingCount];
+            Array.Copy(bindingBuffer, trimmedBindings, bindingCount);
+            asParametersExpansionBindings = trimmedBindings;
+        }
+        return true;
+    }
+
+    IReadOnlyDictionary<string, ParameterDescription>? BuildAsParametersConstructorParameterDescriptions(IMethodSymbol constructor)
+    {
+        if (constructor.DeclaringSyntaxReferences.Length == 0)
+        {
+            return null;
+        }
+
+        var constructorSyntax = constructor.DeclaringSyntaxReferences[0].GetSyntax();
+        var docComment = constructorSyntax.GetDocumentationCommentTriviaSyntax();
+        if (docComment == null)
+        {
+            return null;
+        }
+
+        var constructorParameterNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var constructorParameter in constructor.Parameters)
+        {
+            constructorParameterNames.Add(constructorParameter.Name);
+        }
+
+        Dictionary<string, ParameterDescription>? parameterDescriptions = null;
+        foreach (var (Name, Description) in docComment.GetParams())
+        {
+            if (!constructorParameterNames.Contains(Name))
+            {
+                continue;
+            }
+
+            ParseParameterDescription(Description, out var aliases, out var description);
+            parameterDescriptions ??= new(StringComparer.Ordinal);
+            parameterDescriptions[Name] = new ParameterDescription(aliases, description);
+        }
+
+        return parameterDescriptions;
+    }
+
+    CommandParameter BuildEffectiveParseParameter(CommandParameter runtimeParameter, ref ParameterBuildState buildState)
+    {
+        var argumentIndex = -1;
+        if (runtimeParameter.IsParsable)
+        {
+            if (runtimeParameter.IsArgument)
+            {
+                argumentIndex = buildState.ArgumentIndexCounter++;
+            }
+            else
+            {
+                buildState.ParsableIndex++;
+            }
+        }
+
+        return argumentIndex == runtimeParameter.ArgumentIndex
+            ? runtimeParameter
+            : runtimeParameter with { ArgumentIndex = argumentIndex };
+    }
+
+    void AdvanceEffectiveParseState(CommandParameter runtimeParameter, ref ParameterBuildState buildState)
+    {
+        if (!runtimeParameter.IsParsable) return;
+
+        if (runtimeParameter.IsArgument)
+        {
+            buildState.ArgumentIndexCounter++;
+        }
+        else
+        {
+            buildState.ParsableIndex++;
+        }
+    }
+
+    bool TryGetAsParametersConstructor(IParameterSymbol runtimeParameter, out INamedTypeSymbol targetType, out IMethodSymbol constructor)
+    {
+        targetType = null!;
+        constructor = null!;
+
+        if (runtimeParameter.Type is not INamedTypeSymbol namedType || !namedType.IsRecord || namedType.TypeKind != TypeKind.Class)
+        {
+            context.ReportDiagnostic(
+                DiagnosticDescriptors.AsParametersTargetMustBeRecordClass,
+                GetParameterLocation(runtimeParameter),
+                runtimeParameter.Name,
+                runtimeParameter.Type.ToDisplayString());
+            return false;
+        }
+
+        var publicConstructors = namedType.InstanceConstructors
+            .Where(x => x.DeclaredAccessibility == Accessibility.Public)
+            .ToArray();
+
+        if (publicConstructors.Length != 1)
+        {
+            context.ReportDiagnostic(
+                DiagnosticDescriptors.AsParametersTargetMustHaveSinglePublicConstructor,
+                GetParameterLocation(runtimeParameter),
+                namedType.ToDisplayString());
+            return false;
+        }
+
+        targetType = namedType;
+        constructor = publicConstructors[0];
+        return true;
+    }
+
+    CommandParameter BuildCommandParameter(IParameterSymbol parameterSymbol, ParameterDescription parameterDescription, ref ParameterBuildState buildState)
+    {
+        var attributes = parameterSymbol.GetAttributes();
+
+        var customParserType = attributes.FirstOrDefault(x => x.AttributeClass?.AllInterfaces.Any(y => y.Name == "IArgumentParser") ?? false);
+        var hasFromServices = attributes.Any(x => x.AttributeClass?.Name == "FromServicesAttribute");
+        var hasFromKeyedServices = attributes.Any(x => x.AttributeClass?.Name == "FromKeyedServicesAttribute");
+        var hasArgument = attributes.Any(x => x.AttributeClass?.Name == "ArgumentAttribute");
+        var hasValidation = attributes.Any(x => x.AttributeClass?.GetBaseTypes().Any(y => y.Name == "ValidationAttribute") ?? false);
+        var isCancellationToken = SymbolEqualityComparer.Default.Equals(parameterSymbol.Type, wellKnownTypes.CancellationToken);
+        var isConsoleAppContext = parameterSymbol.Type.Name == "ConsoleAppContext";
+        var isHiddenParameter = attributes.Any(x => x.AttributeClass?.Name == "HiddenAttribute");
+        var isDefaultValueHidden = attributes.Any(x => x.AttributeClass?.Name == "HideDefaultValueAttribute");
+
+        object? keyedServiceKey = null;
+        if (hasFromKeyedServices)
+        {
+            var attr = attributes.First(x => x.AttributeClass?.Name == "FromKeyedServicesAttribute");
+            if (attr.ConstructorArguments.Length != 0)
+            {
+                keyedServiceKey = attr.ConstructorArguments[0].Value;
+            }
+        }
+
+        var argumentIndex = -1;
+        if (!(hasFromServices || hasFromKeyedServices || isCancellationToken || isConsoleAppContext))
+        {
+            if (hasArgument)
+            {
+                argumentIndex = buildState.ArgumentIndexCounter++;
+            }
+            else
+            {
+                buildState.ParsableIndex++;
+            }
+        }
+
+        var isNullableReference = parameterSymbol.NullableAnnotation == NullableAnnotation.Annotated
+            && parameterSymbol.Type.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
+
+        return new CommandParameter
+        {
+            Name = generatorOptions.DisableNamingConversion ? parameterSymbol.Name : NameConverter.ToKebabCase(parameterSymbol.Name),
+            WellKnownTypes = wellKnownTypes,
+            OriginalParameterName = parameterSymbol.Name,
+            IsNullableReference = isNullableReference,
+            IsConsoleAppContext = isConsoleAppContext,
+            IsParams = parameterSymbol.IsParams,
+            IsHidden = isHiddenParameter,
+            IsDefaultValueHidden = isDefaultValueHidden,
+            Location = GetParameterLocation(parameterSymbol),
+            Type = new EquatableTypeSymbol(parameterSymbol.Type),
+            HasDefaultValue = parameterSymbol.HasExplicitDefaultValue,
+            DefaultValue = parameterSymbol.HasExplicitDefaultValue ? parameterSymbol.ExplicitDefaultValue : null,
+            CustomParserType = customParserType?.AttributeClass?.ToEquatable(),
+            IsCancellationToken = isCancellationToken,
+            IsFromServices = hasFromServices,
+            IsFromKeyedServices = hasFromKeyedServices,
+            KeyedServiceKey = keyedServiceKey,
+            HasValidation = hasValidation,
+            Aliases = parameterDescription.Aliases,
+            ArgumentIndex = argumentIndex,
+            Description = parameterDescription.Description
+        };
+    }
+
+    static ParameterDescription TryGetParameterDescription(IReadOnlyDictionary<string, ParameterDescription>? map, string parameterName)
+    {
+        if (map != null && map.TryGetValue(parameterName, out var result))
+        {
+            return result;
+        }
+        return ParameterDescription.Empty;
+    }
+
+    static bool HasAttribute(IParameterSymbol parameterSymbol, string attributeName)
+    {
+        return parameterSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == attributeName);
+    }
+
+    Location GetParameterLocation(IParameterSymbol parameterSymbol)
+    {
+        if (parameterSymbol.DeclaringSyntaxReferences.Length != 0)
+        {
+            return parameterSymbol.DeclaringSyntaxReferences[0].GetSyntax().GetLocation();
+        }
+        if (parameterSymbol.Locations.Length != 0)
+        {
+            return parameterSymbol.Locations[0];
+        }
+        return node.GetLocation();
     }
 
     void ParseParameterDescription(string originalDescription, out string[] aliases, out string description)
