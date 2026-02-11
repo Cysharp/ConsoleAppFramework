@@ -236,6 +236,34 @@ Options:
     }
 
     [Test]
+    public async Task SummaryMultiline()
+    {
+        await verifier.Execute(code: """
+ConsoleApp.Log = x => Console.WriteLine(x);
+ConsoleApp.Run(args, Root);
+
+/// <summary>
+/// Processes an input file.
+/// Writes processed output to standard output.
+/// </summary>
+void Root(string name)
+{
+}
+""",
+            args: "--help",
+            expected: """
+Usage: [options...] [-h|--help] [--version]
+
+Processes an input file.
+Writes processed output to standard output.
+
+Options:
+  --name <string>    [Required]
+
+""");
+    }
+
+    [Test]
     public async Task ArgumentOnly()
     {
         await verifier.Execute(code: """
