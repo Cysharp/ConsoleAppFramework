@@ -66,8 +66,8 @@ ConsoleApp.Run(args, (int x, int y) => { });
 Usage: [options...] [-h|--help] [--version]
 
 Options:
-  --x <int>     [Required]
-  --y <int>     [Required]
+  --x <int>    [Required]
+  --y <int>    [Required]
 
 """);
     }
@@ -100,8 +100,8 @@ app.Run(args);
 Usage: [options...] [-h|--help] [--version]
 
 Options:
-  --x <int>     [Required]
-  --y <int>     [Required]
+  --x <int>    [Required]
+  --y <int>    [Required]
 
 """);
     }
@@ -144,8 +144,8 @@ app.Run(args);
 Usage: [command] [options...] [-h|--help] [--version]
 
 Options:
-  --x <int>     [Required]
-  --y <int>     [Required]
+  --x <int>    [Required]
+  --y <int>    [Required]
 
 Commands:
   a
@@ -189,8 +189,8 @@ app.Run(args);
 Usage: a b c [options...] [-h|--help] [--version]
 
 Options:
-  --x <int>     [Required]
-  --y <int>     [Required]
+  --x <int>    [Required]
+  --y <int>    [Required]
 
 """);
     }
@@ -288,8 +288,8 @@ ConsoleApp.Run(args, (int? x = null, string? y = null) => { });
 Usage: [options...] [-h|--help] [--version]
 
 Options:
-  --x <int?>        [Default: null]
-  --y <string?>     [Default: null]
+  --x <int?>       [Default: null]
+  --y <string?>    [Default: null]
 
 """);
     }
@@ -311,8 +311,8 @@ enum Fruit
 Usage: [options...] [-h|--help] [--version]
 
 Options:
-  --my-fruit <Fruit>        [Default: Apple]
-  --more-fruit <Fruit?>     [Default: null]
+  --my-fruit <Fruit>       [Default: Apple]
+  --more-fruit <Fruit?>    [Default: null]
 
 """);
     }
@@ -406,8 +406,8 @@ app.Run(args);
 Usage: a [options...] [-h|--help] [--version]
 
 Options:
-  --x <int>             [Required]
-  --y <int>             [Required]
+  --x <int>            [Required]
+  --y <int>            [Required]
   --parameter <int>    param global [Default: 1000]
   --dry-run            run dry dry
   --p2, --p3 <int>     param 2 [Required]
