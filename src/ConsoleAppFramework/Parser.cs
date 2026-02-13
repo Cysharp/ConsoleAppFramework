@@ -635,6 +635,27 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             }
         }
 
+        var optionIdentifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var parameter in command.EffectiveParseParameters)
+        {
+            if (!parameter.IsParsable || parameter.IsArgument) continue;
+
+            if (!optionIdentifiers.Add("--" + parameter.Name))
+            {
+                context.ReportDiagnostic(DiagnosticDescriptors.DuplicateOptionNameOrAlias, parameter.Location, "--" + parameter.Name);
+                hasDiagnostic = true;
+            }
+
+            foreach (var alias in parameter.Aliases)
+            {
+                if (!optionIdentifiers.Add(alias))
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.DuplicateOptionNameOrAlias, parameter.Location, alias);
+                    hasDiagnostic = true;
+                }
+            }
+        }
+
         if (hasDiagnostic) return null;
 
         return command;

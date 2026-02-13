@@ -151,4 +151,9 @@ internal static class DiagnosticDescriptors
         22,
         "[AsParameters] does not support params constructor parameters.",
         "Parameter '{0}' in [AsParameters] target '{1}' cannot use the 'params' modifier.");
+
+    public static DiagnosticDescriptor DuplicateOptionNameOrAlias { get; } = Create(
+        23,
+        "Option name or alias is duplicated.",
+        "Option name or alias '{0}' is duplicated.");
 }

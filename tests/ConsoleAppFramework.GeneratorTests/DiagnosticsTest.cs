@@ -585,4 +585,25 @@ unsafe
 public record class Options([Range(1,10)] int X);
 """, "[Range(1,10)] int X");
     }
+
+    [Test]
+    public async Task DuplicateOptionName_AsParametersAndRegular()
+    {
+        await verifier.Verify(23, """
+ConsoleApp.Run(args, ([AsParameters] Options options, string name) => { });
+
+public record class Options(string Name);
+""", "string name");
+    }
+
+    [Test]
+    public async Task DuplicateAlias_AsParametersAndRegular()
+    {
+        await verifier.Verify(23, """
+ConsoleApp.Run(args, ([AsParameters] Options options, string value) => { });
+
+/// <param name="Name">--value, duplicate alias.</param>
+public record class Options(string Name);
+""", "string value");
+    }
 }
