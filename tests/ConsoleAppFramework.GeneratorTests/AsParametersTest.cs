@@ -320,4 +320,102 @@ public record class Options(string Name, int Age);
         await Assert.That(stdout).Contains("Age from doc.");
         await Assert.That(exitCode).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task ConstructorFromKeyedServices()
+    {
+        await verifier.Execute("""
+var di = new MiniDI();
+di.Register(typeof(MyService), "svc-key", new MyService("svc"));
+ConsoleApp.ServiceProvider = di;
+
+ConsoleApp.Run(args, ([AsParameters] Options options) =>
+{
+    Console.Write($"{options.Service.Name}:{options.Count}");
+});
+
+public record class Options(
+    [FromKeyedServices("svc-key")] MyService Service,
+    int Count);
+
+public class MyService(string name)
+{
+    public string Name => name;
+}
+
+namespace Microsoft.Extensions.DependencyInjection
+{
+    public interface IKeyedServiceProvider : IServiceProvider
+    {
+        object? GetKeyedService(Type serviceType, object? serviceKey);
+    }
+}
+
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+public sealed class FromKeyedServicesAttribute(object? key) : Attribute
+{
+    public object? Key { get; } = key;
+}
+
+class MiniDI : Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider
+{
+    System.Collections.Generic.Dictionary<(Type Type, object? Key), object> dict = new();
+
+    public void Register(Type type, object? key, object instance)
+    {
+        dict[(type, key)] = instance;
+    }
+
+    public object? GetService(Type serviceType)
+    {
+        return null;
+    }
+
+    public object? GetKeyedService(Type serviceType, object? serviceKey)
+    {
+        return dict.TryGetValue((serviceType, serviceKey), out var instance) ? instance : null;
+    }
+}
+""", "--count 9", "svc:9");
+    }
+
+    [Test]
+    public async Task ConstructorHiddenAndHideDefaultValue()
+    {
+        var (stdout, exitCode) = verifier.Error("""
+ConsoleApp.Log = x => Console.WriteLine(x);
+ConsoleApp.Run(args, ([AsParameters] Options options) => { });
+
+public record class Options(
+    [Hidden] int Secret,
+    [HideDefaultValue] int Level = 10);
+""", "--help");
+
+        await Assert.That(stdout.Contains("--secret")).IsFalse();
+        await Assert.That(stdout).Contains("--level <int>");
+        await Assert.That(stdout.Contains("[Default: 10]")).IsFalse();
+        await Assert.That(exitCode).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ConstructorCustomParser()
+    {
+        await verifier.Execute("""
+ConsoleApp.Run(args, ([AsParameters] Options options) =>
+{
+    Console.Write(options.Value);
+});
+
+public record class Options([HexIntParser] int Value);
+
+[AttributeUsage(AttributeTargets.Parameter)]
+public class HexIntParserAttribute : Attribute, IArgumentParser<int>
+{
+    public static bool TryParse(ReadOnlySpan<char> s, out int result)
+    {
+        return int.TryParse(s, global::System.Globalization.NumberStyles.HexNumber, null, out result);
+    }
+}
+""", "--value ff", "255");
+    }
 }

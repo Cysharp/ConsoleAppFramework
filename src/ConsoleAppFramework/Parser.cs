@@ -729,7 +729,13 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 return false;
             }
 
-            var constructorParameterDescriptions = BuildAsParametersConstructorParameterDescriptions(constructor);
+            if (!TryBuildAsParametersConstructorParameterDescriptions(constructor, out var constructorParameterDescriptions))
+            {
+                runtimeParameters = [];
+                effectiveParseParameters = [];
+                asParametersExpansionBindings = [];
+                return false;
+            }
             var parseIndexes = new int[constructor.Parameters.Length];
             var parseIndex = 0;
             foreach (var constructorParameter in constructor.Parameters)
@@ -806,18 +812,19 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         return true;
     }
 
-    IReadOnlyDictionary<string, ParameterDescription>? BuildAsParametersConstructorParameterDescriptions(IMethodSymbol constructor)
+    bool TryBuildAsParametersConstructorParameterDescriptions(IMethodSymbol constructor, out IReadOnlyDictionary<string, ParameterDescription>? parameterDescriptions)
     {
+        parameterDescriptions = null;
         if (constructor.DeclaringSyntaxReferences.Length == 0)
         {
-            return null;
+            return true;
         }
 
         var constructorSyntax = constructor.DeclaringSyntaxReferences[0].GetSyntax();
         var docComment = constructorSyntax.GetDocumentationCommentTriviaSyntax();
         if (docComment == null)
         {
-            return null;
+            return true;
         }
 
         var constructorParameterNames = new HashSet<string>(StringComparer.Ordinal);
@@ -826,20 +833,22 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             constructorParameterNames.Add(constructorParameter.Name);
         }
 
-        Dictionary<string, ParameterDescription>? parameterDescriptions = null;
+        Dictionary<string, ParameterDescription>? descriptionMap = null;
         foreach (var (Name, Description) in docComment.GetParams())
         {
             if (!constructorParameterNames.Contains(Name))
             {
-                continue;
+                context.ReportDiagnostic(DiagnosticDescriptors.DocCommentParameterNameNotMatched, constructorSyntax.GetLocation(), Name);
+                return false;
             }
 
             ParseParameterDescription(Description, out var aliases, out var description);
-            parameterDescriptions ??= new(StringComparer.Ordinal);
-            parameterDescriptions[Name] = new ParameterDescription(aliases, description);
+            descriptionMap ??= new(StringComparer.Ordinal);
+            descriptionMap[Name] = new ParameterDescription(aliases, description);
         }
 
-        return parameterDescriptions;
+        parameterDescriptions = descriptionMap;
+        return true;
     }
 
     CommandParameter BuildEffectiveParseParameter(CommandParameter runtimeParameter, ref ParameterBuildState buildState)

@@ -456,6 +456,17 @@ public class Foo
     }
 
     [Test]
+    public async Task AsParametersDocCommentName()
+    {
+        await verifier.Verify(15, """
+ConsoleApp.Run(args, ([AsParameters] Options options) => { });
+
+/// <param name="nope">-n, does not exist.</param>
+public record class Options(string Name);
+""", "public record class Options(string Name);");
+    }
+
+    [Test]
     public async Task AsyncVoid()
     {
         await verifier.Verify(16, """
@@ -559,4 +570,19 @@ public record class Options(params string[] Values);
 """, "params string[] Values");
     }
 
+    [Test]
+    public async Task AsParametersFunctionPointerValidation()
+    {
+        await verifier.Verify(5, """
+unsafe
+{
+    ConsoleApp.Run(args, &Run2);
+    static void Run2([AsParameters] Options options)
+    {
+    }
+}
+
+public record class Options([Range(1,10)] int X);
+""", "[Range(1,10)] int X");
+    }
 }
