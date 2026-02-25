@@ -428,7 +428,7 @@ app.Run(args);
 
 You can also combine this with `Add` or `Add<T>` to add more commands.
 
-### Alias command 
+### Alias command
 
 Similar to option aliases, commands also support aliases. In the `Add` method, separating `commandName` or `[Command]` with `|` defines them as aliases.
 
@@ -598,7 +598,7 @@ The method parameter names and types determine how to parse and bind values from
 ```csharp
 ConsoleApp.Run(args, (
     [Argument]DateTime dateTime,  // Argument
-    [Argument]Guid guidvalue,     // 
+    [Argument]Guid guidvalue,     //
     int intVar,                   // required
     bool boolFlag,                // flag
     MyEnum enumValue,             // enum
@@ -608,7 +608,7 @@ ConsoleApp.Run(args, (
     double? nullableValue = null, // nullable
     params string[] paramsArray   // params
     ) => { });
-```    
+```
 
 When using `ConsoleApp.Run`, you can check the syntax of the command line in the tooltip to see how it is generated.
 
@@ -647,6 +647,152 @@ If none of the above cases apply, `JsonSerializer.Deserialize<T>` is used to per
 If you want to change the deserialization options, you can set `JsonSerializerOptions` to `ConsoleApp.JsonSerializerOptions`.
 
 > NOTE: If they are not set when NativeAOT is used, a runtime exception may occur. If they are included in the parsing process, be sure to set source generated options.
+
+### Class-Based Parameter Binding with [Bind]
+
+When commands have many parameters, defining them inline becomes unwieldy. The `[Bind]` attribute enables class-based parameter binding, where a class or record's members become command options.
+
+```csharp
+// Both classes and records are supported
+public record ServerConfig(
+    string Host = "localhost",      // Optional with default
+    int Port = 8080,                // Optional with default
+    bool Verbose = false,           // Bool options are flags
+    string[] AllowedOrigins = null  // Arrays use comma-separated values
+);
+
+// All parameters become CLI options: --host, --port, --verbose, --allowed-origins
+ConsoleApp.Run(args, ([Bind] ServerConfig config) =>
+{
+    Console.WriteLine($"Starting server on {config.Host}:{config.Port}");
+});
+// Usage: app --host 0.0.0.0 --port 3000 --verbose --allowed-origins http://a.com,http://b.com
+```
+
+**Why use [Bind]?** It provides a cleaner way to organize commands with many parameters, enables reuse of parameter groups across commands, and supports primary constructors and records for immutable configuration.
+
+Supported types include are the same defined in the [Parse and Value Binding](#parse-and-value-binding) section.
+
+#### Required Parameters
+
+Use the `required` modifier or constructor parameters without defaults to mark options as required:
+
+```csharp
+public record DeployConfig(
+    string Environment,                     // Required (no default)
+    int Replicas = 1                        // Optional
+)
+{
+    public required string ImageTag { get; init; }  // Required via 'required' modifier
+}
+```
+
+#### Positional Arguments
+
+Use `[Argument]` attribute or the `argument,` XML doc tag for positional (non-named) parameters:
+
+```csharp
+public record BuildConfig(
+    [property: Argument] string ProjectPath,  // [0] positional argument
+    string Configuration = "Release"
+);
+
+// Or using XML doc:
+/// <summary>Copy options</summary>
+/// <param name="source">argument, The source file</param>
+/// <param name="destination">argument, The destination file</param>
+public record CopyConfig(string source, string destination);
+
+ConsoleApp.Run(args, ([Bind] CopyConfig config) => { });
+// Usage: app ./source.txt ./dest.txt
+```
+
+#### Aliases and Descriptions
+
+Use XML doc comments for aliases and descriptions, same as regular parameters:
+
+```csharp
+public record ServerConfig
+{
+    /// <summary>-h|--host, Server hostname to bind.</summary>
+    public string Host { get; init; } = "localhost";
+
+    /// <summary>-p, Port number.</summary>
+    public int Port { get; init; } = 8080;
+}
+```
+
+#### Mixed Constructor and Property Binding
+
+Combine constructor parameters with settable properties for flexible initialization:
+
+```csharp
+public record MixedConfig(
+    string Name,                              // Required constructor param
+    int Count = 10                            // Optional constructor param
+)
+{
+    public bool Verbose { get; set; }         // Optional property (flag)
+    public required string OutputPath { get; init; }  // Required property
+}
+
+ConsoleApp.Run(args, ([Bind] MixedConfig config) => { });
+// Usage: app --name myapp --output-path ./out --verbose --count 5
+```
+
+#### Multiple [Bind] Parameters with Prefixes
+
+Use multiple `[Bind]` parameters to compose configuration from separate types. Use `[Bind("prefix")]` to namespace options and avoid conflicts:
+
+```csharp
+public record SourceConfig(string Host = "localhost", int Port = 5432);
+public record TargetConfig(string Host = "localhost", int Port = 5432);
+
+ConsoleApp.Run(args, (
+    [Bind("source")] SourceConfig source,
+    [Bind("target")] TargetConfig target
+) =>
+{
+    Console.WriteLine($"Migrating from {source.Host}:{source.Port} to {target.Host}:{target.Port}");
+});
+// Usage: app --source-host db1.local --source-port 5432 --target-host db2.local --target-port 5433
+```
+
+The prefix is prepended to each option name with a hyphen separator.
+
+#### Combining [Bind] with Typed Global Options
+
+When your `[Bind]` type inherits from the global options type registered via `ConfigureGlobalOptions<T>()`, the inherited properties are automatically populated from the parsed global options. This enables shared configuration across commands without repetition.
+
+```csharp
+public record GlobalOptions
+{
+    /// <summary>-v|--verbose, Enable verbose output.</summary>
+    public bool Verbose { get; init; }
+}
+
+// Inherits Verbose from GlobalOptions
+public record DeployConfig : GlobalOptions
+{
+    public string Environment { get; init; } = "staging";
+    public int Replicas { get; init; } = 1;
+}
+
+var app = ConsoleApp.Create();
+app.ConfigureGlobalOptions<GlobalOptions>();  // Register global options
+
+app.Add("deploy", ([Bind] DeployConfig config) =>
+{
+    // config.Verbose comes from global options (parsed before command routing)
+    // config.Environment and config.Replicas are command-specific
+    if (config.Verbose) Console.WriteLine($"Deploying to {config.Environment}...");
+});
+
+app.Run(args);
+// Usage: app --verbose deploy --environment production --replicas 3
+```
+
+The global options can appear before or after the command name, and the `[Bind]` type receives both the inherited global values and command-specific options.
 
 ### GlobalOptions
 
@@ -734,6 +880,36 @@ internal class Commands(GlobalOptions globalOptions)
     }
 }
 ```
+
+### Typed Global Options
+
+For simpler scenarios, `ConfigureGlobalOptions<T>` provides a type-based approach that avoids manual builder wiring. Define your options as any class or record with a parameterless constructor and the framework handles parsing automatically.
+
+```csharp
+public record GlobalOptions
+{
+    /// <summary>-v|--verbose, Enable verbose output.</summary>
+    public bool Verbose { get; init; }
+
+    /// <summary>Log output path.</summary>
+    public string LogPath { get; init; } = "app.log";
+}
+
+var app = ConsoleApp.Create();
+app.ConfigureGlobalOptions<GlobalOptions>();  // Register the typed global options
+app.Add<Commands>();
+app.Run(args);
+
+// Access via constructor injection
+public class Commands(GlobalOptions options)
+{
+    public void Run() => Console.WriteLine($"Verbose: {options.Verbose}, Log: {options.LogPath}");
+}
+```
+
+Typed global options use the same XML doc comment conventions as regular parameters for aliases and descriptions. Global options are parsed before command routing, allowing them to appear anywhere on the command line.
+
+> NOTE: `ConfigureGlobalOptions` can only be called once. You cannot mix typed `ConfigureGlobalOptions<T>()` with the builder-based `ConfigureGlobalOptions((ref builder) => ...)` approach—they are mutually exclusive alternatives.
 
 ### Custom Value Converter
 
@@ -871,7 +1047,7 @@ await ConsoleApp.RunAsync(args, async Task<int> (string url, CancellationToken c
 });
 ```
 
-If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code. Also, in that case, output `Exception.ToString` to `ConsoleApp.LogError` (the default is `Console.WriteLine`). If you want to modify this code, please create a custom filter. For more details, refer to the [Filter](#filtermiddleware-pipline--consoleappcontext) section. 
+If the method throws an unhandled exception, ConsoleAppFramework always set `1` to the exit code. Also, in that case, output `Exception.ToString` to `ConsoleApp.LogError` (the default is `Console.WriteLine`). If you want to modify this code, please create a custom filter. For more details, refer to the [Filter](#filtermiddleware-pipline--consoleappcontext) section.
 
 Attribute based parameters validation
 ---

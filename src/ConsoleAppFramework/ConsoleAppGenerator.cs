@@ -293,8 +293,14 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 sb.AppendLine(d);
             }
 
-            var emitter = new Emitter(dllReference);
+            var emitter = new Emitter(dllReference, collectBuilderContext.TypedGlobalOptions);
             emitter.EmitBuilder(sb, commandIds, hasRun, hasRunAsync);
+
+            // Emit typed global options parser if configured
+            if (collectBuilderContext.TypedGlobalOptions != null)
+            {
+                emitter.EmitTypedGlobalOptionsParsing(sb, collectBuilderContext.TypedGlobalOptions);
+            }
         }
         sourceProductionContext.AddSource("ConsoleApp.Builder.g.cs", sb.ToString().ReplaceLineEndings());
 
@@ -317,7 +323,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     .ToArray();
             }
 
-            var emitter = new Emitter(dllReference);
+            var emitter = new Emitter(dllReference, collectBuilderContext.TypedGlobalOptions);
             emitter.EmitHelp(help, commandIds!);
 
             if (dllReference.HasCliSchema)
@@ -356,7 +362,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
             var sb2 = sb.Clone();
             sb2.AppendLine("using Microsoft.Extensions.Hosting;");
             var emitter = new Emitter(dllReference);
-            emitter.EmitAsConsoleAppBuilder(sb2, dllReference);
+            emitter.EmitAsConsoleAppBuilder(sb2);
             sourceProductionContext.AddSource("ConsoleAppHostBuilderExtensions.g.cs", sb2.ToString().ReplaceLineEndings());
         }
 
@@ -400,6 +406,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         ConsoleAppFrameworkGeneratorOptions generatorOptions { get; }
 
         public GlobalOptionInfo[] GlobalOptions { get; } = [];
+        public TypedGlobalOptionsInfo? TypedGlobalOptions { get; private set; }
 
         public CollectBuilderContext(ConsoleAppFrameworkGeneratorOptions generatorOptions, ImmutableArray<(BuilderContext, string?, SymbolKind?)> contexts, CancellationToken cancellationToken)
         {
@@ -431,6 +438,12 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 if (x.Name == "Add" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
                 {
                     return "Add<T>";
+                }
+
+                // Distinguish between generic and non-generic ConfigureGlobalOptions
+                if (x.Name == "ConfigureGlobalOptions" && ((x.Node.Expression as MemberAccessExpressionSyntax)?.Name.IsKind(SyntaxKind.GenericName) ?? false))
+                {
+                    return "ConfigureGlobalOptions<T>";
                 }
 
                 return x.Name;
@@ -465,13 +478,67 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 return;
             }
 
+            // Parse global options FIRST so we can pass the type to command parsers
+            var configureGlobalOptionsGroup = methodGroup["ConfigureGlobalOptions"];
+            var configureTypedGlobalOptionsGroup = methodGroup["ConfigureGlobalOptions<T>"];
+            var totalGlobalOptionsCount = configureGlobalOptionsGroup.Count() + configureTypedGlobalOptionsGroup.Count();
+
+            if (totalGlobalOptionsCount >= 2)
+            {
+                // Find the last call (either generic or non-generic) to report the error
+                InvocationExpressionSyntax lastNode;
+                if (configureTypedGlobalOptionsGroup.Any())
+                {
+                    lastNode = configureTypedGlobalOptionsGroup.Last().Item1.Node;
+                }
+                else
+                {
+                    lastNode = configureGlobalOptionsGroup.Last().Item1.Node;
+                }
+
+                DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateConfigureGlobalOptions, lastNode.Expression.GetLocation());
+            }
+
+            if (configureGlobalOptionsGroup.Count() == 1 && configureTypedGlobalOptionsGroup.Count() == 0)
+            {
+                var configureGlobalOptions = configureGlobalOptionsGroup.First();
+
+                var node = configureGlobalOptions.Item1.Node;
+                var model = configureGlobalOptions.Item1.Model;
+                var wellKnownTypes = new WellKnownTypes(model.Compilation);
+
+                var parser = new Parser(generatorOptions, DiagnosticReporter, node, model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                GlobalOptions = parser.ParseGlobalOptions();
+            }
+
+            // Handle typed ConfigureGlobalOptions<T>() - parse early to get the type for [Bind] inheritance
+            ITypeSymbol? knownGlobalOptionsType = null;
+            if (configureTypedGlobalOptionsGroup.Count() == 1 && configureGlobalOptionsGroup.Count() == 0)
+            {
+                var configureTypedGlobalOptions = configureTypedGlobalOptionsGroup.First();
+
+                var node = configureTypedGlobalOptions.Item1.Node;
+                var model = configureTypedGlobalOptions.Item1.Model;
+                var wellKnownTypes = new WellKnownTypes(model.Compilation);
+
+                var parser = new Parser(generatorOptions, DiagnosticReporter, node, model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                TypedGlobalOptions = parser.ParseTypedGlobalOptions();
+                knownGlobalOptionsType = TypedGlobalOptions?.Type.TypeSymbol;
+            }
+
+            if (DiagnosticReporter.HasDiagnostics)
+            {
+                return;
+            }
+
+            // Parse commands AFTER global options so we can pass the known type for [Bind] inheritance
             var names = new HashSet<string>();
-            var commands1 = methodGroup["Add"]
+            var delegateCommands = methodGroup["Add"]
                 .Select(x => x.Item1)
                 .Select(x =>
                 {
                     var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-                    var parser = new Parser(generatorOptions, DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, globalFilters);
+                    var parser = new Parser(generatorOptions, DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.MakeCustomDelegateWhenHasDefaultValueOrTooLarge, globalFilters, knownGlobalOptionsType);
                     var command = parser.ParseAndValidateForBuilderDelegateRegistration();
 
                     // validation command name duplicate
@@ -486,12 +553,12 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 })
                 .ToArray(); // evaluate first.
 
-            var commands2 = methodGroup["Add<T>"]
+            var classCommands = methodGroup["Add<T>"]
                 .Select(x => x.Item1)
                 .SelectMany(x =>
                 {
                     var wellKnownTypes = new WellKnownTypes(x.Model.Compilation);
-                    var parser = new Parser(generatorOptions, DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters);
+                    var parser = new Parser(generatorOptions, DiagnosticReporter, x.Node, x.Model, wellKnownTypes, DelegateBuildType.None, globalFilters, knownGlobalOptionsType);
                     var commands = parser.ParseAndValidateForBuilderClassRegistration();
 
                     // validation command name duplicate
@@ -507,33 +574,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     return commands;
                 });
 
-            var configureGlobalOptionsGroup = methodGroup["ConfigureGlobalOptions"];
-            if (configureGlobalOptionsGroup.Count() >= 2)
-            {
-                var node = configureGlobalOptionsGroup.Last().Item1.Node;
-
-                DiagnosticReporter.ReportDiagnostic(DiagnosticDescriptors.DuplicateConfigureGlobalOptions, node.Expression.GetLocation());
-            }
-
-            if (configureGlobalOptionsGroup.Count() == 1)
-            {
-                var configureGlobalOptions = configureGlobalOptionsGroup.First();
-
-                var node = configureGlobalOptions.Item1.Node;
-                var model = configureGlobalOptions.Item1.Model;
-                var wellKnownTypes = new WellKnownTypes(model.Compilation);
-
-                var parser = new Parser(generatorOptions, DiagnosticReporter, node, model, wellKnownTypes, DelegateBuildType.None, globalFilters);
-                GlobalOptions = parser.ParseGlobalOptions();
-            }
-
-            if (DiagnosticReporter.HasDiagnostics)
-            {
-                return;
-            }
-
             // set properties
-            this.Commands = commands1.Concat(commands2!).Where(x => x != null).ToArray()!;
+            this.Commands = delegateCommands.Concat(classCommands!).Where(x => x != null).ToArray()!;
             this.HasRun = methodGroup["Run"].Any();
             this.HasRunAsync = methodGroup["RunAsync"].Any();
         }

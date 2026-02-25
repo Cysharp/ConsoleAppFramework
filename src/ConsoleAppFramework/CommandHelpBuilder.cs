@@ -10,14 +10,14 @@ public static class CommandHelpBuilder
         return BuildHelpMessageCore(command, showCommandName: false, showCommand: false);
     }
 
-    public static string BuildRootHelpMessage(Command[] commands)
+    public static string BuildRootHelpMessage(Command[] commands, TypedGlobalOptionsInfo? typedGlobalOptions = null)
     {
         var sb = new StringBuilder();
 
         var rootCommand = commands.FirstOrDefault(x => x.IsRootCommand);
         var withoutRoot = commands.Where(x => !x.IsRootCommand).ToArray();
 
-        if (rootCommand != null && withoutRoot.Length == 0)
+        if (rootCommand != null && withoutRoot.Length == 0 && typedGlobalOptions == null)
         {
             return BuildRootHelpMessage(commands[0]);
         }
@@ -32,6 +32,12 @@ public static class CommandHelpBuilder
             sb.AppendLine();
         }
 
+        // Add Global Options section if typed global options are configured
+        if (typedGlobalOptions != null)
+        {
+            sb.AppendLine(BuildTypedGlobalOptionsMessage(typedGlobalOptions));
+        }
+
         if (withoutRoot.Length == 0) return sb.ToString();
 
         var helpDefinitions = withoutRoot.OrderBy(x => x.Name).ToArray();
@@ -39,6 +45,84 @@ public static class CommandHelpBuilder
         var list = BuildMethodListMessage(helpDefinitions, out _);
         sb.Append(list);
 
+        return sb.ToString();
+    }
+
+    public static string BuildTypedGlobalOptionsMessage(TypedGlobalOptionsInfo typedGlobalOptions)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Global Options:");
+
+        var optionsFormatted = typedGlobalOptions.ObjectBinding.Properties
+            .Where(p => p.ParentPath.Length == 0 && !p.IsArgument)
+            .Select(p =>
+            {
+                // Build option name with aliases (e.g., "-v, --verbose")
+                var allOptions = new List<string>();
+                foreach (var alias in p.Aliases)
+                {
+                    allOptions.Add(alias);
+                }
+                // Only add CliName if not already in aliases
+                if (!p.Aliases.Contains(p.CliName))
+                {
+                    allOptions.Add(p.CliName);
+                }
+                var optionName = string.Join(", ", allOptions);
+
+                var isFlag = p.IsFlag;
+                var typeName = GetShortTypeName(p.Type.TypeSymbol);
+                var formatted = isFlag ? optionName : $"{optionName} <{typeName}>";
+
+                string? defaultValue = null;
+                if (p.HasDefaultValue && p.DefaultValue != null)
+                {
+                    defaultValue = FormatDefaultValueForHelp(p.DefaultValue);
+                    if (isFlag && p.DefaultValue is false)
+                    {
+                        defaultValue = null;
+                    }
+                }
+
+                return (Option: formatted, Description: p.Description, IsFlag: isFlag, DefaultValue: defaultValue);
+            })
+            .ToArray();
+
+        if (optionsFormatted.Length == 0) return "";
+
+        var maxWidth = optionsFormatted.Max(x => x.Option.Length);
+
+        var first = true;
+        foreach (var opt in optionsFormatted)
+        {
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                sb.AppendLine();
+            }
+
+            var padding = maxWidth - opt.Option.Length;
+            sb.Append("  ");
+            sb.Append(opt.Option);
+
+            for (var i = 0; i < padding; i++)
+            {
+                sb.Append(' ');
+            }
+
+            sb.Append("    ");
+            sb.Append(opt.Description);
+
+            if (!opt.IsFlag && opt.DefaultValue != null)
+            {
+                sb.Append($" [default: {opt.DefaultValue}]");
+            }
+        }
+
+        sb.AppendLine();
         return sb.ToString();
     }
 
@@ -267,6 +351,82 @@ public static class CommandHelpBuilder
 
         foreach (var item in descriptor.Parameters)
         {
+            // Handle [Bind] parameters by expanding their properties
+            if (item.IsBound && item.ObjectBinding != null)
+            {
+                // Calculate base argument index for this [Bind] parameter
+                // (after any preceding regular [Argument] params)
+                var baseArgIndex = descriptor.Parameters
+                    .TakeWhile(p => p != item)
+                    .Where(p => p.IsArgument)
+                    .Count();
+
+                foreach (var prop in item.ObjectBinding.Properties)
+                {
+                    // Skip properties inherited from global options (they appear in Global Options section)
+                    if (prop.IsFromGlobalOptions) continue;
+
+                    var propOptions = new List<string>();
+                    int? propIndex = null;
+
+                    if (prop.IsArgument)
+                    {
+                        // This is a positional argument
+                        var globalArgIndex = baseArgIndex + prop.ArgumentIndex;
+                        propOptions.Add($"[{globalArgIndex}]");
+                        propIndex = globalArgIndex;
+                    }
+                    else
+                    {
+                        // Add aliases first (e.g., -h before --host)
+                        foreach (var alias in prop.Aliases)
+                        {
+                            propOptions.Add(alias);
+                        }
+                        // Only add CliName if not already in aliases
+                        if (!prop.Aliases.Contains(prop.CliName))
+                        {
+                            propOptions.Add(prop.CliName);
+                        }
+                    }
+
+                    var propDescription = prop.Description;
+                    var propIsFlag = prop.IsFlag && !prop.IsArgument; // Arguments are never flags
+                    var propIsParams = false;
+                    var propIsHidden = false;
+                    var propIsDefaultValueHidden = false;
+
+                    var propDefaultValue = default(string);
+                    if (prop.HasDefaultValue && prop.DefaultValue != null)
+                    {
+                        propDefaultValue = FormatDefaultValueForHelp(prop.DefaultValue);
+                        if (propIsFlag && prop.DefaultValue is false)
+                        {
+                            propDefaultValue = null;
+                        }
+                    }
+                    else if (prop.HasDefaultValue && !prop.IsArgument)
+                    {
+                        // Has default but we don't know the value - use placeholder to prevent [Required] tag
+                        propDefaultValue = "(default)";
+                        propIsDefaultValueHidden = true;
+                    }
+
+                    var propTypeName = GetShortTypeName(prop.Type.TypeSymbol);
+                    parameterDefinitions.Add(new CommandOptionHelpDefinition(
+                        propOptions.ToArray(),
+                        propDescription,
+                        propTypeName,
+                        propDefaultValue,
+                        propIndex,
+                        propIsFlag,
+                        propIsParams,
+                        propIsHidden,
+                        propIsDefaultValueHidden));
+                }
+                continue;
+            }
+
             // ignore DI params.
             if (!item.IsParsable) continue;
 
@@ -292,7 +452,7 @@ public static class CommandHelpBuilder
             }
 
             var description = item.Description;
-            var isFlag = item.Type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Boolean;
+            var isFlag = item.Type.SpecialType == SpecialType.System_Boolean;
             var isParams = item.IsParams;
             var isHidden = item.IsHidden;
             var isDefaultValueHidden = item.IsDefaultValueHidden;
@@ -326,6 +486,52 @@ public static class CommandHelpBuilder
             parameterDefinitions.ToArray(),
             descriptor.Description
         );
+    }
+
+    static string FormatDefaultValueForHelp(object value)
+    {
+        if (value is string s)
+        {
+            return s;
+        }
+        if (value is bool b)
+        {
+            return b ? "true" : "false";
+        }
+        return value.ToString() ?? "null";
+    }
+
+    static string GetShortTypeName(ITypeSymbol type)
+    {
+        // Handle nullable types
+        if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+        {
+            var namedType = (INamedTypeSymbol)type;
+            return GetShortTypeName(namedType.TypeArguments[0]) + "?";
+        }
+
+        // Use simple names for common types
+        switch (type.SpecialType)
+        {
+            case SpecialType.System_Boolean: return "bool";
+            case SpecialType.System_Byte: return "byte";
+            case SpecialType.System_SByte: return "sbyte";
+            case SpecialType.System_Int16: return "short";
+            case SpecialType.System_UInt16: return "ushort";
+            case SpecialType.System_Int32: return "int";
+            case SpecialType.System_UInt32: return "uint";
+            case SpecialType.System_Int64: return "long";
+            case SpecialType.System_UInt64: return "ulong";
+            case SpecialType.System_Single: return "float";
+            case SpecialType.System_Double: return "double";
+            case SpecialType.System_Decimal: return "decimal";
+            case SpecialType.System_Char: return "char";
+            case SpecialType.System_String: return "string";
+            case SpecialType.System_DateTime: return "DateTime";
+        }
+
+        // For enums and other types, use the simple name
+        return type.Name;
     }
 
     class CommandHelpDefinition
