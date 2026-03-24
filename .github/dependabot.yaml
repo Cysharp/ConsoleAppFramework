@@ -16,3 +16,10 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-patch
+  - package-ecosystem: "nuget"
+    directory: "/sandbox/"
+    schedule: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
