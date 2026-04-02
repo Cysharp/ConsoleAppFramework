@@ -159,7 +159,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
-        app.Add("process", ([Bind] CommandOptions opts) =>
+        app.Add("process", ([AsParameters] CommandOptions opts) =>
         {
             Console.Write($"Verbose={opts.Verbose},Output={opts.Output}");
         });

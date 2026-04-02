@@ -590,7 +590,7 @@ public sealed record class BindablePropertyInfo : IEquatable<BindablePropertyInf
 }
 
 /// <summary>
-/// Represents the binding info for a [Bind] parameter's type
+/// Represents the binding info for an [AsParameters] parameter's type
 /// </summary>
 public sealed record class ObjectBindingInfo : IEquatable<ObjectBindingInfo>
 {

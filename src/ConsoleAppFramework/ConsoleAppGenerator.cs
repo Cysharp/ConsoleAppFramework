@@ -511,7 +511,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 GlobalOptions = parser.ParseGlobalOptions();
             }
 
-            // Handle typed ConfigureGlobalOptions<T>() - parse early to get the type for [Bind] inheritance
+            // Handle typed ConfigureGlobalOptions<T>() - parse early to get the type for [AsParameters] inheritance
             ITypeSymbol? knownGlobalOptionsType = null;
             if (configureTypedGlobalOptionsGroup.Count() == 1 && configureGlobalOptionsGroup.Count() == 0)
             {
@@ -531,7 +531,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 return;
             }
 
-            // Parse commands AFTER global options so we can pass the known type for [Bind] inheritance
+            // Parse commands AFTER global options so we can pass the known type for [AsParameters] inheritance
             var names = new HashSet<string>();
             var delegateCommands = methodGroup["Add"]
                 .Select(x => x.Item1)

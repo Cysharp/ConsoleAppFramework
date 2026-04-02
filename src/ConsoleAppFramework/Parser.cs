@@ -589,7 +589,7 @@ internal partial class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptio
                         return identifier is "Argument" or "ArgumentAttribute";
                     });
 
-                // Check for [Bind] attribute
+                // Check for [AsParameters] attribute
                 string? bindPrefix = null;
                 var hasBind = x.AttributeLists.SelectMany(x => x.Attributes)
                     .Any(attr =>
@@ -601,7 +601,7 @@ internal partial class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptio
                         }
 
                         var identifier = name.ToString();
-                        var result = identifier is "Bind" or "BindAttribute";
+                        var result = identifier is "AsParameters" or "AsParametersAttribute";
                         if (result && attr.ArgumentList != null)
                         {
                             foreach (var arg in attr.ArgumentList.Arguments)
@@ -671,7 +671,7 @@ internal partial class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptio
             .Where(x => x.TypeSymbol != null)
             .ToArray();
 
-        // Post-process parameters to create ObjectBinding for [Bind] parameters
+        // Post-process parameters to create ObjectBinding for [AsParameters] parameters
         var processedParameters = ProcessBindParameters(parameters, lambda.GetLocation());
         if (processedParameters == null)
             return null; // Error already reported
@@ -825,9 +825,9 @@ internal partial class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptio
                 var isHiddenParameter = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HiddenAttribute");
                 var isDefaultValueHidden = x.GetAttributes().Any(x => x.AttributeClass?.Name == "HideDefaultValueAttribute");
 
-                // Check for [Bind] attribute
+                // Check for [AsParameters] attribute
                 string? bindPrefix = null;
-                var bindAttr = x.GetAttributes().FirstOrDefault(a => a.AttributeClass?.Name == "BindAttribute");
+                var bindAttr = x.GetAttributes().FirstOrDefault(a => a.AttributeClass?.Name == "AsParametersAttribute");
                 var hasBind = bindAttr != null;
                 if (bindAttr != null)
                 {
@@ -902,7 +902,7 @@ internal partial class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptio
             })
             .ToArray();
 
-        // Post-process parameters to create ObjectBinding for [Bind] parameters
+        // Post-process parameters to create ObjectBinding for [AsParameters] parameters
         var processedParameters = ProcessBindParameters(parameters, methodSymbol.Locations[0]);
         if (processedParameters == null)
         {

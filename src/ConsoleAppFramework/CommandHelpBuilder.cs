@@ -351,10 +351,10 @@ public static class CommandHelpBuilder
 
         foreach (var item in descriptor.Parameters)
         {
-            // Handle [Bind] parameters by expanding their properties
+            // Handle [AsParameters] parameters by expanding their properties
             if (item.IsBound && item.ObjectBinding != null)
             {
-                // Calculate base argument index for this [Bind] parameter
+                // Calculate base argument index for this [AsParameters] parameter
                 // (after any preceding regular [Argument] params)
                 var baseArgIndex = descriptor.Parameters
                     .TakeWhile(p => p != item)

@@ -1,7 +1,7 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindBasicTests(VerifyHelper verifier)
+public class AsParametersBasicTests(VerifyHelper verifier)
 {
     [Test]
     public async Task BasicClassBinding()
@@ -21,7 +21,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] DatabaseConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] DatabaseConfig config) =>
         {
             Console.Write($"{config.Host}:{config.Port}/{config.Database}");
         });
@@ -50,7 +50,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] DatabaseConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] DatabaseConfig config) =>
         {
             Console.Write($"{config.Host}:{config.Port}/{config.Database}");
         });
@@ -79,7 +79,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind(Prefix = "server")] ServerConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters(Prefix = "server")] ServerConfig config) =>
         {
             Console.Write($"{config.Host}:{config.Port}");
         });
@@ -107,7 +107,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"{config.Host}:{config.Port}");
         });

@@ -1,7 +1,7 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindRequiredTests(VerifyHelper verifier)
+public class AsParametersRequiredTests(VerifyHelper verifier)
 {
     [Test]
     public async Task RequiredInitProperty_MustBeSpecified()
@@ -19,7 +19,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, ApiKey={config.ApiKey}");
         });
@@ -46,7 +46,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, ApiKey={config.ApiKey}");
         });
@@ -72,7 +72,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, Env={config.Environment}");
         });
@@ -109,7 +109,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, Env={config.Environment}, Port={config.Port}");
         });
@@ -144,7 +144,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] ServiceConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] ServiceConfig config) =>
         {
             Console.Write($"Name={config.ServiceName}, Port={config.Port}, Key={config.ApiKey}, Region={config.Region}");
         });
@@ -184,7 +184,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, Desc={config.Description}");
         });
@@ -216,7 +216,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, ApiKey={config.ApiKey}, Env={config.Environment}, Timeout={config.Timeout}");
         });
@@ -249,7 +249,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] DatabaseConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] DatabaseConfig config) =>
         {
             Console.Write($"CS={config.ConnectionString}, Max={config.MaxConnections}");
         });
@@ -278,7 +278,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] DatabaseConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] DatabaseConfig config) =>
         {
             Console.Write($"CS={config.ConnectionString}, Max={config.MaxConnections}");
         });
@@ -309,7 +309,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Credentials creds) =>
+        ConsoleApp.Run(args, ([AsParameters] Credentials creds) =>
         {
             Console.Write($"User={creds.Username}, Pass={creds.Password}, Domain={creds.Domain}");
         });
@@ -338,7 +338,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] ServiceConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] ServiceConfig config) =>
         {
             Console.Write($"Service={config.ServiceName}, Port={config.Port}, Key={config.ApiKey}, Log={config.EnableLogging}");
         });
@@ -369,7 +369,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] FeatureFlags flags) =>
+        ConsoleApp.Run(args, ([AsParameters] FeatureFlags flags) =>
         {
             Console.Write($"Metrics={flags.EnableMetrics}, Tracing={flags.EnableTracing}, Caching={flags.EnableCaching}");
         });
@@ -402,7 +402,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, Tag={config.OptionalTag ?? "null"}, Count={config.OptionalCount?.ToString() ?? "null"}");
         });

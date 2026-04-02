@@ -1,7 +1,7 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindEdgeCasesTests(VerifyHelper verifier)
+public class AsParametersEdgeCasesTests(VerifyHelper verifier)
 {
     [Test]
     public async Task DeepInheritance_ThreeLevels()
@@ -29,7 +29,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] FinalOptions options) =>
+        ConsoleApp.Run(args, ([AsParameters] FinalOptions options) =>
         {
             Console.Write($"verbose={options.Verbose}, format={options.Format}, output={options.Output}");
         });
@@ -66,7 +66,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] FinalOptions options) =>
+        ConsoleApp.Run(args, ([AsParameters] FinalOptions options) =>
         {
             Console.Write($"debug={options.Debug}, level={options.Level}, mode={options.Mode}");
         });
@@ -79,7 +79,7 @@ public class Program
     }
 
     [Test]
-    public async Task EmptyBindClass_AllDefaults()
+    public async Task EmptyAsParametersClass_AllDefaults()
     {
         // language=csharp
         var code = """
@@ -94,7 +94,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] EmptyConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] EmptyConfig config) =>
         {
             Console.Write($"config is not null: {config != null}");
         });
@@ -121,7 +121,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"port={config.Port}");
         });
@@ -152,7 +152,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"level={config.Level}");
         });
@@ -181,7 +181,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"level={config.Level}");
         });
@@ -194,7 +194,7 @@ public class Program
         await Assert.That(exitCode).IsNotEqualTo(0);
     }
 
-    // Note: Array properties are not yet supported in [Bind] types
+    // Note: Array properties are not yet supported in [AsParameters] types
     // Future feature: ArrayProperty_MultipleValues test
 
     [Test]
@@ -213,7 +213,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"count={config.OptionalCount?.ToString() ?? "null"}");
         });
@@ -241,7 +241,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"count={config.OptionalCount?.ToString() ?? "null"}");
         });
@@ -269,7 +269,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"name={config.Name}");
         });
@@ -307,7 +307,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"{config.Prop1},{config.Prop2},{config.Prop3},{config.Prop4},{config.Prop5},{config.Prop6},{config.Prop7},{config.Prop8},{config.Prop9},{config.Prop10},{config.Prop11},{config.Prop12}");
         });
@@ -335,7 +335,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"name={config.Name}, port={config.Port}");
         });
@@ -359,7 +359,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"name={config.Name}, port={config.Port}");
         });
@@ -388,7 +388,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"port={config.HTTPPort}, xml={config.XMLPath}, ssl={config.SSLEnabled}");
         });
@@ -418,7 +418,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"level={config.Log_Level}, retries={config.Max_Retries}");
         });
@@ -448,7 +448,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"help={config.HelpText}, version={config.ShowVersion}");
         });
@@ -490,7 +490,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Level4 options) =>
+        ConsoleApp.Run(args, ([AsParameters] Level4 options) =>
         {
             Console.Write($"verbose={options.Verbose}, format={options.Format}, output={options.Output}, count={options.Count}");
         });

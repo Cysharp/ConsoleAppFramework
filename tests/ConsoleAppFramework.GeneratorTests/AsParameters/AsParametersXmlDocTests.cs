@@ -1,7 +1,7 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindXmlDocTests(VerifyHelper verifier)
+public class AsParametersXmlDocTests(VerifyHelper verifier)
 {
     [Test]
     public async Task PropertyXmlDocInHelp()
@@ -27,7 +27,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] ServerConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] ServerConfig config) =>
         {
             Console.Write($"{config.Host}:{config.Port}");
         });
@@ -66,7 +66,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] SearchOptions opts) =>
+        ConsoleApp.Run(args, ([AsParameters] SearchOptions opts) =>
         {
             Console.Write($"{opts.pattern}:{opts.recursive}");
         });
@@ -120,7 +120,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] CopyOptions opts) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyOptions opts) =>
         {
             Console.Write($"{opts.Source}->{opts.Destination}");
         });
@@ -160,7 +160,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] SimpleConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] SimpleConfig config) =>
         {
             Console.Write($"{config.Name}:{config.Count}");
         });
@@ -195,7 +195,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] AliasConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] AliasConfig config) =>
         {
             Console.Write($"{config.Host}:{config.Port}:{config.Verbose}");
         });
@@ -231,7 +231,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] AliasConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] AliasConfig config) =>
         {
             Console.Write($"{config.Host}:{config.Port}");
         });
@@ -276,7 +276,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] CopyConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyConfig config) =>
         {
             Console.Write($"{config.Source}->{config.Destination}:{config.Force}");
         });
@@ -312,7 +312,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] CopyConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyConfig config) =>
         {
             Console.Write($"{config.Source}->{config.Destination}:{config.Force}");
         });
@@ -355,7 +355,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] CopyOptions opts) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyOptions opts) =>
         {
             Console.Write($"{opts.source}->{opts.destination}:{opts.Force}");
         });
@@ -388,7 +388,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] CopyOptions opts) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyOptions opts) =>
         {
             Console.Write($"{opts.source}->{opts.destination}:{opts.Force}");
         });
@@ -435,7 +435,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] GrepConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] GrepConfig config) =>
         {
             Console.Write($"pattern={config.Pattern},i={config.IgnoreCase},r={config.Recursive}");
         });
@@ -471,7 +471,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] GrepConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] GrepConfig config) =>
         {
             Console.Write($"pattern={config.Pattern},i={config.IgnoreCase},r={config.Recursive}");
         });
@@ -515,7 +515,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"{config.File}|{config.Path}");
         });
@@ -547,7 +547,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"{config.Host}:{config.Port}");
         });
@@ -579,7 +579,7 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Log = x => Console.WriteLine(x);
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"{config.Host}");
         });

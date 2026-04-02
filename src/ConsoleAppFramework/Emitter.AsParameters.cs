@@ -36,7 +36,7 @@ internal record CategorizedProperties(
 
 internal partial class Emitter
 {
-    // [Bind] helper methods
+    // [AsParameters] helper methods
 
     /// <summary>
     /// Determines if a property should be skipped during processing.

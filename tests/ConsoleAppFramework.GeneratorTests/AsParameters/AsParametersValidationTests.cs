@@ -1,9 +1,9 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindValidationTests(VerifyHelper verifier)
+public class AsParametersValidationTests(VerifyHelper verifier)
 {
-    // Note: Validation attributes like [Range] are not yet applied to [Bind] types
+    // Note: Validation attributes like [Range] are not yet applied to [AsParameters] types
     // Future feature: RangeValidation_OnIntProperty tests
 
     [Test]
@@ -23,7 +23,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"name={config.Name}, port={config.Port}");
         });
@@ -53,7 +53,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"name={config.Name}, port={config.Port}");
         });

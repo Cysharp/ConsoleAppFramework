@@ -20,11 +20,11 @@ internal static class BindingMarkers
 }
 
 /// <summary>
-/// Represents a parameter that may have [Bind] attribute for object binding.
+/// Represents a parameter that may have [AsParameters] attribute for object binding.
 /// </summary>
 /// <param name="Parameter">The command parameter.</param>
-/// <param name="HasBind">Whether the parameter has [Bind] attribute.</param>
-/// <param name="BindPrefix">Explicit prefix from [Bind] attribute, if any.</param>
+/// <param name="HasBind">Whether the parameter has [AsParameters] attribute.</param>
+/// <param name="BindPrefix">Explicit prefix from [AsParameters] attribute, if any.</param>
 /// <param name="TypeSymbol">The type symbol of the parameter.</param>
 internal record BindParameterCandidate(
     CommandParameter Parameter,
@@ -52,7 +52,7 @@ internal partial class Parser
 {
     CommandParameter[]? ProcessBindParameters(BindParameterCandidate[] candidates, Location diagnosticLocation)
     {
-        // Count how many parameters have [Bind] to determine prefix behavior
+        // Count how many parameters have [AsParameters] to determine prefix behavior
         var bindCount = candidates.Count(c => c.HasBind);
 
         var result = new List<CommandParameter>();
@@ -66,8 +66,8 @@ internal partial class Parser
 
             // Determine prefix:
             // - If an explicit prefix is provided, use it
-            // - If multiple [Bind] parameters, use parameter name as prefix
-            // - If single [Bind] parameter, use no prefix (empty string)
+            // - If multiple [AsParameters] parameters, use parameter name as prefix
+            // - If single [AsParameters] parameter, use no prefix (empty string)
             var prefix = candidate.BindPrefix
                 ?? (bindCount > 1 ? candidate.Parameter.Name : "");
 

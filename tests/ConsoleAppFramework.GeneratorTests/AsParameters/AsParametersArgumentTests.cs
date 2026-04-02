@@ -1,7 +1,7 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindArgumentTests(VerifyHelper verifier)
+public class AsParametersArgumentTests(VerifyHelper verifier)
 {
     [Test]
     public async Task ArgumentsOnConstructorParameters()
@@ -16,7 +16,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] MoveArgs moveArgs) =>
+        ConsoleApp.Run(args, ([AsParameters] MoveArgs moveArgs) =>
         {
             Console.Write($"Source={moveArgs.Source}, Target={moveArgs.Target}, Force={moveArgs.Force}");
         });
@@ -46,7 +46,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] CopyArgs copyArgs) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyArgs copyArgs) =>
         {
             Console.Write($"Source={copyArgs.Source}, Dest={copyArgs.Destination}, Recursive={copyArgs.Recursive}");
         });
@@ -71,7 +71,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] CopyOptions opts) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyOptions opts) =>
         {
             Console.Write($"Source={opts.Source}, Dest={opts.Destination}, Recursive={opts.Recursive}");
         });
@@ -100,7 +100,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] MoveOptions opts) =>
+        ConsoleApp.Run(args, ([AsParameters] MoveOptions opts) =>
         {
             Console.Write($"Source={opts.Source}, Dest={opts.Destination}");
         });
@@ -138,7 +138,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] SearchArgs searchArgs) =>
+        ConsoleApp.Run(args, ([AsParameters] SearchArgs searchArgs) =>
         {
             Console.Write($"Pattern={searchArgs.Pattern}, Path={searchArgs.Path}, Recursive={searchArgs.Recursive}");
         });
@@ -180,7 +180,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] CopyArgs copyArgs) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyArgs copyArgs) =>
         {
             Console.Write($"Source={copyArgs.Source}, Dest={copyArgs.Destination}, Recursive={copyArgs.Recursive}");
         });
@@ -209,7 +209,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] MoveArgs moveArgs) =>
+        ConsoleApp.Run(args, ([AsParameters] MoveArgs moveArgs) =>
         {
             Console.Write($"Source={moveArgs.source}, Target={moveArgs.target}, Force={moveArgs.force}");
         });
@@ -242,7 +242,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] GrepArgs grepArgs) =>
+        ConsoleApp.Run(args, ([AsParameters] GrepArgs grepArgs) =>
         {
             Console.Write($"Pattern={grepArgs.Pattern}, Recursive={grepArgs.Recursive}");
         });

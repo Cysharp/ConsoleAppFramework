@@ -1,7 +1,7 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindRecordTests(VerifyHelper verifier)
+public class AsParametersRecordTests(VerifyHelper verifier)
 {
     [Test]
     public async Task RecordWithPrimaryConstructor()
@@ -16,7 +16,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] MoveOptions options) =>
+        ConsoleApp.Run(args, ([AsParameters] MoveOptions options) =>
         {
             Console.Write($"Force={options.Force}, Recursive={options.Recursive}, Verbose={options.Verbose}");
         });
@@ -40,7 +40,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] CopyOptions options) =>
+        ConsoleApp.Run(args, ([AsParameters] CopyOptions options) =>
         {
             Console.Write($"Force={options.Force}, Recursive={options.Recursive}, Verbose={options.Verbose}");
         });
@@ -70,7 +70,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Name={config.Name}, Priority={config.Priority}, Enabled={config.Enabled}, Desc={config.Description}");
         });

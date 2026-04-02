@@ -134,8 +134,8 @@ internal static class DiagnosticDescriptors
 
     public static DiagnosticDescriptor BindTypeNoValidConstructor { get; } = Create(
         20,
-        "Type used with [Bind] must have a parameterless constructor or a primary constructor.",
-        "Type '{0}' used with [Bind] must have a parameterless constructor or a primary constructor.");
+        "Type used with [AsParameters] must have a parameterless constructor or a primary constructor.",
+        "Type '{0}' used with [AsParameters] must have a parameterless constructor or a primary constructor.");
 
     public static DiagnosticDescriptor BindUnsupportedPropertyType { get; } = Create(
         21,
@@ -154,8 +154,8 @@ internal static class DiagnosticDescriptors
 
     public static DiagnosticDescriptor BindMultipleConstructors { get; } = Create(
         25,
-        "Multiple constructors found; [Bind] requires exactly one public constructor.",
-        "Multiple constructors found for type '{0}'; [Bind] requires exactly one public constructor.");
+        "Multiple constructors found; [AsParameters] requires exactly one public constructor.",
+        "Multiple constructors found for type '{0}'; [AsParameters] requires exactly one public constructor.");
 
     public static DiagnosticDescriptor GlobalOptionsCannotHaveArguments { get; } = Create(
         26,

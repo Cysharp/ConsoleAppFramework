@@ -24,10 +24,10 @@ public class NativeAotTest
         app.UseFilter<LoggingFilter>();
         app.Add("", Commands.Root);
         app.Add("json", Commands.RecordJson);
-        // [Bind] commands for AOT testing
-        app.Add("bind-basic", Commands.BindBasic);
-        app.Add("bind-args", Commands.BindWithArguments);
-        app.Add("bind-inherited", Commands.BindWithInheritance);
+        // [AsParameters] commands for AOT testing
+        app.Add("asparameters-basic", Commands.AsParametersBasic);
+        app.Add("asparameters-args", Commands.AsParametersWithArguments);
+        app.Add("asparameters-inherited", Commands.AsParametersWithInheritance);
     }
 
     [Test]
@@ -60,42 +60,42 @@ public class NativeAotTest
     }
 
     // ========================================
-    // [Bind] AOT Tests
+    // [AsParameters] AOT Tests
     // ========================================
 
     [Test]
-    public async Task BindBasic_InAOTContext()
+    public async Task AsParametersBasic_InAOTContext()
     {
         Environment.ExitCode = 0;
-        string[] runArgs = ["bind-basic", "--host", "myhost", "--port", "3306", "--database", "testdb"];
+        string[] runArgs = ["asparameters-basic", "--host", "myhost", "--port", "3306", "--database", "testdb"];
         await app.RunAsync(runArgs);
         await Assert.That(Environment.ExitCode).IsEqualTo(0);
     }
 
     [Test]
-    public async Task BindBasic_Defaults_InAOTContext()
+    public async Task AsParametersBasic_Defaults_InAOTContext()
     {
         Environment.ExitCode = 0;
         // Use defaults - no arguments
-        string[] runArgs = ["bind-basic"];
+        string[] runArgs = ["asparameters-basic"];
         await app.RunAsync(runArgs);
         await Assert.That(Environment.ExitCode).IsEqualTo(0);
     }
 
     [Test]
-    public async Task BindWithArguments_InAOTContext()
+    public async Task AsParametersWithArguments_InAOTContext()
     {
         Environment.ExitCode = 0;
-        string[] runArgs = ["bind-args", "input.txt", "output.txt", "--verbose"];
+        string[] runArgs = ["asparameters-args", "input.txt", "output.txt", "--verbose"];
         await app.RunAsync(runArgs);
         await Assert.That(Environment.ExitCode).IsEqualTo(0);
     }
 
     [Test]
-    public async Task BindWithGlobalOptionsInheritance_InAOTContext()
+    public async Task AsParametersWithGlobalOptionsInheritance_InAOTContext()
     {
         Environment.ExitCode = 0;
-        string[] runArgs = ["bind-inherited", "--name", "test", "--verbose", "--log-level", "debug"];
+        string[] runArgs = ["asparameters-inherited", "--name", "test", "--verbose", "--log-level", "debug"];
         await app.RunAsync(runArgs);
         await Assert.That(Environment.ExitCode).IsEqualTo(0);
     }
@@ -122,22 +122,22 @@ internal static class Commands
         Console.WriteLine($"Record: X={record.X}, Y={record.Y}");
     }
 
-    // [Bind] command handlers for AOT testing
-    public static int BindBasic([Bind] DatabaseConfig config)
+    // [AsParameters] command handlers for AOT testing
+    public static int AsParametersBasic([AsParameters] DatabaseConfig config)
     {
-        Console.WriteLine($"[BindBasic] {config.Host}:{config.Port}/{config.Database}");
+        Console.WriteLine($"[AsParametersBasic] {config.Host}:{config.Port}/{config.Database}");
         return 0;
     }
 
-    public static int BindWithArguments([Bind] FileProcessingOptions options)
+    public static int AsParametersWithArguments([AsParameters] FileProcessingOptions options)
     {
-        Console.WriteLine($"[BindWithArguments] {options.InputPath} -> {options.OutputPath}, verbose={options.Verbose}");
+        Console.WriteLine($"[AsParametersWithArguments] {options.InputPath} -> {options.OutputPath}, verbose={options.Verbose}");
         return 0;
     }
 
-    public static int BindWithInheritance([Bind] CommandOptions options)
+    public static int AsParametersWithInheritance([AsParameters] CommandOptions options)
     {
-        Console.WriteLine($"[BindWithInheritance] name={options.Name}, verbose={options.Verbose}, logLevel={options.LogLevel}");
+        Console.WriteLine($"[AsParametersWithInheritance] name={options.Name}, verbose={options.Verbose}, logLevel={options.LogLevel}");
         return 0;
     }
 }
@@ -162,7 +162,7 @@ internal sealed class LoggingFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
 public record MyRecord(int X, int Y);
 
 // ========================================
-// [Bind] attribute types for AOT testing
+// [AsParameters] attribute types for AOT testing
 // ========================================
 
 public class DatabaseConfig

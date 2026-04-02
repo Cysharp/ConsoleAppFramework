@@ -26,7 +26,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
-        app.Add("search", ([Bind] SearchOptions opts) =>
+        app.Add("search", ([AsParameters] SearchOptions opts) =>
         {
             Console.Write($"Verbose={opts.Verbose},Pattern={opts.Pattern}");
         });
@@ -63,7 +63,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
-        app.Add("copy", ([Bind] CopyOptions opts) =>
+        app.Add("copy", ([AsParameters] CopyOptions opts) =>
         {
             Console.Write($"DryRun={opts.DryRun},Src={opts.Source},Dst={opts.Destination}");
         });
@@ -98,7 +98,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
-        app.Add("search", ([Bind] SearchOptions opts) =>
+        app.Add("search", ([AsParameters] SearchOptions opts) =>
         {
             Console.Write($"Verbose={opts.Verbose},Pattern={opts.Pattern}");
         });
@@ -135,7 +135,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
-        app.Add("build", ([Bind] BuildOptions opts) =>
+        app.Add("build", ([AsParameters] BuildOptions opts) =>
         {
             Console.Write($"Verbose={opts.Verbose},LogLevel={opts.LogLevel},Config={opts.Configuration}");
         });
@@ -178,12 +178,12 @@ public class Program
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
 
-        app.Add("search", ([Bind] SearchOptions opts) =>
+        app.Add("search", ([AsParameters] SearchOptions opts) =>
         {
             Console.Write($"search:Verbose={opts.Verbose},Pattern={opts.Pattern}");
         });
 
-        app.Add("copy", ([Bind] CopyOptions opts) =>
+        app.Add("copy", ([AsParameters] CopyOptions opts) =>
         {
             Console.Write($"copy:Verbose={opts.Verbose},Src={opts.Source},Dst={opts.Destination}");
         });
@@ -198,9 +198,9 @@ public class Program
     }
 
     [Test]
-    public async Task NonInheritingBind()
+    public async Task NonInheritingGlobalOptions()
     {
-        // When Bind type doesn't inherit from global options, all properties parsed as normal
+        // When the AsParameters type doesn't inherit from global options, all properties parsed as normal
         // language=csharp
         var code = """
 using System;
@@ -223,7 +223,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
-        app.Add("search", ([Bind] SearchOptions opts, ConsoleAppContext ctx) =>
+        app.Add("search", ([AsParameters] SearchOptions opts, ConsoleAppContext ctx) =>
         {
             var globals = (GlobalSettings)ctx.GlobalOptions!;
             Console.Write($"Verbose={globals.Verbose},Pattern={opts.Pattern},CaseSensitive={opts.CaseSensitive}");
@@ -269,7 +269,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<Level1>();
-        app.Add("process", ([Bind] Level4 opts) =>
+        app.Add("process", ([AsParameters] Level4 opts) =>
         {
             Console.Write($"Verbose={opts.Verbose},Format={opts.Format},Output={opts.Output},Count={opts.Count}");
         });
@@ -314,7 +314,7 @@ public class Program
     {
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<Level1>();
-        app.Add("run", ([Bind] Level4 opts) =>
+        app.Add("run", ([AsParameters] Level4 opts) =>
         {
             Console.Write($"Debug={opts.Debug},Priority={opts.Priority},Mode={opts.Mode},Tag={opts.Tag}");
         });

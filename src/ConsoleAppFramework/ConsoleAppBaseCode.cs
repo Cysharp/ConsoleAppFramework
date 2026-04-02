@@ -157,11 +157,11 @@ internal sealed class ArgumentAttribute : Attribute
 }
 
 /// <summary>
-/// Binds a complex type's properties and constructor parameters to command-line options.
-/// Properties become --property-name options and constructor parameters are bound similarly.
+/// Groups command-line options into a single parameter object (similar to ASP.NET Core's AsParameters).
+/// Maps constructor parameters and properties to options; properties become --property-name options.
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
-internal sealed class BindAttribute : Attribute
+internal sealed class AsParametersAttribute : Attribute
 {
     public string? Prefix { get; set; }
 }

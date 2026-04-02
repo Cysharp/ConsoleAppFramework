@@ -648,9 +648,9 @@ If you want to change the deserialization options, you can set `JsonSerializerOp
 
 > NOTE: If they are not set when NativeAOT is used, a runtime exception may occur. If they are included in the parsing process, be sure to set source generated options.
 
-### Class-Based Parameter Binding with [Bind]
+### Class-Based Parameter Binding with [AsParameters]
 
-When commands have many parameters, defining them inline becomes unwieldy. The `[Bind]` attribute enables class-based parameter binding, where a class or record's members become command options.
+When commands have many parameters, defining them inline becomes unwieldy. The `[AsParameters]` attribute enables class-based parameter binding, where a class or record's members become command options.
 
 ```csharp
 // Both classes and records are supported
@@ -662,14 +662,14 @@ public record ServerConfig(
 );
 
 // All parameters become CLI options: --host, --port, --verbose, --allowed-origins
-ConsoleApp.Run(args, ([Bind] ServerConfig config) =>
+ConsoleApp.Run(args, ([AsParameters] ServerConfig config) =>
 {
     Console.WriteLine($"Starting server on {config.Host}:{config.Port}");
 });
 // Usage: app --host 0.0.0.0 --port 3000 --verbose --allowed-origins http://a.com,http://b.com
 ```
 
-**Why use [Bind]?** It provides a cleaner way to organize commands with many parameters, enables reuse of parameter groups across commands, and supports primary constructors and records for immutable configuration.
+**Why use [AsParameters]?** It provides a cleaner way to organize commands with many parameters, enables reuse of parameter groups across commands, and supports primary constructors and records for immutable configuration.
 
 Supported types include are the same defined in the [Parse and Value Binding](#parse-and-value-binding) section.
 
@@ -703,7 +703,7 @@ public record BuildConfig(
 /// <param name="destination">argument, The destination file</param>
 public record CopyConfig(string source, string destination);
 
-ConsoleApp.Run(args, ([Bind] CopyConfig config) => { });
+ConsoleApp.Run(args, ([AsParameters] CopyConfig config) => { });
 // Usage: app ./source.txt ./dest.txt
 ```
 
@@ -736,21 +736,21 @@ public record MixedConfig(
     public required string OutputPath { get; init; }  // Required property
 }
 
-ConsoleApp.Run(args, ([Bind] MixedConfig config) => { });
+ConsoleApp.Run(args, ([AsParameters] MixedConfig config) => { });
 // Usage: app --name myapp --output-path ./out --verbose --count 5
 ```
 
-#### Multiple [Bind] Parameters with Prefixes
+#### Multiple [AsParameters] Parameters with Prefixes
 
-Use multiple `[Bind]` parameters to compose configuration from separate types. Use `[Bind("prefix")]` to namespace options and avoid conflicts:
+Use multiple `[AsParameters]` parameters to compose configuration from separate types. Use `[AsParameters(Prefix = "prefix")]` to namespace options and avoid conflicts:
 
 ```csharp
 public record SourceConfig(string Host = "localhost", int Port = 5432);
 public record TargetConfig(string Host = "localhost", int Port = 5432);
 
 ConsoleApp.Run(args, (
-    [Bind("source")] SourceConfig source,
-    [Bind("target")] TargetConfig target
+    [AsParameters(Prefix = "source")] SourceConfig source,
+    [AsParameters(Prefix = "target")] TargetConfig target
 ) =>
 {
     Console.WriteLine($"Migrating from {source.Host}:{source.Port} to {target.Host}:{target.Port}");
@@ -760,9 +760,9 @@ ConsoleApp.Run(args, (
 
 The prefix is prepended to each option name with a hyphen separator.
 
-#### Combining [Bind] with Typed Global Options
+#### Combining [AsParameters] with Typed Global Options
 
-When your `[Bind]` type inherits from the global options type registered via `ConfigureGlobalOptions<T>()`, the inherited properties are automatically populated from the parsed global options. This enables shared configuration across commands without repetition.
+When your `[AsParameters]` type inherits from the global options type registered via `ConfigureGlobalOptions<T>()`, the inherited properties are automatically populated from the parsed global options. This enables shared configuration across commands without repetition.
 
 ```csharp
 public record GlobalOptions
@@ -781,7 +781,7 @@ public record DeployConfig : GlobalOptions
 var app = ConsoleApp.Create();
 app.ConfigureGlobalOptions<GlobalOptions>();  // Register global options
 
-app.Add("deploy", ([Bind] DeployConfig config) =>
+app.Add("deploy", ([AsParameters] DeployConfig config) =>
 {
     // config.Verbose comes from global options (parsed before command routing)
     // config.Environment and config.Replicas are command-specific
@@ -792,7 +792,7 @@ app.Run(args);
 // Usage: app --verbose deploy --environment production --replicas 3
 ```
 
-The global options can appear before or after the command name, and the `[Bind]` type receives both the inherited global values and command-specific options.
+The global options can appear before or after the command name, and the `[AsParameters]` type receives both the inherited global values and command-specific options.
 
 ### GlobalOptions
 

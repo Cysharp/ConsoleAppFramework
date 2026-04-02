@@ -228,7 +228,7 @@ internal partial class Emitter(DllReference? dllReference, TypedGlobalOptionsInf
                     }
                     sb.AppendLine();
 
-                    // Check if there are any non-argument options to parse (including [Bind] parameters)
+                    // Check if there are any non-argument options to parse (including [AsParameters] parameters)
                 var hasNonArgumentOptions = command.Parameters.Any(p => (p.IsParsable && !p.IsArgument) || p.IsBound);
                 if (hasNonArgumentOptions)
                     {
@@ -326,7 +326,7 @@ internal partial class Emitter(DllReference? dllReference, TypedGlobalOptionsInf
                             }
                         }
 
-                        // [Argument] properties within [Bind] parameters
+                        // [Argument] properties within [AsParameters] parameters
                         // Calculate base argument index (after regular [Argument] params)
                         var baseArgIndex = command.Parameters.Count(p => p.IsArgument);
                         for (int i = 0; i < command.Parameters.Length; i++)
@@ -339,7 +339,7 @@ internal partial class Emitter(DllReference? dllReference, TypedGlobalOptionsInf
                             if (hasBoundArgs)
                             {
                                 EmitBoundArgumentParsing(sb, parameter, i, baseArgIndex);
-                                // Increment base index for next [Bind] parameter
+                                // Increment base index for next [AsParameters] parameter
                                 baseArgIndex += binding.Properties.Count(p => p.IsArgument);
                             }
                         }
@@ -359,7 +359,7 @@ internal partial class Emitter(DllReference? dllReference, TypedGlobalOptionsInf
                     var parameter = command.Parameters[i];
                     if (parameter.IsBound)
                     {
-                        // Validate required properties for [Bind] parameters
+                        // Validate required properties for [AsParameters] parameters
                         EmitBoundValidation(sb, parameter, i);
                         continue;
                     }
@@ -371,7 +371,7 @@ internal partial class Emitter(DllReference? dllReference, TypedGlobalOptionsInf
                     }
                 }
 
-                // Construct [Bind] objects
+                // Construct [AsParameters] objects
                 for (int i = 0; i < command.Parameters.Length; i++)
                 {
                     var parameter = command.Parameters[i];

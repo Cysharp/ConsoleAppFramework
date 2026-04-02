@@ -119,7 +119,7 @@ public class Program
         ConsoleApp.Log = x => Console.WriteLine(x);
         var app = ConsoleApp.Create();
         app.ConfigureGlobalOptions<GlobalSettings>();
-        app.Add("search", ([Bind] SearchOptions opts) =>
+        app.Add("search", ([AsParameters] SearchOptions opts) =>
         {
             Console.Write($"Pattern={opts.Pattern}");
         });

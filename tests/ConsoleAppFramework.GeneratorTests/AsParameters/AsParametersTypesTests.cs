@@ -1,7 +1,7 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindTypesTests(VerifyHelper verifier)
+public class AsParametersTypesTests(VerifyHelper verifier)
 {
     [Test]
     public async Task EnumProperty()
@@ -22,7 +22,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] LogConfig config) =>
+        ConsoleApp.Run(args, ([AsParameters] LogConfig config) =>
         {
             Console.Write($"Level={config.Level}, Output={config.OutputPath}");
         });
@@ -52,7 +52,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Host={config.OptionalHost ?? "null"}, Port={config.OptionalPort?.ToString() ?? "null"}, Name={config.RequiredName}");
         });
@@ -80,7 +80,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"StartDate={config.StartDate:yyyy-MM-dd}");
         });
@@ -107,7 +107,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Id={config.Id}");
         });
@@ -134,7 +134,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Price={config.Price}");
         });
@@ -162,7 +162,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Float={config.FloatValue}, Double={config.DoubleValue}");
         });
@@ -192,7 +192,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Byte={config.ByteValue}, SByte={config.SByteValue}, Short={config.ShortValue}, UShort={config.UShortValue}");
         });
@@ -220,7 +220,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Delimiter={config.Delimiter}");
         });
@@ -248,7 +248,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Big={config.BigNumber}, UBig={config.UnsignedBigNumber}");
         });
@@ -275,7 +275,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Timeout={config.Timeout}");
         });
@@ -304,7 +304,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Level={config.Level?.ToString() ?? "null"}");
         });
@@ -333,7 +333,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Level={config.Level?.ToString() ?? "null"}");
         });
@@ -345,7 +345,7 @@ public class Program
     }
 
     // Note: Boolean with explicit true/false values (--verbose true/false) is not supported
-    // in [Bind] mode. Options are treated as flags where presence means true.
+    // in [AsParameters] mode. Options are treated as flags where presence means true.
     // Use regular parameters for explicit boolean value parsing.
 
     [Test]
@@ -364,7 +364,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Ports={string.Join(",", config.Ports)}");
         });
@@ -391,7 +391,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Ports={string.Join(",", config.Ports)}");
         });
@@ -418,7 +418,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Tags={string.Join(";", config.Tags)}");
         });
@@ -446,7 +446,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Value={config.Value}");
         });
@@ -478,7 +478,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Values={string.Join(",", config.Values)}");
         });
@@ -505,7 +505,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleApp.Run(args, ([Bind] Config config) =>
+        ConsoleApp.Run(args, ([AsParameters] Config config) =>
         {
             Console.Write($"Coords={string.Join(";", config.Coordinates)}");
         });

@@ -1,10 +1,10 @@
-namespace ConsoleAppFramework.GeneratorTests.Bind;
+namespace ConsoleAppFramework.GeneratorTests.AsParameters;
 
 [ClassDataSource<VerifyHelper>]
-public class BindAdvancedTests(VerifyHelper verifier)
+public class AsParametersAdvancedTests(VerifyHelper verifier)
 {
     [Test]
-    public async Task MixedParametersWithBind()
+    public async Task MixedParametersWithAsParameters()
     {
         // language=csharp
         var code = """
@@ -19,7 +19,7 @@ public class Program
         ConsoleApp.Run(args, (
             string name,
             int count,
-            [Bind] Options options
+            [AsParameters] Options options
         ) =>
         {
             Console.Write($"name={name}, count={count}, verbose={options.Verbose}, dryRun={options.DryRun}");
@@ -32,7 +32,7 @@ public class Program
     }
 
     [Test]
-    public async Task MultipleBindParameters()
+    public async Task MultipleAsParametersOnSameCommand()
     {
         // language=csharp
         var code = """
@@ -55,8 +55,8 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Run(args, (
-            [Bind] DatabaseConfig database,
-            [Bind] CacheConfig cache
+            [AsParameters] DatabaseConfig database,
+            [AsParameters] CacheConfig cache
         ) =>
         {
             Console.Write($"DB={database.Host}:{database.Port}, Cache={cache.Host}:{cache.Port}");
@@ -69,7 +69,7 @@ public class Program
     }
 
     [Test]
-    public async Task MultipleBinds_DifferentPrefixes_SamePropertyName()
+    public async Task MultipleAsParameters_DifferentPrefixes_SamePropertyName()
     {
         // language=csharp
         var code = """
@@ -92,8 +92,8 @@ public class Program
     public static void Main(string[] args)
     {
         ConsoleApp.Run(args, (
-            [Bind(Prefix = "db")] DbConfig db,
-            [Bind(Prefix = "cache")] CacheConfig cache
+            [AsParameters(Prefix = "db")] DbConfig db,
+            [AsParameters(Prefix = "cache")] CacheConfig cache
         ) =>
         {
             Console.Write($"DB={db.ConnectionString}:{db.Timeout}, Cache={cache.ConnectionString}:{cache.Timeout}");
@@ -106,7 +106,7 @@ public class Program
     }
 
     [Test]
-    public async Task BindWithRegularParameters()
+    public async Task AsParametersWithRegularParameters()
     {
         // language=csharp
         var code = """
@@ -125,7 +125,7 @@ public class Program
         ConsoleApp.Run(args, (
             [Argument] string input,
             [Argument] string output,
-            [Bind] Config config
+            [AsParameters] Config config
         ) =>
         {
             Console.Write($"input={input}, output={output}, verbose={config.Verbose}, format={config.Format}");
