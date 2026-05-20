@@ -24,5 +24,4 @@ jobs:
       # Native AOT tests
       - run: dotnet publish -r linux-x64 tests/ConsoleAppFramework.NativeAotTests/ConsoleAppFramework.NativeAotTests.csproj
       - run: tests/ConsoleAppFramework.NativeAotTests/bin/Release/net10.0/linux-x64/publish/ConsoleAppFramework.NativeAotTests
-
       - run: dotnet pack -c Release --no-build -p:IncludeSymbols=true -o $GITHUB_WORKSPACE/artifacts
