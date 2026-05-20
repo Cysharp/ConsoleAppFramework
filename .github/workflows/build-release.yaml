@@ -16,6 +16,7 @@ jobs:
   build-dotnet:
     permissions:
       contents: read
+      id-token: write # required for NuGet Trusted Publish
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
