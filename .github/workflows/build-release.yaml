@@ -27,8 +27,8 @@ jobs:
       # Native AOT tests
       - run: dotnet publish -r linux-x64 tests/ConsoleAppFramework.NativeAotTests/ConsoleAppFramework.NativeAotTests.csproj
       - run: tests/ConsoleAppFramework.NativeAotTests/bin/Release/net10.0/linux-x64/publish/ConsoleAppFramework.NativeAotTests
-      # pack nuget
-      - run: dotnet pack -c Release --no-build -p:Version=${{ inputs.tag }} -o ./publish
+      # pack nuget (.nupkg and .symbols.nupkg will be created)
+      - run: dotnet pack -c Release --no-build -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -o ./publish
       - uses: Cysharp/Actions/.github/actions/upload-artifact@main
         with:
           name: nuget
@@ -41,10 +41,6 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
       - run: dotnet nuget push "./publish/*.nupkg" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${NUGET_KEY}"
-        if: ${{ !inputs.dry-run }}
-        env:
-          NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
-      - run: dotnet nuget push "./publish/*.snupkg" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${NUGET_KEY}"
         if: ${{ !inputs.dry-run }}
         env:
           NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
