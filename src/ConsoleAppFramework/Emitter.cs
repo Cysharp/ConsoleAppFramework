@@ -8,13 +8,56 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
     public void EmitRun(SourceBuilder sb, CommandWithId commandWithId, bool isRunAsync, string? methodName)
     {
         var command = commandWithId.Command;
+        var runtimeParameters = command.Parameters;
+        var effectiveParseParameters = command.EffectiveParseParameters;
+        var asParametersExpansionBindings = command.AsParametersExpansionBindings
+            .Select((binding, index) => new { Binding = binding, Index = index })
+            .ToArray();
+        var hasAsParametersExpansion = asParametersExpansionBindings.Length != 0;
+        var asParametersExpansionBindingByRuntimeIndex = asParametersExpansionBindings
+            .ToDictionary(x => x.Binding.RuntimeParameterIndex, x => x);
+        var runtimeToExpandedParameterIndex = new int[runtimeParameters.Length];
+        for (var i = 0; i < runtimeToExpandedParameterIndex.Length; i++)
+        {
+            runtimeToExpandedParameterIndex[i] = -1;
+        }
+        var expandedParameterInfoSources = new string[effectiveParseParameters.Length];
+        if (hasAsParametersExpansion)
+        {
+            var expandedParameterIndex = 0;
+            for (var i = 0; i < runtimeParameters.Length; i++)
+            {
+                if (asParametersExpansionBindingByRuntimeIndex.TryGetValue(i, out var bindingWithIndex))
+                {
+                    var parseParameterIndexes = bindingWithIndex.Binding.ParseParameterIndexes;
+                    for (var j = 0; j < parseParameterIndexes.Length; j++)
+                    {
+                        expandedParameterInfoSources[parseParameterIndexes[j]] = $"asParametersCtorParameters{bindingWithIndex.Index}[{j}]";
+                    }
+                    expandedParameterIndex += parseParameterIndexes.Length;
+                }
+                else
+                {
+                    runtimeToExpandedParameterIndex[i] = expandedParameterIndex;
+                    expandedParameterInfoSources[expandedParameterIndex] = $"parameters[{i}]";
+                    expandedParameterIndex++;
+                }
+            }
+        }
+        else
+        {
+            for (var i = 0; i < runtimeParameters.Length; i++)
+            {
+                runtimeToExpandedParameterIndex[i] = i;
+                expandedParameterInfoSources[i] = $"parameters[{i}]";
+            }
+        }
 
         var emitForBuilder = methodName != null;
-        var hasCancellationToken = command.Parameters.Any(x => x.IsCancellationToken);
-        var hasConsoleAppContext = command.Parameters.Any(x => x.IsConsoleAppContext);
-        var hasArgument = command.Parameters.Any(x => x.IsArgument);
-        var hasValidation = command.Parameters.Any(x => x.HasValidation);
-        var parsableParameterCount = command.Parameters.Count(x => x.IsParsable);
+        var hasCancellationToken = effectiveParseParameters.Any(x => x.IsCancellationToken);
+        var hasConsoleAppContext = effectiveParseParameters.Any(x => x.IsConsoleAppContext);
+        var hasArgument = effectiveParseParameters.Any(x => x.IsArgument);
+        var hasValidation = effectiveParseParameters.Any(x => x.HasValidation);
 
         if (command.HasFilter)
         {
@@ -47,7 +90,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
         if (!emitForBuilder)
         {
             sb.AppendLine("/// <summary>");
-            var help = CommandHelpBuilder.BuildCommandHelpMessage(commandWithId.Command);
+            var help = CommandHelpBuilder.BuildCommandHelpMessage(command with { Parameters = effectiveParseParameters });
 #pragma warning disable RS1035
             foreach (var line in help.Split([Environment.NewLine], StringSplitOptions.None))
             {
@@ -64,7 +107,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
         var methodArgument = command.HasFilter
             ? Join(", ", commandMethodType, "ConsoleAppContext context", "CancellationToken cancellationToken")
-            : Join(", ", "string[] args", (emitForBuilder ? "int commandDepth" : ""), commandMethodType, cancellationTokenParameter);
+            : Join(", ", "string[] args", emitForBuilder ? "int commandDepth" : "", commandMethodType, cancellationTokenParameter);
 
         using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}({methodArgument})"))
         {
@@ -74,7 +117,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 var noCommandArgsMemory = false;
                 if (command.HasFilter)
                 {
-                    sb.AppendLine("var commandArgsMemory = context.InternalCommandArgs;"); // already prepared and craeted ConsoleAppContext
+                    sb.AppendLine("var commandArgsMemory = context.InternalCommandArgs;"); // already prepared and created ConsoleAppContext
                 }
                 else
                 {
@@ -154,9 +197,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     sb.AppendLine();
                 }
 
-                for (var i = 0; i < command.Parameters.Length; i++)
+                for (var i = 0; i < effectiveParseParameters.Length; i++)
                 {
-                    var parameter = command.Parameters[i];
+                    var parameter = effectiveParseParameters[i];
                     if (parameter.IsParsable)
                     {
                         var defaultValue = parameter.IsParams ? $"({parameter.ToTypeDisplayString()})[]"
@@ -195,7 +238,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                         sb.AppendLine(line);
                     }
                 }
-                sb.AppendLineIfExists(command.Parameters.AsSpan());
+                sb.AppendLineIfExists(effectiveParseParameters.AsSpan());
 
                 if (hasArgument)
                 {
@@ -215,16 +258,16 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     }
                     sb.AppendLine();
 
-                    if (!command.Parameters.All(p => !p.IsParsable || p.IsArgument))
+                    if (!effectiveParseParameters.All(p => !p.IsParsable || p.IsArgument))
                     {
                         using (hasArgument ? sb.BeginBlock("if (optionCandidate)") : sb.Nop)
                         {
                             using (sb.BeginBlock("switch (name)"))
                             {
                                 // parse argument(fast, switch directly)
-                                for (int i = 0; i < command.Parameters.Length; i++)
+                                for (int i = 0; i < effectiveParseParameters.Length; i++)
                                 {
-                                    var parameter = command.Parameters[i];
+                                    var parameter = effectiveParseParameters[i];
                                     if (!parameter.IsParsable) continue;
                                     if (parameter.IsArgument) continue;
 
@@ -247,9 +290,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                 using (sb.BeginIndent("default:"))
                                 {
                                     // parse argument(slow, ignorecase)
-                                    for (int i = 0; i < command.Parameters.Length; i++)
+                                    for (int i = 0; i < effectiveParseParameters.Length; i++)
                                     {
-                                        var parameter = command.Parameters[i];
+                                        var parameter = effectiveParseParameters[i];
                                         if (!parameter.IsParsable) continue;
                                         if (parameter.IsArgument) continue;
 
@@ -280,9 +323,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     // parse indexed argument([Argument] parameter)
                     if (hasArgument)
                     {
-                        for (int i = 0; i < command.Parameters.Length; i++)
+                        for (int i = 0; i < effectiveParseParameters.Length; i++)
                         {
-                            var parameter = command.Parameters[i];
+                            var parameter = effectiveParseParameters[i];
                             if (!parameter.IsArgument) continue;
 
                             sb.AppendLine($"if (argumentPosition == {parameter.ArgumentIndex})");
@@ -307,9 +350,9 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 }
 
                 // validate parsed
-                for (int i = 0; i < command.Parameters.Length; i++)
+                for (int i = 0; i < effectiveParseParameters.Length; i++)
                 {
-                    var parameter = command.Parameters[i];
+                    var parameter = effectiveParseParameters[i];
                     if (!parameter.IsParsable) continue;
 
                     if (parameter.RequireCheckArgumentParsed)
@@ -331,13 +374,21 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     {
                         sb.AppendLine($"var parameters = typeof({command.CommandMethodInfo.TypeFullName}).GetMethod(\"{command.CommandMethodInfo.MethodName}\").GetParameters();");
                     }
-                    sb.AppendLine("System.Text.StringBuilder? errorMessages = null;");
-                    for (int i = 0; i < command.Parameters.Length; i++)
+                    if (hasAsParametersExpansion)
                     {
-                        var parameter = command.Parameters[i];
+                        foreach (var binding in asParametersExpansionBindings)
+                        {
+                            sb.AppendLine($"var asParametersCtorParameters{binding.Index} = typeof({binding.Binding.TargetType.ToFullyQualifiedFormatDisplayString()}).GetConstructors(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)[0].GetParameters();");
+                        }
+                    }
+                    sb.AppendLine("System.Text.StringBuilder? errorMessages = null;");
+                    for (int i = 0; i < effectiveParseParameters.Length; i++)
+                    {
+                        var parameter = effectiveParseParameters[i];
                         if (!parameter.HasValidation) continue;
 
-                        sb.AppendLine($"ValidateParameter(arg{i}, parameters[{i}], validationContext, ref errorMessages);");
+                        var parameterInfoSource = expandedParameterInfoSources[i];
+                        sb.AppendLine($"ValidateParameter(arg{i}, {parameterInfoSource}, validationContext, ref errorMessages);");
                     }
                     sb.AppendLine("if (errorMessages != null)");
                     using (sb.BeginBlock())
@@ -348,7 +399,30 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
                 // invoke for sync/async, void/int
                 sb.AppendLine();
-                var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
+                string methodArguments;
+                if (!hasAsParametersExpansion)
+                {
+                    methodArguments = string.Join(", ", runtimeParameters.Select((_, i) => $"arg{i}!"));
+                }
+                else
+                {
+                    for (var i = 0; i < runtimeParameters.Length; i++)
+                    {
+                        if (runtimeToExpandedParameterIndex[i] != -1)
+                        {
+                            sb.AppendLine($"var runtimeArg{i} = arg{runtimeToExpandedParameterIndex[i]}!;");
+                        }
+                        else
+                        {
+                            var bindingWithIndex = asParametersExpansionBindingByRuntimeIndex[i];
+                            var parseIndexes = string.Join(", ", bindingWithIndex.Binding.ParseParameterIndexes.Select(x => $"arg{x}!"));
+                            sb.AppendLine($"var runtimeArg{i} = new {bindingWithIndex.Binding.TargetType.ToFullyQualifiedFormatDisplayString()}({parseIndexes});");
+                        }
+                    }
+                    sb.AppendLine();
+                    methodArguments = string.Join(", ", runtimeParameters.Select((_, i) => $"runtimeArg{i}!"));
+                }
+
                 string invokeCommand;
                 if (command.CommandMethodInfo == null)
                 {
@@ -544,7 +618,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
             }
 
             // static sync command function
-            HashSet<Command> emittedCommand = new();
+            HashSet<Command> emittedCommand = [];
             if (emitSync)
             {
                 sb.AppendLine();
@@ -838,7 +912,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 sb.AppendLine();
                 using (sb.BeginBlock("public ConsoleApp.ConsoleAppBuilder ConfigureServices(Action<IConfiguration, IServiceCollection> configure)"))
                 {
-                    // for backward-compatiblity, we chooce (IConfiguration, IServiceCollection) for two arguments overload
+                    // for backward-compatibility, we choose (IConfiguration, IServiceCollection) for two arguments overload
                     sb.AppendLine("this.requireConfiguration = true;");
                     sb.AppendLine("this.configureServices = (_, configuration, services) => configure(configuration, services);");
                     sb.AppendLine("this.isRequireCallBuildAndSetServiceProvider = true;");
