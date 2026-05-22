@@ -147,9 +147,28 @@ internal static class RoslynExtensions
     public static string GetSummary(this DocumentationCommentTriviaSyntax docComment)
     {
         var summary = docComment.Content.GetXmlElements("summary").FirstOrDefault() as XmlElementSyntax;
-        if (summary == null) return "";
+        if (summary != null)
+            return summary.Content.ToString().Replace("///", "").Trim();
 
-        return summary.Content.ToString().Replace("///", "").Trim();
+        // Support plain triple slash comments without XML tags
+        // e.g., /// This is a description
+        var plainText = new System.Text.StringBuilder();
+        foreach (var node in docComment.Content)
+        {
+            if (node is XmlTextSyntax textSyntax)
+            {
+                foreach (var token in textSyntax.TextTokens)
+                {
+                    var text = token.Text.Replace("///", "").Trim();
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        if (plainText.Length > 0) plainText.Append(' ');
+                        plainText.Append(text);
+                    }
+                }
+            }
+        }
+        return plainText.ToString().Trim();
     }
 
     public static IEnumerable<(string Name, string Description)> GetParams(this DocumentationCommentTriviaSyntax docComment)
