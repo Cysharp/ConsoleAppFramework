@@ -35,13 +35,13 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         {
             var commandName = args[0];
 
-            if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
+            if (!IsStringLiteralOrNameOf(commandName.Expression))
             {
                 context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, commandName.GetLocation());
                 return null;
             }
 
-            var name = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            var name = GetStringValue(commandName.Expression);
             var command = ExpressionToCommand(args[1].Expression, name);
             if (command != null)
             {
@@ -66,13 +66,13 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         if (node2.ArgumentList.Arguments.Count == 1)
         {
             var commandName = args[0];
-            if (!commandName.Expression.IsKind(SyntaxKind.StringLiteralExpression))
+            if (!IsStringLiteralOrNameOf(commandName.Expression))
             {
                 context.ReportDiagnostic(DiagnosticDescriptors.AddCommandMustBeStringLiteral, commandName.GetLocation());
                 return [];
             }
 
-            commandPath = (commandName.Expression as LiteralExpressionSyntax)!.Token.ValueText;
+            commandPath = GetStringValue(commandName.Expression);
         }
 
         // T
@@ -874,4 +874,24 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             description = originalDescription;
         }
     }
+
+    static bool IsStringLiteralOrNameOf(ExpressionSyntax expression) =>
+        expression.IsKind(SyntaxKind.StringLiteralExpression) ||
+        expression is InvocationExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.Text: "nameof" } };
+
+    static string GetStringValue(ExpressionSyntax expression) =>
+        expression switch
+        {
+            LiteralExpressionSyntax literal => literal.Token.ValueText,
+            InvocationExpressionSyntax invocation => GetLastIdentifier(invocation.ArgumentList.Arguments[0].Expression),
+            _ => throw new InvalidOperationException()
+        };
+
+    static string GetLastIdentifier(ExpressionSyntax expression) =>
+        expression switch
+        {
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+            AliasQualifiedNameSyntax aliasQualified => aliasQualified.Name.Identifier.Text,
+            _ => expression.ToString()
+        };
 }
