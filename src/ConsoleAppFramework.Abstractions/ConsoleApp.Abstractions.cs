@@ -105,6 +105,22 @@ public sealed class ConsoleAppFilterAttribute<T> : Attribute
 {
 }
 
-public sealed class ArgumentParseFailedException(string message) : Exception(message)
+public class ArgumentParseFailedException : Exception
 {
+    public ArgumentParseFailedException(string message, string argumentName) : base(message)
+    {
+        ArgumentName = argumentName;
+    }
+
+    public string ArgumentName { get; }
+}
+
+public sealed class ArgumentParseInvalidValueException : ArgumentParseFailedException
+{
+    public ArgumentParseInvalidValueException(string message, string argumentName, string argumentValue) : base(message, argumentName)
+    {
+        ArgumentValue = argumentValue;
+    }
+
+    public string ArgumentValue { get; }
 }

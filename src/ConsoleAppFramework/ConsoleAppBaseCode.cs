@@ -140,8 +140,24 @@ internal sealed class ConsoleAppFilterAttribute<T> : Attribute
 {
 }
 
-internal sealed class ArgumentParseFailedException(string message) : Exception(message)
+internal class ArgumentParseFailedException : Exception
 {
+    public ArgumentParseFailedException(string message, string argumentName) : base(message)
+    {
+        ArgumentName = argumentName;
+    }
+
+    public string ArgumentName { get; }
+}
+
+internal sealed class ArgumentParseInvalidValueException : ArgumentParseFailedException
+{
+    public ArgumentParseInvalidValueException(string message, string argumentName, string argumentValue) : base(message, argumentName)
+    {
+        ArgumentValue = argumentValue;
+    }
+
+    public string ArgumentValue { get; }
 }
 
 #endif
@@ -254,23 +270,23 @@ internal static partial class ConsoleApp
 
     static void ThrowArgumentParseFailed(string argumentName, string value)
     {
-        throw new ArgumentParseFailedException($"Argument '{argumentName}' failed to parse, provided value: {value}");
+        throw new ArgumentParseInvalidValueException($"Argument '{argumentName}' failed to parse, provided value: {value}", argumentName, value);
     }
 
     static void ThrowArgumentParseFailedEnum(Type enumType, string argumentName, string value)
     {
         var values = string.Join(", ", Enum.GetNames(enumType));
-        throw new ArgumentParseFailedException($"Argument '{argumentName}' is invalid. Provided value: {value}. Valid values: {values}");
+        throw new ArgumentParseInvalidValueException($"Argument '{argumentName}' is invalid. Provided value: {value}. Valid values: {values}", argumentName, value);
     }
 
     static void ThrowRequiredArgumentNotParsed(string name)
     {
-        throw new ArgumentParseFailedException($"Required argument '{name}' was not specified.");
+        throw new ArgumentParseFailedException($"Required argument '{name}' was not specified.", name);
     }
 
-    static void ThrowArgumentNameNotFound(string argumentName)
+    static void ThrowArgumentNameNotFound(string name)
     {
-        throw new ArgumentParseFailedException($"Argument '{argumentName}' is not recognized.");
+        throw new ArgumentParseFailedException($"Argument '{name}' is not recognized.", name);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
