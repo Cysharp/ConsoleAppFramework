@@ -145,6 +145,7 @@ ConsoleAppFramework offers a rich set of features as a framework. The Source Gen
 * Registration of nested commands
 * Setting option aliases and descriptions from code document comment
 * `System.ComponentModel.DataAnnotations` attribute-based Validation
+* Grouped parameter binding via `[AsParameters]`
 * Dependency Injection for command registration by type and public methods
 * `Microsoft.Extensions`(Logging, Configuration, etc...) integration
 * High performance value parsing via `ISpanParsable<T>`
@@ -625,6 +626,42 @@ ConsoleApp.Run(args, ([Argument]string input, [Argument]string output, bool dryR
 // cmd.exe --message "foo bar baz" "output1.txt" "output2.txt" "output3.txt"
 ConsoleApp.Run(args, (string message, [Argument]params string[] outputs) => { });
 ```
+
+### AsParameters
+
+You can group command parameters into a single record class by annotating a command parameter with `[AsParameters]`. Constructor parameters of that record are flattened and treated as normal command parameters.
+
+```csharp
+ConsoleApp.Run(args, ([AsParameters] CreateUserOptions options, int repeat) =>
+{
+    for (var i = 0; i < repeat; i++)
+    {
+        Console.WriteLine($"{options.Name}:{options.Age}:{options.Force}");
+    }
+});
+
+public record class CreateUserOptions(
+    string Name,
+    [Argument] int Age = 20,
+    bool Force = false);
+```
+
+In this case, `Name`, `Age`, and `Force` are parsed from CLI arguments, then `CreateUserOptions` is constructed and passed to the command method. `[AsParameters]` can be mixed with regular parameters, `[FromServices]`, `CancellationToken`, `ConsoleAppContext`, and global options.
+
+Aliases and descriptions for expanded parameters are also supported via XML documentation comments on the target record constructor parameters.
+
+```csharp
+/// <param name="Name">-n, User name.</param>
+/// <param name="Age">-a, User age.</param>
+public record class CreateUserOptions(string Name, int Age);
+```
+
+Current constraints:
+
+* The `[AsParameters]` target must be a `record class`.
+* The target type must have exactly one public instance constructor.
+* Nested `[AsParameters]` on constructor parameters is not supported.
+* `params` constructor parameters are not supported.
 
 To convert from string arguments to various types, basic primitive types (`string`, `char`, `sbyte`, `byte`, `short`, `int`, `long`, `uint`, `ushort`, `ulong`, `decimal`, `float`, `double`) use `TryParse`. For types that implement `ISpanParsable<T>` (`DateTime`, `DateTimeOffset`, `Guid`, `BigInteger`, `Complex`, `Half`, `Int128`, etc.), [IParsable<TSelf>.TryParse](https://learn.microsoft.com/en-us/dotnet/api/system.iparsable-1.tryparse?view=net-8.0#system-ispanparsable-1-tryparse(system-readonlyspan((system-char))-system-iformatprovider-0@)) or [ISpanParsable<TSelf>.TryParse](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1.tryparse?view=net-8.0#system-ispanparsable-1-tryparse(system-readonlyspan((system-char))-system-iformatprovider-0@)) is used.
 

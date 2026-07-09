@@ -179,7 +179,7 @@ public static class CommandHelpBuilder
 
         sb.AppendLine("Options:");
         var first = true;
-        foreach (var opt in optionsFormatted)
+        foreach (var (Options, Description, IsRequired, IsFlag, DefaultValue, IsDefaultValueHidden) in optionsFormatted)
         {
             if (first)
             {
@@ -190,7 +190,7 @@ public static class CommandHelpBuilder
                 sb.AppendLine();
             }
 
-            var options = opt.Options;
+            var options = Options;
             var padding = maxWidth - options.Length;
 
             sb.Append("  ");
@@ -201,21 +201,29 @@ public static class CommandHelpBuilder
             }
 
             sb.Append("    ");
-            sb.Append(opt.Description);
+            sb.Append(Description);
 
             // Flags are optional by default; leave them untagged.
-            if (!opt.IsFlag)
+            if (!IsFlag)
             {
-                if (opt.DefaultValue != null)
+                if (DefaultValue != null)
                 {
-                    if (!opt.IsDefaultValueHidden)
+                    if (!IsDefaultValueHidden)
                     {
-                        sb.Append($" [Default: {opt.DefaultValue}]");
+                        if (!string.IsNullOrEmpty(Description))
+                        {
+                            sb.Append(' ');
+                        }
+                        sb.Append($"[Default: {DefaultValue}]");
                     }
                 }
-                else if (opt.IsRequired)
+                else if (IsRequired)
                 {
-                    sb.Append($" [Required]");
+                    if (!string.IsNullOrEmpty(Description))
+                    {
+                        sb.Append(' ');
+                    }
+                    sb.Append("[Required]");
                 }
             }
         }

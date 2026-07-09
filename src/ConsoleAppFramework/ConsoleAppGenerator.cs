@@ -2,11 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
-using System.ComponentModel.Design;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 
 namespace ConsoleAppFramework;
 
@@ -219,7 +215,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         using (sb.BeginBlock("internal static partial class ConsoleApp"))
         {
             var emitter = new Emitter(null);
-            var requiredParsableParameterCount = command.Parameters.Count(p => p.IsParsable && p.RequireCheckArgumentParsed);
+            var requiredParsableParameterCount = command.EffectiveParseParameters.Count(p => p.IsParsable && p.RequireCheckArgumentParsed);
             var withId = new Emitter.CommandWithId(null, command, -1, requiredParsableParameterCount);
             emitter.EmitRun(sb, withId, commandContext.IsAsync, null);
         }
@@ -230,7 +226,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         {
             var emitter = new Emitter(null);
-            emitter.EmitHelp(help, command);
+            emitter.EmitHelp(help, command with { Parameters = command.EffectiveParseParameters });
         }
         sourceProductionContext.AddSource("ConsoleApp.Run.Help.g.cs", help.ToString().ReplaceLineEndings());
     }
@@ -276,7 +272,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                     Command: x!,
                     Id: i,
 
-                    RequiredParsableParameterCount: x!.Parameters.Count(p => p.IsParsable && p.RequireCheckArgumentParsed)
+                    RequiredParsableParameterCount: x!.EffectiveParseParameters.Count(p => p.IsParsable && p.RequireCheckArgumentParsed)
                 );
                 if (delegateDef != null)
                 {
@@ -305,6 +301,13 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         using (help.BeginBlock("internal static partial class ConsoleApp"))
         using (help.BeginBlock("internal partial class ConsoleAppBuilder"))
         {
+            commandIds = commandIds
+                .Select(x => x with
+                {
+                    Command = x.Command with { Parameters = x.Command.EffectiveParseParameters }
+                })
+                .ToArray();
+
             if (collectBuilderContext.GlobalOptions.Length != 0)
             {
                 // quick-hack to override commandIds
