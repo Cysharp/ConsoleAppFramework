@@ -1039,7 +1039,7 @@ internal class AuthenticationFilter(ConsoleAppFilter next) : ConsoleAppFilter(ne
     }
 }
 
-record class ApplicationContext(Guid RequiestId, int UserId);
+record class ApplicationContext(Guid RequestId, int UserId);
 ```
 
 Commands can accept `ConsoleAppContext` as an argument. This allows using the values processed by filters.
@@ -1052,7 +1052,7 @@ app.UseFilter<AuthenticationFilter>();
 app.Add("", (int x, int y, ConsoleAppContext context) =>
 {
     var appContext = (ApplicationContext)context.State!;
-    var requestId = appContext.RequiestId;
+    var requestId = appContext.RequestId;
     var userId = appContext.UserId;
 
     Console.WriteLine($"Request:{requestId} User:{userId} Sum:{x + y}");
