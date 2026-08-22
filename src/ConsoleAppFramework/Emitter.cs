@@ -974,6 +974,17 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                 }
                 sb.AppendLine("isRequireCallBuildAndSetServiceProvider = false;");
 
+                // keep an already set ServiceProvider(e.g. hosting integration's ToConsoleAppBuilder) when nothing was configured on the builder itself
+                var nothingConfigured = "configureServices == null && createServiceProvider == null && postConfigureServices == null";
+                if (dllReference.HasLogging)
+                {
+                    nothingConfigured += " && configureLogging == null";
+                }
+                using (sb.BeginBlock($"if (ConsoleApp.ServiceProvider != null && {nothingConfigured})"))
+                {
+                    sb.AppendLine("return;");
+                }
+
                 if (dllReference.HasConfiguration)
                 {
                     sb.AppendLine("var config = configuration;");

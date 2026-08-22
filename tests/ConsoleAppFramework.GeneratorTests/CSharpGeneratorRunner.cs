@@ -31,7 +31,7 @@ global using ConsoleAppFramework;
         baseCompilation = compilation;
     }
 
-    public (Compilation, ImmutableArray<Diagnostic>) RunGenerator([StringSyntax("C#-test")] string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public (Compilation, ImmutableArray<Diagnostic>) RunGenerator([StringSyntax("C#-test")] string source, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null, MetadataReference[]? additionalReferences = null)
     {
         if (preprocessorSymbols == null)
         {
@@ -76,14 +76,18 @@ namespace ConsoleAppFramework
 }
 """;
         var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions), CSharpSyntaxTree.ParseText(captureStaticCode, parseOptions));
+        if (additionalReferences != null)
+        {
+            compilation = compilation.AddReferences(additionalReferences);
+        }
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics);
         return (newCompilation, diagnostics);
     }
 
-    public (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics, string Stdout, int ExitCode) CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null)
+    public (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics, string Stdout, int ExitCode) CompileAndExecute(string source, string[] args, string[]? preprocessorSymbols = null, AnalyzerConfigOptionsProvider? options = null, MetadataReference[]? additionalReferences = null)
     {
-        var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options);
+        var (compilation, diagnostics) = RunGenerator(source, preprocessorSymbols, options, additionalReferences);
 
         using var ms = new MemoryStream();
         var emitResult = compilation.Emit(ms);
@@ -207,11 +211,11 @@ public class VerifyHelper
 
     // Execute and check stdout result
 
-    public async Task<int> Execute([StringSyntax("C#-test")] string code, string args, string expected, [CallerArgumentExpression("code")] string? codeExpr = null)
+    public async Task<int> Execute([StringSyntax("C#-test")] string code, string args, string expected, MetadataReference[]? additionalReferences = null, [CallerArgumentExpression("code")] string? codeExpr = null)
     {
         Console.WriteLine(codeExpr!);
 
-        var (compilation, diagnostics, stdout, exitCode) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '));
+        var (compilation, diagnostics, stdout, exitCode) = CSharpGeneratorRunner.CompileAndExecute(code, args == "" ? [] : args.Split(' '), additionalReferences: additionalReferences);
         foreach (var item in diagnostics)
         {
             Console.WriteLine(item.ToString());
