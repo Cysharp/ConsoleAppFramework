@@ -18,7 +18,7 @@ public class HiddenAtttributeTest(VerifyHelper verifier)
             Usage: [options...] [-h|--help] [--version]
 
             Options:
-              --x <int>     [Required]
+              --x <int>    [Required]
 
             """);
     }
@@ -73,7 +73,7 @@ public class HiddenAtttributeTest(VerifyHelper verifier)
             Usage: command3 [options...] [-h|--help] [--version]
 
             Options:
-              --x <int>     [Required]
+              --x <int>    [Required]
 
             """);
 

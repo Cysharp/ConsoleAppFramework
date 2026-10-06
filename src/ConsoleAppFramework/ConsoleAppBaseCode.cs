@@ -156,6 +156,11 @@ internal sealed class ArgumentAttribute : Attribute
 {
 }
 
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+internal sealed class AsParametersAttribute : Attribute
+{
+}
+
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 internal sealed class CommandAttribute : Attribute
 {

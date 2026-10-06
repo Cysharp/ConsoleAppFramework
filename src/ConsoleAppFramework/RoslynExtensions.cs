@@ -149,7 +149,7 @@ internal static class RoslynExtensions
         var summary = docComment.Content.GetXmlElements("summary").FirstOrDefault() as XmlElementSyntax;
         if (summary == null) return "";
 
-        return summary.Content.ToString().Replace("///", "").Trim();
+        return NormalizeDocCommentText(summary.Content.ToString());
     }
 
     public static IEnumerable<(string Name, string Description)> GetParams(this DocumentationCommentTriviaSyntax docComment)
@@ -162,6 +162,31 @@ internal static class RoslynExtensions
         }
 
         yield break;
+    }
+
+    static string NormalizeDocCommentText(string text)
+    {
+        var lines = text.Replace("///", "").Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+
+        var start = 0;
+        var end = lines.Length - 1;
+        while (start <= end && string.IsNullOrWhiteSpace(lines[start]))
+        {
+            start++;
+        }
+        while (end >= start && string.IsNullOrWhiteSpace(lines[end]))
+        {
+            end--;
+        }
+
+        if (start > end) return "";
+
+        var normalized = new string[end - start + 1];
+        for (var i = start; i <= end; i++)
+        {
+            normalized[i - start] = lines[i].Trim();
+        }
+        return string.Join("\n", normalized);
     }
 
     public static void GetConstantValues(this ArgumentListSyntax argumentListSyntax, SemanticModel model,

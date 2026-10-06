@@ -131,4 +131,29 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor InvalidGlobalOptionsType { get; } = Create(
         18,
         "GlobalOption parameter type only allows compile-time constant(primitives, string, enum) and there nullable.");
+
+    public static DiagnosticDescriptor AsParametersTargetMustBeRecordClass { get; } = Create(
+        19,
+        "[AsParameters] target must be a record class.",
+        "Parameter '{0}' marked with [AsParameters] must be a record class type, but found '{1}'.");
+
+    public static DiagnosticDescriptor AsParametersTargetMustHaveSinglePublicConstructor { get; } = Create(
+        20,
+        "[AsParameters] target must have exactly one public instance constructor.",
+        "Type '{0}' used with [AsParameters] must declare exactly one public instance constructor.");
+
+    public static DiagnosticDescriptor AsParametersNestedNotSupported { get; } = Create(
+        21,
+        "Nested [AsParameters] is not supported.",
+        "Parameter '{0}' in [AsParameters] target '{1}' cannot also be marked with [AsParameters].");
+
+    public static DiagnosticDescriptor AsParametersParamsNotSupported { get; } = Create(
+        22,
+        "[AsParameters] does not support params constructor parameters.",
+        "Parameter '{0}' in [AsParameters] target '{1}' cannot use the 'params' modifier.");
+
+    public static DiagnosticDescriptor DuplicateOptionNameOrAlias { get; } = Create(
+        23,
+        "Option name or alias is duplicated.",
+        "Option name or alias '{0}' is duplicated.");
 }
