@@ -49,6 +49,18 @@ ConsoleApp.Run(args, (int[] ix, string[] sx) =>
     }
 
     [Test]
+    public async Task RepeatArguments()
+    {
+        var code = """
+ConsoleApp.Run(args, (int[] number) =>
+{
+    Console.Write("[" + string.Join(", ", number) + "]");
+});
+""";
+        await verifier.Execute(code, args: "--number 1 --number 2 --number 3 --number 4 --number 5", expected: "[1, 2, 3, 4, 5]");
+    }
+
+    [Test]
     public async Task JsonArray()
     {
         var code = """

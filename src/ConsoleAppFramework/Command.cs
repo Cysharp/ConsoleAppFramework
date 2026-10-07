@@ -273,7 +273,7 @@ public record class CommandParameter
                         {
                             if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
                             {
-                                return $"if ({incrementIndex}!TrySplitParse(commandArgs[i], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
+                                return $"if ({incrementIndex}!TrySplitParse(commandArgs[i], arg{argCount})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
                             }
                         }
                         break;

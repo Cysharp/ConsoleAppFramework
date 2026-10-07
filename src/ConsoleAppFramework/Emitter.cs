@@ -159,10 +159,18 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     var parameter = command.Parameters[i];
                     if (parameter.IsParsable)
                     {
-                        var defaultValue = parameter.IsParams ? $"({parameter.ToTypeDisplayString()})[]"
+                        if (parameter.Type.TypeKind == TypeKind.Array && !parameter.IsParams)
+                        {
+                            sb.AppendLine($"var arg{i} = new List<{((IArrayTypeSymbol)parameter.Type.TypeSymbol).ElementType.ToFullyQualifiedFormatDisplayString()}>();");
+                        }
+                        else
+                        {
+                            var defaultValue = parameter.IsParams ? $"({parameter.ToTypeDisplayString()})[]"
                                          : parameter.HasDefaultValue ? parameter.DefaultValueToString()
                                          : $"default({parameter.Type.ToFullyQualifiedFormatDisplayString()})";
-                        sb.AppendLine($"var arg{i} = {defaultValue};");
+                            sb.AppendLine($"var arg{i} = {defaultValue};");
+                        }
+                        
                         if (parameter.RequireCheckArgumentParsed)
                         {
                             sb.AppendLine($"var arg{i}Parsed = false;");
@@ -348,7 +356,13 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
                 // invoke for sync/async, void/int
                 sb.AppendLine();
-                var methodArguments = string.Join(", ", command.Parameters.Select((x, i) => $"arg{i}!"));
+                var methodArguments = string.Join(", ", command.Parameters.Select((x, i) =>
+                {
+                    if (x.IsParsable && x.Type.TypeKind == TypeKind.Array && !x.IsParams)
+                        return $"arg{i}.ToArray()";
+                    else
+                        return $"arg{i}!";
+                }));
                 string invokeCommand;
                 if (command.CommandMethodInfo == null)
                 {

@@ -18,6 +18,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 """;
 
@@ -37,6 +38,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 #if !USE_EXTERNAL_CONSOLEAPP_ABSTRACTIONS
 
@@ -296,28 +298,29 @@ internal static partial class ConsoleApp
         return true;
     }
 
-    static bool TrySplitParse<T>(ReadOnlySpan<char> s, out T[] result)
+    static bool TrySplitParse<T>(ReadOnlySpan<char> s, List<T> result)
        where T : ISpanParsable<T>
     {
+        T[] array = default(T[]); 
         if (s.StartsWith("["))
         {
             try
             {
-                result = System.Text.Json.JsonSerializer.Deserialize<T[]>(s, JsonSerializerOptions)!;
+                array = System.Text.Json.JsonSerializer.Deserialize<T[]>(s, JsonSerializerOptions)!;
+                result.AddRange(array);
                 return true;
             }
             catch
             {
-                result = default!;
                 return false;
             }
         }
 
         var count = s.Count(',') + 1;
-        result = new T[count];
+        array = new T[count];
 
         var source = s;
-        var destination = result.AsSpan();
+        var destination = array.AsSpan();
         Span<Range> ranges = stackalloc Range[Math.Min(count, 128)];
 
         while (true)
@@ -348,6 +351,8 @@ internal static partial class ConsoleApp
                 break;
             }
         }
+
+        result.AddRange(array);
 
         return true;
     }
