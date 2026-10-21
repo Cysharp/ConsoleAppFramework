@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -196,46 +196,6 @@ Options:
     }
 
     [Test]
-    public async Task Summary()
-    {
-        var code = """
-ConsoleApp.Log = x => Console.WriteLine(x);
-var app = ConsoleApp.Create();
-app.Add<MyClass>();
-app.Run(args);
-
-public class MyClass
-{
-    /// <summary>
-    /// hello my world.
-    /// </summary>
-    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
-    public async Task HelloWorld(string fooBar)
-    {
-        Console.Write("Hello World! " + fooBar);
-    }
-}
-""";
-        await verifier.Execute(code, args: "--help", expected: """
-Usage: [command] [-h|--help] [--version]
-
-Commands:
-  hello-world    hello my world.
-
-""");
-
-        await verifier.Execute(code, args: "hello-world --help", expected: """
-Usage: hello-world [options...] [-h|--help] [--version]
-
-hello my world.
-
-Options:
-  -f, -fb, --foo-bar <string>    my foo is not bar. [Required]
-
-""");
-    }
-
-    [Test]
     public async Task ArgumentOnly()
     {
         await verifier.Execute(code: """
@@ -318,6 +278,46 @@ Options:
     }
 
     [Test]
+    public async Task Summary()
+    {
+        var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
+var app = ConsoleApp.Create();
+app.Add<MyClass>();
+app.Run(args);
+
+public class MyClass
+{
+    /// <summary>
+    /// hello my world.
+    /// </summary>
+    /// <param name="fooBar">-f|-fb, my foo is not bar.</param>
+    public async Task HelloWorld(string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+""";
+        await verifier.Execute(code, args: "--help", expected: """
+Usage: [command] [-h|--help] [--version]
+
+Commands:
+  hello-world    hello my world.
+
+""");
+
+        await verifier.Execute(code, args: "hello-world --help", expected: """
+Usage: hello-world [options...] [-h|--help] [--version]
+
+hello my world.
+
+Options:
+  -f, -fb, --foo-bar <string>    my foo is not bar. [Required]
+
+""");
+    }
+
+    [Test]
     public async Task Summary2()
     {
         var code = """
@@ -349,6 +349,52 @@ Arguments:
 
 Options:
   -f, -fb, --foo-bar <string>    my foo, is not bar. [Required]
+
+""");
+    }
+
+    [Test]
+    public async Task SummaryXmlElements()
+    {
+        var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
+var app = ConsoleApp.Create();
+app.Add<MyClass>();
+app.Run(args);
+
+public class MyClass
+{
+    /// <summary>
+    /// &lt;hello &amp; world&gt;. <see cref="System.Console.WriteLine(string)"/>
+    ///      Line1
+    /// Line2<br />
+    /// <a href="https://cysharp.co.jp/">Cysharp</a>|<see paramref="boo"/>|<see langword="null" />|<br />
+    /// <c>code</c>|<b>bold</b>|<i>italic</i>|<u>underline</u>|///
+    /// <para>paragraph<br/>paragraph L2<br /><a href="https://link.example/">Example</a></para>
+    /// </summary>
+    /// <param name="boo">-b, my boo is not <c>boo</c>.|&lt;&amp;&gt;</param>
+    /// <param name="fooBar">-f|-fb, my foo, is not <b>bar</b>.|&lt;&amp;&gt;</param>
+    public async Task HelloWorld([Argument]int boo, string fooBar)
+    {
+        Console.Write("Hello World! " + fooBar);
+    }
+}
+""";
+        await verifier.Execute(code, args: "hello-world --help", expected: """
+Usage: hello-world [arguments...] [options...] [-h|--help] [--version]
+
+<hello & world>. Line1 Line2
+Cysharp (https://cysharp.co.jp/)|boo|null|
+code|bold|italic|underline|///
+paragraph
+paragraph L2
+Example (https://link.example/)
+
+Arguments:
+  [0] <int>    my boo is not boo.|<&>
+
+Options:
+  -f, -fb, --foo-bar <string>    my foo, is not bar.|<&> [Required]
 
 """);
     }
