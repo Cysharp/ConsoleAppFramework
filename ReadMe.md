@@ -268,7 +268,7 @@ Options:
   -m, --message <string>    Message to show. [Required]
 ```
 
-To add aliases to parameters, list the aliases separated by `|` before the comma in the comment. For example, if you write a comment like `-a|-b|--abcde, Description.`, then `-a`, `-b`, and `--abcde` will be treated as aliases, and `Description.` will be the description. `-h` and `--help` are reserved for help, so they cannot be used as a parameter name or alias (reported as compile error `CAF019`).
+To add aliases to parameters, list the aliases separated by `|` before the comma in the comment. For example, if you write a comment like `-a|-b|--abcde, Description.`, then `-a`, `-b`, and `--abcde` will be treated as aliases, and `Description.` will be the description. `-h` and `--help` are reserved for help, so they cannot be used as a parameter name or alias (reported as compile error `CAF019`). Option names and aliases must be unique within a command, including an alias that is the same as its own option name (reported as compile error `CAF020`).
 
 Unfortunately, due to current C# specifications, lambda expressions and [local functions do not support document comments](https://github.com/dotnet/csharplang/issues/2110), so a class is required.
 

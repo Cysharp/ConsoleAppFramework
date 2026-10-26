@@ -542,4 +542,60 @@ public class Foo
 }
 """, "string helpMessage");
     }
+    [Test]
+    public async Task DuplicateOptionName()
+    {
+        // alias is same as the option name
+        await verifier.Verify(20, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    /// <param name="target">--target, The path to the file.</param>
+    public void Bar(string target) { }
+}
+""", "string target");
+
+        // duplicate alias in the same parameter
+        await verifier.Verify(20, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    /// <param name="target">-t|-t, The path to the file.</param>
+    public void Bar(string target) { }
+}
+""", "string target");
+
+        // same alias in different parameters
+        await verifier.Verify(20, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    /// <param name="target">-t, The path to the file.</param>
+    /// <param name="type">-t, The type.</param>
+    public void Bar(string target, string type) { }
+}
+""", "string type");
+
+        // alias is same as other parameter's option name
+        await verifier.Verify(20, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    /// <param name="path">--target, The path to the file.</param>
+    public void Bar(string target, string path) { }
+}
+""", "string path");
+    }
 }

@@ -839,7 +839,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         //    }
         //}
 
-        // -h|--help is reserved for help
+        // -h|--help is reserved for help, and option names and aliases must be unique in the command
+        var optionNames = new HashSet<string>();
         foreach (var p in command.Parameters)
         {
             if (!p.IsParsable || p.IsArgument) continue;
@@ -849,6 +850,13 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
                 if (name is "-h" or "--help")
                 {
                     context.ReportDiagnostic(DiagnosticDescriptors.ReservedHelpOptionName, p.Location, name);
+                    hasDiagnostic = true;
+                    break;
+                }
+
+                if (!optionNames.Add(name))
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.DuplicateOptionName, p.Location, name);
                     hasDiagnostic = true;
                     break;
                 }

@@ -136,4 +136,9 @@ internal static class DiagnosticDescriptors
         19,
         "Option name or alias '-h' and '--help' are reserved for help.",
         "Option name or alias '{0}' is reserved for help.");
+
+    public static DiagnosticDescriptor DuplicateOptionName { get; } = Create(
+        20,
+        "Option name and alias must be unique in the command.",
+        "Option name or alias '{0}' is duplicated.");
 }
