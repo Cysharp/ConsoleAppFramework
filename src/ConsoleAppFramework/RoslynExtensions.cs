@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System.Text;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -147,9 +148,127 @@ internal static class RoslynExtensions
     public static string GetSummary(this DocumentationCommentTriviaSyntax docComment)
     {
         var summary = docComment.Content.GetXmlElements("summary").FirstOrDefault() as XmlElementSyntax;
-        if (summary == null) return "";
+        if (summary == null || summary.Content.Count == 0) return "";
 
-        return summary.Content.ToString().Replace("///", "").Trim();
+        return RenderXmlDocComment(summary);
+    }
+
+    static string RenderXmlDocComment(XmlElementSyntax summary)
+    {
+        var builder = new StringBuilder();
+        RenderXmlDocCommentCore(summary, builder);
+        return builder.ToString().Trim();
+
+        static void RenderXmlDocCommentCore(XmlElementSyntax xmlElement, StringBuilder builder)
+        {
+            foreach (var node in xmlElement.Content)
+            {
+                switch (node)
+                {
+                    case XmlTextSyntax text:
+                        RenderTextTokens(text.TextTokens, builder);
+                        break;
+                    case XmlElementSyntax element:
+                        switch (element.StartTag.Name.ToString())
+                        {
+                            case "a":
+                                RenderXmlDocCommentCore(element, builder);
+                                var hrefAttr = element.StartTag.Attributes.OfType<XmlTextAttributeSyntax>().FirstOrDefault(x => x.Name.ToString() == "href");
+                                if (hrefAttr != null)
+                                {
+                                    if (!EndsWithWhitespaceOrNewLine(builder))
+                                    {
+                                        builder.Append(" ");
+                                    }
+
+                                    builder.Append("(");
+                                    RenderTextTokens(hrefAttr.TextTokens, builder);
+                                    builder.Append(")");
+                                }
+
+                                break;
+                            case "para":
+                                builder.AppendLine();
+                                RenderXmlDocCommentCore(element, builder);
+                                builder.AppendLine();
+                                break;
+                            default:
+                                RenderXmlDocCommentCore(element, builder);
+                                break;
+                        }
+
+                        break;
+                    case XmlEmptyElementSyntax emptyElement:
+                        switch (emptyElement.Name.ToString())
+                        {
+                            case "br":
+                                builder.AppendLine();
+                                break;
+                            case "see":
+                                var paramrefOrLangwordAttr = emptyElement.Attributes.OfType<XmlTextAttributeSyntax>().FirstOrDefault(x => x.Name.ToString() is "paramref" or "langword");
+                                if (paramrefOrLangwordAttr != null)
+                                {
+                                    RenderTextTokens(paramrefOrLangwordAttr.TextTokens, builder);
+                                }
+
+                                break;
+                            default:
+                                // Ignore other empty elements.
+                                break;
+                        }
+
+                        break;
+                }
+            }
+
+            static bool EndsWithWhitespaceOrNewLine(StringBuilder builder)
+            {
+                if (builder.Length == 0) return true;
+                var lastChar = builder[^1];
+                return char.IsWhiteSpace(lastChar) || lastChar is '\n' or '\r';
+            }
+
+            static void RenderTextTokens(SyntaxTokenList textTokens, StringBuilder builder)
+            {
+                var previousTokenWasNewLine = false;
+                foreach (var token in textTokens)
+                {
+                    if (token.IsKind(SyntaxKind.XmlTextLiteralNewLineToken))
+                    {
+                        previousTokenWasNewLine = true;
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(token.ValueText) && token.ValueText.Length > 0)
+                    {
+                        if (!EndsWithWhitespaceOrNewLine(builder) && !previousTokenWasNewLine)
+                        {
+                            builder.Append(" ");
+                        }
+                    }
+                    else
+                    {
+                        if (!EndsWithWhitespaceOrNewLine(builder) &&
+                            (
+                                previousTokenWasNewLine ||
+                                (token.ValueText.StartsWith(" ") && builder.Length > 0)
+                            )
+                        )
+                        {
+                            builder.Append(" ");
+                        }
+
+                        builder.Append(token.ValueText.Trim());
+                        if (token.ValueText.EndsWith(" "))
+                        {
+                            builder.Append(" ");
+                        }
+
+                        previousTokenWasNewLine = false;
+                    }
+                }
+            }
+        }
     }
 
     public static IEnumerable<(string Name, string Description)> GetParams(this DocumentationCommentTriviaSyntax docComment)
@@ -157,10 +276,9 @@ internal static class RoslynExtensions
         foreach (var item in docComment.Content.GetXmlElements("param").OfType<XmlElementSyntax>())
         {
             var name = item.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText.Replace("///", "").Trim() ?? "";
-            var desc = item.Content.ToString().Replace("///", "").Trim() ?? "";
+            var desc = RenderXmlDocComment(item);
             yield return (name, desc);
         }
-
         yield break;
     }
 
