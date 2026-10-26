@@ -131,4 +131,9 @@ internal static class DiagnosticDescriptors
     public static DiagnosticDescriptor InvalidGlobalOptionsType { get; } = Create(
         18,
         "GlobalOption parameter type only allows compile-time constant(primitives, string, enum) and there nullable.");
+
+    public static DiagnosticDescriptor ReservedHelpOptionName { get; } = Create(
+        19,
+        "Option name or alias '-h' and '--help' are reserved for help.",
+        "Option name or alias '{0}' is reserved for help.");
 }

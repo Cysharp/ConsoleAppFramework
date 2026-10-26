@@ -169,6 +169,8 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
 
                 var command = ParseFromMethodSymbol(x, false, (commandPath == null) ? commandName : $"{commandPath.Trim()} {commandName}", typeFilters);
                 if (command == null) return null;
+                command = ValidateCommand(command);
+                if (command == null) return null;
 
                 command.CommandMethodInfo = methodInfoBase with { MethodName = x.Name };
                 return command;
@@ -837,6 +839,22 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
         //    }
         //}
 
+        // -h|--help is reserved for help
+        foreach (var p in command.Parameters)
+        {
+            if (!p.IsParsable || p.IsArgument) continue;
+
+            foreach (var name in p.Aliases.Prepend("--" + p.Name))
+            {
+                if (name is "-h" or "--help")
+                {
+                    context.ReportDiagnostic(DiagnosticDescriptors.ReservedHelpOptionName, p.Location, name);
+                    hasDiagnostic = true;
+                    break;
+                }
+            }
+        }
+
         // FunctionPointer can not use validation
         if (command.MethodKind == MethodKind.FunctionPointer)
         {
@@ -858,7 +876,7 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
     void ParseParameterDescription(string originalDescription, out string[] aliases, out string description)
     {
         // Example:
-        // -h|--help, This is a help.
+        // -i|--input, This is an input.
 
         var splitOne = originalDescription.Split([','], 2);
 

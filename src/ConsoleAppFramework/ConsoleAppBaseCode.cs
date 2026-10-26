@@ -382,19 +382,20 @@ internal static partial class ConsoleApp
             return true;
         }
 
-        if (args.Length == 1)
+        if (args.Length == 1 && args[0] == "--version")
         {
-            switch (args[0])
+            ShowVersion();
+            return true;
+        }
+
+        // -h|--help is allowed at any position(before escape "--").
+        foreach (var arg in args)
+        {
+            if (arg == "--") break;
+            if (arg is "-h" or "--help")
             {
-                case "--version":
-                    ShowVersion();
-                    return true;
-                case "-h":
-                case "--help":
-                    ShowHelp(helpId);
-                    return true;
-                default:
-                    break;
+                ShowHelp(helpId);
+                return true;
             }
         }
 
@@ -544,19 +545,20 @@ internal static partial class ConsoleApp
                 return true;
             }
 
-            if (args.Length == 1)
+            if (args.Length == 1 && args[0] == "--version")
             {
-                switch (args[0])
+                ShowVersion();
+                return true;
+            }
+
+            // -h|--help is allowed at any position(before escape "--").
+            foreach (var arg in args)
+            {
+                if (arg == "--") break;
+                if (arg is "-h" or "--help")
                 {
-                    case "--version":
-                        ShowVersion();
-                        return true;
-                    case "-h":
-                    case "--help":
-                        ShowHelp(helpId);
-                        return true;
-                    default:
-                        break;
+                    ShowHelp(helpId);
+                    return true;
                 }
             }
 

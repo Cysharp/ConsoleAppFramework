@@ -231,7 +231,7 @@ You can use either the `Run` or `RunAsync` method for invocation. It is optional
 
 Option aliases and Help, Version
 ---
-By default, if `-h` or `--help` is provided, or if no arguments are passed, the help display will be invoked.
+By default, if `-h` or `--help` is provided, or if no arguments are passed, the help display will be invoked. `-h` and `--help` are recognized at any position before the `--` escape (e.g. `list --input foo --help`).
 
 ```csharp
 ConsoleApp.Run(args, (string message) => Console.Write($"Hello, {message}"));
@@ -268,7 +268,7 @@ Options:
   -m, --message <string>    Message to show. [Required]
 ```
 
-To add aliases to parameters, list the aliases separated by `|` before the comma in the comment. For example, if you write a comment like `-a|-b|--abcde, Description.`, then `-a`, `-b`, and `--abcde` will be treated as aliases, and `Description.` will be the description.
+To add aliases to parameters, list the aliases separated by `|` before the comma in the comment. For example, if you write a comment like `-a|-b|--abcde, Description.`, then `-a`, `-b`, and `--abcde` will be treated as aliases, and `Description.` will be the description. `-h` and `--help` are reserved for help, so they cannot be used as a parameter name or alias (reported as compile error `CAF019`).
 
 Unfortunately, due to current C# specifications, lambda expressions and [local functions do not support document comments](https://github.com/dotnet/csharplang/issues/2110), so a class is required.
 
