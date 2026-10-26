@@ -227,7 +227,7 @@ await ConsoleApp.RunAsync(args, async (int foo, int bar, CancellationToken cance
 });
 ```
 
-You can use either the `Run` or `RunAsync` method for invocation. It is optional to use `CancellationToken` as an argument. This becomes a special parameter and is excluded from the command options. Internally, it uses [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration) to handle `SIGINT`, `SIGTERM`, and `SIGKILL`. When these signals are invoked (e.g., Ctrl+C), the CancellationToken is set to CancellationRequested. If `CancellationToken` is not used as an argument, these signals will not be handled, and the program will terminate immediately. For more details, refer to the [CancellationToken and Gracefully Shutdown](#cancellationtokengracefully-shutdown-and-timeout) section.
+You can use either the `Run` or `RunAsync` method for invocation. It is optional to use `CancellationToken` as an argument. This becomes a special parameter and is excluded from the command options. Internally, it uses [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration) to handle `SIGINT`, `SIGTERM`, and `SIGQUIT`. When these signals are invoked (e.g., Ctrl+C), the CancellationToken is set to CancellationRequested. If `CancellationToken` is not used as an argument, these signals will not be handled, and the program will terminate immediately. For more details, refer to the [CancellationToken and Gracefully Shutdown](#cancellationtokengracefully-shutdown-and-timeout) section.
 
 Option aliases and Help, Version
 ---
@@ -801,7 +801,7 @@ For example, specifications that change behavior based on `-x` and `-X` or allow
 
 CancellationToken(Gracefully Shutdown) and Timeout
 ---
-In ConsoleAppFramework, when you pass a `CancellationToken` as an argument, it can be used to check for interruption commands (SIGINT/SIGTERM/SIGKILL - Ctrl+C) rather than being treated as a parameter. For handling this, ConsoleAppFramework performs special code generation when a `CancellationToken` is included in the parameters.
+In ConsoleAppFramework, when you pass a `CancellationToken` as an argument, it can be used to check for interruption commands (SIGINT/SIGTERM/SIGQUIT - Ctrl+C) rather than being treated as a parameter. For handling this, ConsoleAppFramework performs special code generation when a `CancellationToken` is included in the parameters.
 
 ```csharp
 using var posixSignalHandler = PosixSignalHandler.Register(ConsoleApp.Timeout);
@@ -810,7 +810,7 @@ var arg0 = posixSignalHandler.Token;
 await Task.Run(() => command(arg0!)).WaitAsync(posixSignalHandler.TimeoutToken);
 ```
 
-If a CancellationToken is not passed, the application is immediately forced to terminate when an interruption command (Ctrl+C) is received. However, if a CancellationToken is present, it internally uses [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration) to hook SIGINT/SIGTERM/SIGKILL and sets the CancellationToken to a canceled state. Additionally, it prevents forced termination to allow for a graceful shutdown.
+If a CancellationToken is not passed, the application is immediately forced to terminate when an interruption command (Ctrl+C) is received. However, if a CancellationToken is present, it internally uses [`PosixSignalRegistration`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.posixsignalregistration) to hook SIGINT/SIGTERM/SIGQUIT and sets the CancellationToken to a canceled state. Additionally, it prevents forced termination to allow for a graceful shutdown. SIGKILL cannot be caught and does not trigger graceful shutdown.
 
 If the CancellationToken is handled correctly, the application can perform proper termination processing based on the application's handling. However, if the CancellationToken is mishandled, the application may not terminate even when an interruption command is received. To avoid this, a timeout timer starts after the interruption command, and the application is forcibly terminated again after the specified time.
 
@@ -834,7 +834,7 @@ var app = ConsoleApp.Create();
 
 app.Add("", async (CancellationToken cancellationToken) =>
 {
-    // CancellationToken will be triggered when 'Q' is pressed or Ctrl+C(SIGINT/SIGTERM/SIGKILL) is sent.
+    // CancellationToken will be triggered when 'Q' is pressed or Ctrl+C(SIGINT/SIGTERM/SIGQUIT) is sent.
     try
     {
         for (int i = 0; i < 10; i++)
