@@ -470,4 +470,78 @@ Commands:
 
 """);
     }
+    [Test]
+    public async Task HelpAtAnyPosition()
+    {
+        var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
+ConsoleApp.Run(args, (int x, int y) => { });
+""";
+        var expected = """
+Usage: [options...] [-h|--help] [--version]
+
+Options:
+  --x <int>     [Required]
+  --y <int>     [Required]
+
+""";
+
+        await verifier.Execute(code, args: "--x 10 --help", expected: expected);
+        await verifier.Execute(code, args: "--x 10 --y 20 -h", expected: expected);
+        await verifier.Execute(code, args: "--help --x 10", expected: expected);
+    }
+
+    [Test]
+    public async Task HelpAtAnyPositionCommand()
+    {
+        var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
+var app = ConsoleApp.Create();
+app.Add("list", (string input) => { });
+app.Run(args);
+""";
+        var expected = """
+Usage: list [options...] [-h|--help] [--version]
+
+Options:
+  --input <string>     [Required]
+
+""";
+
+        await verifier.Execute(code, args: "list --input foo --help", expected: expected);
+        await verifier.Execute(code, args: "list --input foo -h", expected: expected);
+    }
+
+    [Test]
+    public async Task HelpAtAnyPositionWithGlobalOptions()
+    {
+        var code = """
+ConsoleApp.Log = x => Console.WriteLine(x);
+var app = ConsoleApp.Create();
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) => builder.AddGlobalOption<bool>("--verbose", "show logs"));
+app.Add("list", (string input) => { });
+app.Run(args);
+""";
+
+        await verifier.Execute(code, args: "list --verbose --input foo --help", expected: """
+Usage: list [options...] [-h|--help] [--version]
+
+Options:
+  --input <string>     [Required]
+  --verbose           show logs
+
+""");
+    }
+
+    [Test]
+    public async Task HelpAfterEscapeIsNotHelp()
+    {
+        var code = """
+var app = ConsoleApp.Create();
+app.Add("", (int x, ConsoleAppContext context) => Console.Write($"{x}:{string.Join(",", context.EscapedArguments.ToArray())}"));
+app.Run(args);
+""";
+
+        await verifier.Execute(code, args: "--x 10 -- --help -h", expected: "10:--help,-h");
+    }
 }

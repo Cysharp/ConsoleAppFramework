@@ -509,5 +509,37 @@ app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) =>
 app.Run(args);
 """, "builder.AddGlobalOption<System.Version>(\"foo\")");
     }
+    [Test]
+    public async Task ReservedHelpOptionName()
+    {
+        await verifier.Verify(19, """
+var app = ConsoleApp.Create();
+app.Add("", (string help) => { });
+app.Run(args);
+""", "string help");
 
+        await verifier.Verify(19, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    /// <param name="host">-h, host name.</param>
+    public void Bar(string host) { }
+}
+""", "string host");
+
+        await verifier.Verify(19, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    /// <param name="helpMessage">-m|--help, help message.</param>
+    public void Bar(string helpMessage) { }
+}
+""", "string helpMessage");
+    }
 }
