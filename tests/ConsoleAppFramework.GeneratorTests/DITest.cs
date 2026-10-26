@@ -1,4 +1,6 @@
-﻿namespace ConsoleAppFramework.GeneratorTests;
+﻿using Microsoft.CodeAnalysis;
+
+namespace ConsoleAppFramework.GeneratorTests;
 
 [ClassDataSource<VerifyHelper>]
 public class DITest(VerifyHelper verifier)
@@ -101,5 +103,35 @@ namespace ConsoleAppFramework
     }
 }
 """, "cmd test", "Test");
+    }
+
+    // https://github.com/Cysharp/ConsoleAppFramework/issues/251
+    [Test]
+    public async Task ConfigureGlobalOptionsKeepsExternallySetServiceProvider()
+    {
+        MetadataReference[] dependencyInjectionReferences =
+        [
+            MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.DependencyInjection.ServiceProvider).Assembly.Location),
+        ];
+
+        await verifier.Execute("""
+#nullable enable
+using Microsoft.Extensions.DependencyInjection;
+
+var services = new ServiceCollection();
+services.AddSingleton(new MyService("foo"));
+ConsoleApp.ServiceProvider = services.BuildServiceProvider();
+
+var app = ConsoleApp.Create();
+app.ConfigureGlobalOptions((ref ConsoleApp.GlobalOptionsBuilder builder) => builder.AddGlobalOption<bool>("--verbose", ""));
+app.Add("", ([FromServices] MyService service, int x) => Console.Write(service.Name + ":" + x));
+app.Run(args);
+
+public class MyService(string name)
+{
+    public string Name => name;
+}
+""", args: "--x 10 --verbose", expected: "foo:10", additionalReferences: dependencyInjectionReferences);
     }
 }
