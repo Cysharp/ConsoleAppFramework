@@ -89,14 +89,21 @@ public class DiagnosticsTest(VerifyHelper verifier)
     public async Task BuilderAddConstCommandName()
     {
         await verifier.Verify(6, """
-var builder = ConsoleApp.Create(); 
+var builder = ConsoleApp.Create();
 var baz = "foo";
 builder.Add(baz, (int x, int y) => { } );
 """, "baz");
 
         await verifier.Ok("""
-var builder = ConsoleApp.Create(); 
+var builder = ConsoleApp.Create();
 builder.Add("foo", (int x, int y) => { } );
+builder.Run(args);
+""");
+
+        await verifier.Ok("""
+var builder = ConsoleApp.Create();
+var baz = string.Empty;
+builder.Add(nameof(baz), (int x, int y) => { } );
 builder.Run(args);
 """);
     }
@@ -105,7 +112,7 @@ builder.Run(args);
     public async Task DuplicateCommandName()
     {
         await verifier.Verify(7, """
-var builder = ConsoleApp.Create(); 
+var builder = ConsoleApp.Create();
 builder.Add("foo", (int x, int y) => { } );
 builder.Add("foo", (int x, int y) => { } );
 """, "\"foo\"");
