@@ -863,6 +863,18 @@ internal class Parser(ConsoleAppFrameworkGeneratorOptions generatorOptions, Diag
             }
         }
 
+        // bool? is treated as a flag(same as bool), warn it
+        foreach (var p in command.Parameters)
+        {
+            if (!p.IsParsable) continue;
+
+            if (p.Type.TypeSymbol is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+                && nullable.TypeArguments[0].SpecialType == SpecialType.System_Boolean)
+            {
+                context.ReportDiagnostic(DiagnosticDescriptors.NullableBoolParameter, p.Location, p.OriginalParameterName);
+            }
+        }
+
         // FunctionPointer can not use validation
         if (command.MethodKind == MethodKind.FunctionPointer)
         {

@@ -8,6 +8,9 @@ internal sealed class DiagnosticReporter
 
     public bool HasDiagnostics => diagnostics != null && diagnostics.Count != 0;
 
+    // warning does not stop the code generation
+    public bool HasErrors => diagnostics != null && diagnostics.Any(x => x.Severity == DiagnosticSeverity.Error);
+
     public void ReportDiagnostic(DiagnosticDescriptor diagnosticDescriptor, Location location, params object?[]? messageArgs)
     {
         var diagnostic = Diagnostic.Create(diagnosticDescriptor, location, messageArgs);
@@ -45,14 +48,14 @@ internal static class DiagnosticDescriptors
         return Create(id, message, message);
     }
 
-    public static DiagnosticDescriptor Create(int id, string title, string messageFormat)
+    public static DiagnosticDescriptor Create(int id, string title, string messageFormat, DiagnosticSeverity severity = DiagnosticSeverity.Error)
     {
         return new DiagnosticDescriptor(
             id: "CAF" + id.ToString("000"),
             title: title,
             messageFormat: messageFormat,
             category: Category,
-            defaultSeverity: DiagnosticSeverity.Error,
+            defaultSeverity: severity,
             isEnabledByDefault: true);
     }
 
@@ -141,4 +144,10 @@ internal static class DiagnosticDescriptors
         20,
         "Option name and alias must be unique in the command.",
         "Option name or alias '{0}' is duplicated.");
+
+    public static DiagnosticDescriptor NullableBoolParameter { get; } = Create(
+        21,
+        "bool? parameter is treated as a flag, use bool instead.",
+        "Parameter '{0}' is bool?, it is treated as a flag and can not be false. Use bool instead, or enum for three states.",
+        DiagnosticSeverity.Warning);
 }

@@ -630,7 +630,7 @@ To convert from string arguments to various types, basic primitive types (`strin
 
 For `enum`, it is parsed using `Enum.TryParse(ignoreCase: true)`.
 
-`bool` is treated as a flag and is always optional. It becomes `true` when the parameter name is passed.
+`bool` is treated as a flag and is always optional. It becomes `true` when the parameter name is passed. `bool?` is also treated as a flag, so it can not be `false` and has no advantage over `bool`; it is reported as warning `CAF021`. If you need three states, use `enum` instead.
 
 ### Array
 
