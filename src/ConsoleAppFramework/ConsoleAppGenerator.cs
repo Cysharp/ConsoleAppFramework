@@ -200,11 +200,9 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
     static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommandContext commandContext)
     {
-        if (commandContext.DiagnosticReporter.HasDiagnostics)
-        {
-            commandContext.DiagnosticReporter.ReportToContext(sourceProductionContext);
-            return;
-        }
+        commandContext.DiagnosticReporter.ReportToContext(sourceProductionContext);
+        if (commandContext.DiagnosticReporter.HasErrors) return;
+
         var command = commandContext.Command;
         if (command == null) return;
 
@@ -253,11 +251,8 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         var hasRun = collectBuilderContext.HasRun;
         var hasRunAsync = collectBuilderContext.HasRunAsync;
 
-        if (reporter.HasDiagnostics)
-        {
-            reporter.ReportToContext(sourceProductionContext);
-            return;
-        }
+        reporter.ReportToContext(sourceProductionContext);
+        if (reporter.HasErrors) return;
 
         // need to generate template codes
         // if (!hasRun && !hasRunAsync) return;
@@ -459,7 +454,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 .ToArray();
 
             // don't emit if exists failure
-            if (DiagnosticReporter.HasDiagnostics)
+            if (DiagnosticReporter.HasErrors)
             {
                 globalFilters = null;
                 return;
@@ -527,7 +522,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
                 GlobalOptions = parser.ParseGlobalOptions();
             }
 
-            if (DiagnosticReporter.HasDiagnostics)
+            if (DiagnosticReporter.HasErrors)
             {
                 return;
             }
@@ -541,7 +536,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         // from ForAttributeWithMetadataName
         public void AddRegisterAttributes(ImmutableArray<GeneratorAttributeSyntaxContext> contexts)
         {
-            if (contexts.Length == 0 || DiagnosticReporter.HasDiagnostics)
+            if (contexts.Length == 0 || DiagnosticReporter.HasErrors)
             {
                 return;
             }

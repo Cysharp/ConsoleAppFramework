@@ -598,4 +598,33 @@ public class Foo
 }
 """, "string path");
     }
+    [Test]
+    public async Task NullableBoolParameter()
+    {
+        await verifier.Verify(21, """
+ConsoleApp.Run(args, (bool? flag) => { });
+""", "bool? flag");
+
+        await verifier.Verify(21, """
+var app = ConsoleApp.Create();
+app.Add<Foo>();
+app.Run(args);
+
+public class Foo
+{
+    public void Bar(int x, bool? dryRun = null) { }
+}
+""", "bool? dryRun = null");
+
+        // warning does not stop the code generation
+        await verifier.Execute("""
+ConsoleApp.Run(args, (bool? flag = null) => Console.Write(flag?.ToString() ?? "null"));
+""", "--flag", "True");
+
+        await verifier.Execute("""
+var app = ConsoleApp.Create();
+app.Add("", (bool? flag = null) => Console.Write(flag?.ToString() ?? "null"));
+app.Run(args);
+""", "", "null");
+    }
 }
