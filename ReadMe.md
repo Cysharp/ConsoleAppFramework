@@ -648,6 +648,60 @@ If you want to change the deserialization options, you can set `JsonSerializerOp
 
 > NOTE: If they are not set when NativeAOT is used, a runtime exception may occur. If they are included in the parsing process, be sure to set source generated options.
 
+### Dynamic shell completion
+
+Enable native, dynamic shell completion on the builder before calling `Run` or `RunAsync`:
+
+```csharp
+var app = ConsoleApp.Create();
+app.UseCompletion();
+app.Add("deploy", (string target, DeploymentMode mode = DeploymentMode.Safe) => { });
+app.Run(args);
+enum DeploymentMode { Safe, Fast }
+```
+
+For the single-command API, set `ConsoleApp.CompletionEnabled = true` before `ConsoleApp.Run` or `RunAsync`.
+
+The executable supplies command names (including nested commands and aliases), option names, global options, and enum values at completion time. Hidden commands and parameters are omitted. Completion requests return before parsing arguments, creating command services, running filters, or invoking commands. Application initialization before `Run` still executes, so keep it free of console output and expensive work when enabling completion.
+
+Register completion using the built or published executable (`myapp` below). Add the registration to your shell profile so the adapter is regenerated when the shell starts. The environment protocol and generated adapters are experimental and should be updated together with the application.
+
+PowerShell:
+
+```powershell
+$env:COMPLETE = 'powershell' # or 'pwsh'
+try { myapp | Out-String | Invoke-Expression }
+finally { Remove-Item Env:COMPLETE }
+```
+
+Bash:
+
+```bash
+source <(COMPLETE=bash myapp)
+```
+
+Zsh (after `compinit`):
+
+```zsh
+source <(COMPLETE=zsh myapp)
+```
+
+Fish:
+
+```fish
+COMPLETE=fish myapp | source
+```
+
+You can supply runtime values with a callback. `ParameterName` is the original C# parameter name, `CommandName` is the selected command path (or alias), `WordToComplete` is the current prefix, and `Arguments` contains the completed words before the cursor, excluding the executable and current word. The framework filters and deduplicates returned values. Candidate descriptions appear in PowerShell, Zsh, and Fish.
+
+```csharp
+app.UseCompletion(context => context.ParameterName == "target"
+    ? new[] { new CompletionCandidate("staging", "Staging environment"), new CompletionCandidate("production") }
+    : Array.Empty<CompletionCandidate>());
+```
+
+For `ConsoleApp.Run`, assign the callback to `ConsoleApp.CompletionProvider`. Global options use an empty `ParameterName`. Callbacks run only for a parameter that expects a value; use the context to limit filesystem or network work. Values containing line breaks, tabs, vertical tabs, or NUL cannot be represented by the completion protocol and are omitted. The framework does not supply candidates following the `--` escape separator.
+
 ### GlobalOptions
 
 By calling `ConfigureGlobalOptions` on `ConsoleAppBuilder`, you can define global options that are enabled for all commands. For example, `--dry-run` or `--verbose` are suitable as common options.
