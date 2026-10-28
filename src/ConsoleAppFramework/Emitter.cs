@@ -68,6 +68,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
         using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}({methodArgument})"))
         {
+            if (!emitForBuilder)
+            {
+                sb.AppendLine("if (CompletionEnabled && IsCompletionRequested) { Complete(args, GetCompletionCommands(), CompletionProvider); return; }");
+            }
+
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
                 // prepare commandArgsMemory
@@ -478,6 +483,13 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
         using (sb.BeginBlock("partial class ConsoleAppBuilder"))
         {
+            // Complete before entering command dispatch or constructing services.
+            using (sb.BeginBlock("partial void CompleteCore(string[] args, ref bool handled)"))
+            {
+                sb.AppendLine("Complete(args, GetCompletionCommands(), completionProvider);");
+                sb.AppendLine("handled = true;");
+            }
+
             // fields: 'Action command0 = default!;'
             foreach (var item in commandIds.Where(x => x.FieldType != null))
             {
