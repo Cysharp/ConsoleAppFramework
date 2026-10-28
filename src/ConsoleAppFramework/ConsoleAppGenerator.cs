@@ -195,7 +195,7 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
     static void EmitConsoleAppTemplateSource(IncrementalGeneratorPostInitializationContext context)
     {
-        context.AddSource("ConsoleApp.g.cs", ConsoleAppBaseCode.InitializationCode.ReplaceLineEndings());
+        context.AddSource("ConsoleApp.g.cs", (ConsoleAppBaseCode.InitializationCode + CompletionCode.Source).ReplaceLineEndings());
     }
 
     static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommandContext commandContext)
