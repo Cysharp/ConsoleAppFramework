@@ -68,6 +68,11 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
         using (sb.BeginBlock($"{accessibility} {unsafeCode}{returnType} {methodName}({methodArgument})"))
         {
+            if (!emitForBuilder)
+            {
+                sb.AppendLine("if (CompletionEnabled && IsCompletionRequested) { Complete(args, GetCompletionCommands(), CompletionProvider); return; }");
+            }
+
             using (command.HasFilter ? sb.Nop : sb.BeginBlock("try"))
             {
                 // prepare commandArgsMemory
@@ -478,6 +483,13 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
 
         using (sb.BeginBlock("partial class ConsoleAppBuilder"))
         {
+            // Complete before entering command dispatch or constructing services.
+            using (sb.BeginBlock("partial void CompleteCore(string[] args, ref bool handled)"))
+            {
+                sb.AppendLine("Complete(args, GetCompletionCommands(), completionProvider);");
+                sb.AppendLine("handled = true;");
+            }
+
             // fields: 'Action command0 = default!;'
             foreach (var item in commandIds.Where(x => x.FieldType != null))
             {
@@ -719,6 +731,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
     // for single root command(Run)
     public void EmitHelp(SourceBuilder sb, Command command)
     {
+        EmitCompletionMetadata(sb, [command]);
         using (sb.BeginBlock("static partial void ShowHelp(int helpId)"))
         {
             sb.AppendLine("Log(\"\"\"");
@@ -730,6 +743,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
     // for multiple commands(Builder)
     public void EmitHelp(SourceBuilder sb, CommandWithId[] commands)
     {
+        EmitCompletionMetadata(sb, commands.Select(x => x.Command));
         using (sb.BeginBlock("static partial void ShowHelp(int helpId)"))
         {
             using (sb.BeginBlock("switch (helpId)"))
@@ -753,6 +767,40 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                     sb.AppendLine("break;");
                 }
             }
+        }
+    }
+
+    static void EmitCompletionMetadata(SourceBuilder sb, IEnumerable<Command> commands)
+    {
+        // Emit literals rather than reflecting over command signatures at runtime.
+        static string Literal(string? value) => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value ?? "", true);
+        static string Array(IEnumerable<string> values) => "new string[] { " + string.Join(", ", values.Select(Literal)) + " }";
+
+        using (sb.BeginBlock("static CompletionCommand[] GetCompletionCommands()"))
+        {
+            sb.AppendLine("return new CompletionCommand[] {");
+            foreach (var command in commands.Where(x => !x.IsHidden))
+            {
+                foreach (var name in command.Name.Split('|'))
+                {
+                    sb.AppendLine($"new CompletionCommand({Literal(name)}, {Literal(command.Description)}, new CompletionParameter[] {{");
+                    foreach (var p in command.Parameters.Where(x => x.IsParsable))
+                    {
+                        var names = p.IsArgument ? Enumerable.Empty<string>() : p.Aliases.Concat(p.Name == null ? [] : new[] { "--" + p.Name });
+                        var type = p.Type.TypeSymbol;
+                        if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+                            type = ((INamedTypeSymbol)type).TypeArguments[0];
+
+                        // Enum fields are known at generation time, including nullable enums.
+                        var values = type.TypeKind == TypeKind.Enum
+                            ? type.GetMembers().OfType<IFieldSymbol>().Where(x => x.HasConstantValue).Select(x => x.Name)
+                            : Enumerable.Empty<string>();
+                        sb.AppendLine($"new CompletionParameter({Literal(p.OriginalParameterName)}, {Array(names)}, {p.ArgumentIndex}, {p.IsFlag.ToString().ToLowerInvariant()}, {p.IsParams.ToString().ToLowerInvariant()}, {p.IsHidden.ToString().ToLowerInvariant()}, {Literal(p.Description)}, {Array(values)}),");
+                    }
+                    sb.AppendLine("}),");
+                }
+            }
+            sb.AppendLine("};");
         }
     }
 
