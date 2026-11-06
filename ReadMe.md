@@ -650,21 +650,22 @@ If you want to change the deserialization options, you can set `JsonSerializerOp
 
 ### Dynamic shell completion
 
-Enable native, dynamic shell completion on the builder before calling `Run` or `RunAsync`:
+Install the optional `ConsoleAppFramework.Completions` package, then register commands with the builder and handle completion before calling `Run` or `RunAsync`:
 
 ```csharp
+using ConsoleAppFramework;
+using ConsoleAppFramework.Completions;
+
 var app = ConsoleApp.Create();
-app.UseCompletion();
 app.Add("deploy", (string target, DeploymentMode mode = DeploymentMode.Safe) => { });
+
+// Resolve CLI Schema only when the shell requests completion candidates.
+if (app.TryComplete(args))
+    return;
+
 app.Run(args);
 enum DeploymentMode { Safe, Fast }
 ```
-
-For the single-command API, set `ConsoleApp.CompletionEnabled = true` before `ConsoleApp.Run` or `RunAsync`.
-
-The executable supplies command names (including nested commands and aliases), option names, global options, and enum values at completion time. Hidden commands and parameters are omitted. Completion requests return before parsing arguments, creating command services, running filters, or invoking commands. Application initialization before `Run` still executes, so keep it free of console output and expensive work when enabling completion.
-
-Register completion using the built or published executable (`myapp` below). Add the registration to your shell profile so the adapter is regenerated when the shell starts. The environment protocol and generated adapters are experimental and should be updated together with the application.
 
 PowerShell:
 
@@ -692,15 +693,44 @@ Fish:
 COMPLETE=fish myapp | source
 ```
 
-You can supply runtime values with a callback. `ParameterName` is the original C# parameter name, `CommandName` is the selected command path (or alias), `WordToComplete` is the current prefix, and `Arguments` contains the completed words before the cursor, excluding the executable and current word. The framework filters and deduplicates returned values. Candidate descriptions appear in PowerShell, Zsh, and Fish.
+Supply dynamic values with an optional callback. `ParameterName` is the original C# parameter name (empty for global options), `CommandName` is the selected command path or alias, and `Arguments` contains completed words before the cursor, excluding the executable and current word:
 
 ```csharp
-app.UseCompletion(context => context.ParameterName == "target"
-    ? new[] { new CompletionCandidate("staging", "Staging environment"), new CompletionCandidate("production") }
-    : Array.Empty<CompletionCandidate>());
+// Replace the earlier TryComplete call with this version to add dynamic values.
+if (app.TryComplete(args, static context =>
+    context.ParameterName == "target"
+        ? new[] { new CompletionCandidate("staging", "Staging environment"), new CompletionCandidate("production") }
+        : Array.Empty<CompletionCandidate>()))
+    return;
 ```
 
-For `ConsoleApp.Run`, assign the callback to `ConsoleApp.CompletionProvider`. Global options use an empty `ParameterName`. Callbacks run only for a parameter that expects a value; use the context to limit filesystem or network work. Values containing line breaks, tabs, vertical tabs, or NUL cannot be represented by the completion protocol and are omitted. The framework does not supply candidates following the `--` escape separator.
+Callbacks run only for a visible parameter expecting a value. Dynamic candidates are emitted before schema-generated candidates. If their values are identical (case-sensitive), the dynamic candidate wins, including its description; other generated candidates remain available. Candidates are filtered by `WordToComplete` and deduplicated; descriptions appear in PowerShell, Zsh, and Fish. Values containing line breaks, tabs, vertical tabs, or NUL are omitted. No candidates are supplied after the `--` escape separator.
+
+Set `hideStaticCompletions: true` on `TryComplete` or `TryHandle` to use only dynamic candidates when the provider produces matching results, and fall back to static candidates otherwise:
+
+```csharp
+if (app.TryComplete(args, provider: GetCandidates, hideStaticCompletions: true))
+    return;
+```
+
+This option defaults to `false`. When enabled, static candidates are suppressed for the current request only if at least one dynamic candidate passes prefix and protocol validation. If the provider returns no usable matches, is absent, or does not run at the current position, normal static completion remains available. Providers still run only for visible parameters expecting a value. With the default `false`, dynamic and static candidates are combined, with dynamic candidates winning duplicates.
+
+`TryComplete` reads `app.GetCliSchema()` directly by default. To override metadata, pass a `schemaFactory`; it is called only for a valid candidate request, never for normal execution or script registration. For example, replace the earlier call with:
+
+```csharp
+// Customize the generated metadata without changing command execution or help output.
+if (app.TryComplete(args, schemaFactory: () =>
+{
+    var schema = app.GetCliSchema();
+    for (var i = 0; i < schema.Length; i++)
+        if (schema[i].CommandName == "deploy")
+            schema[i] = schema[i] with { Description = "Deploy to the selected environment" };
+    return schema;
+}))
+    return;
+```
+
+The generated builder implements the general-purpose `ICliSchemaProvider` interface when the CliSchema package is referenced. Other schema producers can implement that interface or use `Completion.TryHandle(args, schemaFactory, provider)`.
 
 ### GlobalOptions
 
@@ -1572,6 +1602,7 @@ CommandHelpDefinition[] schema = app.GetCliSchema();
 ```csharp
 public record CommandHelpDefinition
 {
+    public bool IsHidden { get; init; }
     public string CommandName { get; }
     public CommandOptionHelpDefinition[] Options { get; }
     public string Description { get; }
@@ -1579,6 +1610,9 @@ public record CommandHelpDefinition
 
 public record CommandOptionHelpDefinition
 {
+    public string ParameterName { get; init; }
+    public string[] AllowedValues { get; init; }
+    public bool IsGlobal { get; init; }
     public string[] Options { get; }
     public string Description { get; }
     public string? DefaultValue { get; }
