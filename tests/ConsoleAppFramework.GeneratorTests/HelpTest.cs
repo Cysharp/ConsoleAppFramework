@@ -13,15 +13,51 @@ public class HelpTest(VerifyHelper verifier)
     [Test]
     public async Task Version()
     {
-        var version = GetEntryAssemblyVersion();
-
+        // no version attributes
         await verifier.Execute(code: $$"""
 ConsoleApp.Log = x => Console.WriteLine(x);
 ConsoleApp.Run(args, (int x, int y) => { });
 """,
     args: "--version",
-    expected: $$"""
-{{version}}
+    expected: """
+1.0.0
+
+""");
+        // AssemblyInformationalVersion(trim SourceRevisionId)
+        await verifier.Execute(code: """
+[assembly: System.Reflection.AssemblyInformationalVersion("1.2.3-beta.4+abcdef0123456789")]
+[assembly: System.Reflection.AssemblyVersion("1.2.3.0")]
+
+ConsoleApp.Log = x => Console.WriteLine(x);
+ConsoleApp.Run(args, (int x, int y) => { });
+""",
+    args: "--version",
+    expected: """
+1.2.3-beta.4
+
+""");
+        // AssemblyVersion only
+        await verifier.Execute(code: """
+[assembly: System.Reflection.AssemblyVersion("2.3.4.5")]
+
+ConsoleApp.Log = x => Console.WriteLine(x);
+ConsoleApp.Run(args, (int x, int y) => { });
+""",
+    args: "--version",
+    expected: """
+2.3.4.5
+
+""");
+        // escape
+        await verifier.Execute(code: """
+[assembly: System.Reflection.AssemblyInformationalVersion("1.0.0-\"quote\"\\backslash")]
+
+ConsoleApp.Log = x => Console.WriteLine(x);
+ConsoleApp.Run(args, (int x, int y) => { });
+""",
+    args: "--version",
+    expected: """
+1.0.0-"quote"\backslash
 
 """);
         // custom
@@ -40,16 +76,16 @@ ConsoleApp.Run(args, (int x, int y) => { });
     [Test]
     public async Task VersionOnBuilder()
     {
-        var version = GetEntryAssemblyVersion();
-
         await verifier.Execute(code: """
+[assembly: System.Reflection.AssemblyInformationalVersion("3.4.5+abcdef")]
+
 ConsoleApp.Log = x => Console.WriteLine(x);
 var app = ConsoleApp.Create();
 app.Run(args);
 """,
     args: "--version",
-    expected: $$"""
-{{version}}
+    expected: """
+3.4.5
 
 """);
     }
@@ -459,25 +495,6 @@ Options:
   --p2, --p3 <int>     param 2 [Required]
 
 """);
-    }
-
-    private static string GetEntryAssemblyVersion()
-    {
-        var version = System.Reflection.Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-
-        if (version == null)
-        {
-            return "1.0.0";
-        }
-
-        // Trim SourceRevisionId (SourceLink feature is enabled by default when using .NET SDK 8 or later)
-        var i = version.IndexOf('+');
-        if (i != -1)
-        {
-            version = version.Substring(0, i);
-        }
-
-        return version;
     }
 
     [Test]

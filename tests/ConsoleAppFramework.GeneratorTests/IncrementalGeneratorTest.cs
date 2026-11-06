@@ -672,4 +672,51 @@ app.Run(args);
 
         var reasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Builder.", step1, step2);
     }
+
+    [Test]
+    public async Task DefaultVersion()
+    {
+        var step1 = """
+using ConsoleAppFramework;
+
+[assembly: System.Reflection.AssemblyInformationalVersion("1.0.0")]
+
+ConsoleApp.Run(args, int () => 0);
+""";
+
+        var step2 = """
+using ConsoleAppFramework;
+
+[assembly: System.Reflection.AssemblyInformationalVersion("1.0.0")]
+
+ConsoleApp.Run(args, int () => 100); // body change
+
+Console.WriteLine("foo"); // unrelated line
+""";
+
+        var step3 = """
+using ConsoleAppFramework;
+
+[assembly: System.Reflection.AssemblyInformationalVersion("2.0.0")] // version change
+
+ConsoleApp.Run(args, int () => 100);
+
+Console.WriteLine("foo");
+""";
+
+        var versionReasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.DefaultVersion", step1, step2, step3);
+
+        await Assert.That(versionReasons[0][0].Reasons).IsEqualTo("New");
+        await Assert.That(versionReasons[1][0].Reasons).IsEqualTo("Unchanged");
+        await Assert.That(versionReasons[2][0].Reasons).IsEqualTo("Modified");
+
+        await VerifySourceOutputReasonIsCached(versionReasons[1]);
+        await VerifySourceOutputReasonIsNotCached(versionReasons[2]);
+
+        // version change should not invalidate ConsoleApp.Run output
+        var runReasons = runner.GetIncrementalGeneratorTrackedStepsReasons("ConsoleApp.Run.", step1, step2, step3);
+
+        await Assert.That(runReasons[2][0].Reasons).IsEqualTo("Unchanged");
+        await VerifySourceOutputReasonIsCached(runReasons[2]);
+    }
 }
