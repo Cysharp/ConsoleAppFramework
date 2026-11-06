@@ -404,33 +404,7 @@ internal static partial class ConsoleApp
 
     static void ShowVersion()
     {
-        if (Version != null)
-        {
-            Log(Version);
-            return;
-        }
-
-        var asm = Assembly.GetEntryAssembly();
-        var version = "1.0.0";
-        var infoVersion = asm!.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        if (infoVersion != null)
-        {
-            version = infoVersion.InformationalVersion;
-            var i = version.IndexOf('+');
-            if (i != -1)
-            {
-                version = version.Substring(0, i);
-            }
-        }
-        else
-        {
-            var asmVersion = asm!.GetCustomAttribute<AssemblyVersionAttribute>();
-            if (asmVersion != null)
-            {
-                version = asmVersion.Version;
-            }
-        }
-        Log(version);
+        Log(Version ?? DefaultVersion);
     }
 
     static partial void ShowHelp(int helpId);

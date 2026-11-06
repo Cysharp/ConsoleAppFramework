@@ -77,6 +77,14 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(hasReferences, EmitConsoleAppConfigure);
 
+        // Emit default version(for --version) as literal to avoid runtime reflection(it increases NativeAOT binary size).
+        // This pipeline is isolated(only string) so version changes do not invalidate other outputs.
+        var defaultVersion = context.CompilationProvider
+            .Select((compilation, token) => GetDefaultVersion(compilation))
+            .WithTrackingName("ConsoleApp.DefaultVersion");
+
+        context.RegisterSourceOutput(defaultVersion, EmitDefaultVersion);
+
         // get Options for Combine
         var generatorOptions = context.CompilationProvider.Select((compilation, token) =>
         {
@@ -196,6 +204,43 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
     static void EmitConsoleAppTemplateSource(IncrementalGeneratorPostInitializationContext context)
     {
         context.AddSource("ConsoleApp.g.cs", ConsoleAppBaseCode.InitializationCode.ReplaceLineEndings());
+    }
+
+    static string GetDefaultVersion(Compilation compilation)
+    {
+        string? assemblyVersion = null;
+        foreach (var attr in compilation.Assembly.GetAttributes())
+        {
+            var attrClass = attr.AttributeClass;
+            if (attrClass == null || attrClass.ContainingNamespace?.ToDisplayString() != "System.Reflection") continue;
+            if (attr.ConstructorArguments.Length != 1 || attr.ConstructorArguments[0].Value is not string value) continue;
+
+            if (attrClass.Name == "AssemblyInformationalVersionAttribute")
+            {
+                // Trim SourceRevisionId (SourceLink feature is enabled by default when using .NET SDK 8 or later)
+                var i = value.IndexOf('+');
+                return i != -1 ? value.Substring(0, i) : value;
+            }
+
+            if (attrClass.Name == "AssemblyVersionAttribute")
+            {
+                assemblyVersion = value;
+            }
+        }
+
+        return assemblyVersion ?? "1.0.0";
+    }
+
+    static void EmitDefaultVersion(SourceProductionContext sourceProductionContext, string defaultVersion)
+    {
+        var sb = new SourceBuilder(0);
+        sb.AppendLine(ConsoleAppBaseCode.GeneratedCodeHeader);
+        using (sb.BeginBlock("internal static partial class ConsoleApp"))
+        {
+            sb.AppendLine($"const string DefaultVersion = {SymbolDisplay.FormatLiteral(defaultVersion, quote: true)};");
+        }
+
+        sourceProductionContext.AddSource("ConsoleApp.Version.g.cs", sb.ToString().ReplaceLineEndings());
     }
 
     static void EmitConsoleAppRun(SourceProductionContext sourceProductionContext, CommandContext commandContext)
