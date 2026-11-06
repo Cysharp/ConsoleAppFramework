@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using System.Text;
 
 namespace ConsoleAppFramework;
@@ -50,7 +50,7 @@ public static class CommandHelpBuilder
     public static string BuildCliSchema(IEnumerable<Command> commands)
     {
         return "return new CommandHelpDefinition[] {\n"
-            + string.Join(", \n", commands.Select(x => CreateCommandHelpDefinition(x).ToCliSchema()))
+            + string.Join(", \n", commands.Select(x => CreateCommandHelpDefinition(x).ToCliSchema(x)))
             + "\n};";
     }
 
@@ -341,8 +341,9 @@ public static class CommandHelpBuilder
             Description = description;
         }
 
-        public string ToCliSchema()
+        public string ToCliSchema(Command command)
         {
+            var parameters = command.Parameters.Where(x => x.IsParsable).ToArray();
             var sb = new StringBuilder();
             sb.AppendLine($"new CommandHelpDefinition(");
             sb.AppendLine($"    \"{EscapeString(CommandName)}\",");
@@ -352,7 +353,7 @@ public static class CommandHelpBuilder
             for (int i = 0; i < Options.Length; i++)
             {
                 sb.Append("        ");
-                sb.Append(Options[i].ToCliSchema());
+                sb.Append(Options[i].ToCliSchema(parameters[i]));
                 if (i < Options.Length - 1)
                 {
                     sb.AppendLine(",");
@@ -365,7 +366,7 @@ public static class CommandHelpBuilder
 
             sb.AppendLine($"    }},");
             sb.AppendLine($"    \"{EscapeString(Description)}\"");
-            sb.Append($")");
+            sb.Append($") {{ IsHidden = {command.IsHidden.ToString().ToLowerInvariant()} }}");
 
             return sb.ToString();
         }
@@ -407,13 +408,24 @@ public static class CommandHelpBuilder
             IsDefaultValueHidden = isDefaultValueHidden;
         }
 
-        public string ToCliSchema()
+        public string ToCliSchema(CommandParameter parameter)
         {
+            // Preserve enum members without runtime reflection, including nullable enums.
+            var type = parameter.Type.TypeSymbol;
+            if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+                type = ((INamedTypeSymbol)type).TypeArguments[0];
+            var values = type.TypeKind == TypeKind.Enum
+                ? type.GetMembers().OfType<IFieldSymbol>().Where(x => x.HasConstantValue).Select(x => x.Name)
+                : Enumerable.Empty<string>();
+            var allowedValues = string.Join(", ", values.Select(x => "\"" + EscapeString(x) + "\""));
+
+            // Retain the original constructor and attach optional semantic metadata.
+            var metadata = $" {{ ParameterName = \"{EscapeString(parameter.OriginalParameterName)}\", IsGlobal = {(parameter.OriginalParameterName.Length == 0).ToString().ToLowerInvariant()}, AllowedValues = new string[] {{ {allowedValues} }} }}";
             var optionsArray = string.Join(", ", Options.Select(o => $"\"{EscapeString(o)}\""));
             var defaultValueStr = DefaultValue == null ? "null" : $"\"{EscapeString(DefaultValue)}\"";
             var indexStr = Index.HasValue ? Index.Value.ToString() : "null";
 
-            return $"new CommandOptionHelpDefinition(new[] {{ {optionsArray} }}, \"{EscapeString(Description)}\", \"{EscapeString(ValueTypeName)}\", {defaultValueStr}, {indexStr}, {IsFlag.ToString().ToLower()}, {IsParams.ToString().ToLower()}, {IsHidden.ToString().ToLower()}, {IsDefaultValueHidden.ToString().ToLower()})";
+            return $"new CommandOptionHelpDefinition(new[] {{ {optionsArray} }}, \"{EscapeString(Description)}\", \"{EscapeString(ValueTypeName)}\", {defaultValueStr}, {indexStr}, {IsFlag.ToString().ToLower()}, {IsParams.ToString().ToLower()}, {IsHidden.ToString().ToLower()}, {IsDefaultValueHidden.ToString().ToLower()})" + metadata;
         }
 
         private static string EscapeString(string str)

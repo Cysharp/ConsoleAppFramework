@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>true</IsPackable>
+    <PackageId>ConsoleAppFramework.Completions</PackageId>
+    <Description>Process-based shell completion using CLI Schema and custom value providers.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ConsoleAppFramework.CliSchema/ConsoleAppFramework.CliSchema.csproj" />
+  </ItemGroup>
+</Project>

@@ -16,6 +16,7 @@
   <Folder Name="/src/">
     <Project Path="src/ConsoleAppFramework.Abstractions/ConsoleAppFramework.Abstractions.csproj" />
     <Project Path="src/ConsoleAppFramework.CliSchema/ConsoleAppFramework.CliSchema.csproj" />
+    <Project Path="src/ConsoleAppFramework.Completions/ConsoleAppFramework.Completions.csproj" />
     <Project Path="src/ConsoleAppFramework/ConsoleAppFramework.csproj" />
   </Folder>
   <Folder Name="/tests/">

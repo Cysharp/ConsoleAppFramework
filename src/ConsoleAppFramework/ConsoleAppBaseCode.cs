@@ -1105,7 +1105,6 @@ internal static partial class ConsoleApp
         {
             try
             {
-                if (TryComplete(args)) return;
                 RunCore(args, cancellationToken);
             }
             finally
@@ -1127,7 +1126,6 @@ internal static partial class ConsoleApp
         {
             try
             {
-                if (TryComplete(args)) return;
                 Task? task = null;
                 RunAsyncCore(args, cancellationToken, ref task!);
                 if (task != null)
@@ -1186,7 +1184,6 @@ internal static partial class ConsoleApp
             this.startHost = startHost;
             try
             {
-                if (TryComplete(args)) return;
                 RunCore(args, cancellationToken);
             }
             finally
@@ -1214,7 +1211,6 @@ internal static partial class ConsoleApp
             this.startHost = startHost;
             try
             {
-                if (TryComplete(args)) return;
                 Task? task = null;
                 RunAsyncCore(args, cancellationToken, ref task!);
                 if (task != null)
