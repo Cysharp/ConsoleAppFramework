@@ -343,7 +343,9 @@ public partial class ConsoleAppGenerator : IIncrementalGenerator
         var help = new SourceBuilder(0);
         help.AppendLine(ConsoleAppBaseCode.GeneratedCodeHeader);
         using (help.BeginBlock("internal static partial class ConsoleApp"))
-        using (help.BeginBlock("internal partial class ConsoleAppBuilder"))
+        using (help.BeginBlock(dllReference.HasCliSchema
+            ? "internal partial class ConsoleAppBuilder : global::ConsoleAppFramework.ICliSchemaProvider"
+            : "internal partial class ConsoleAppBuilder"))
         {
             if (collectBuilderContext.GlobalOptions.Length != 0)
             {

@@ -1,9 +1,11 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace ConsoleAppFramework;
 
 public record CommandHelpDefinition
 {
+    public bool IsHidden { get; init; }
+
     public string CommandName { get; }
     public CommandOptionHelpDefinition[] Options { get; }
     public string Description { get; }
@@ -18,6 +20,11 @@ public record CommandHelpDefinition
 
 public record CommandOptionHelpDefinition
 {
+    // Semantic metadata shared by documentation and completion consumers.
+    public string ParameterName { get; init; } = "";
+    public string[] AllowedValues { get; init; } = [];
+    public bool IsGlobal { get; init; }
+
     public string[] Options { get; }
     public string Description { get; }
     public string? DefaultValue { get; }

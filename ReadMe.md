@@ -648,6 +648,90 @@ If you want to change the deserialization options, you can set `JsonSerializerOp
 
 > NOTE: If they are not set when NativeAOT is used, a runtime exception may occur. If they are included in the parsing process, be sure to set source generated options.
 
+### Dynamic shell completion
+
+Install the optional `ConsoleAppFramework.Completions` package, then register commands with the builder and handle completion before calling `Run` or `RunAsync`:
+
+```csharp
+using ConsoleAppFramework;
+using ConsoleAppFramework.Completions;
+
+var app = ConsoleApp.Create();
+app.Add("deploy", (string target, DeploymentMode mode = DeploymentMode.Safe) => { });
+
+// Resolve CLI Schema only when the shell requests completion candidates.
+if (app.TryComplete(args))
+    return;
+
+app.Run(args);
+enum DeploymentMode { Safe, Fast }
+```
+
+PowerShell:
+
+```powershell
+$env:COMPLETE = 'powershell' # or 'pwsh'
+try { myapp | Out-String | Invoke-Expression }
+finally { Remove-Item Env:COMPLETE }
+```
+
+Bash:
+
+```bash
+source <(COMPLETE=bash myapp)
+```
+
+Zsh (after `compinit`):
+
+```zsh
+source <(COMPLETE=zsh myapp)
+```
+
+Fish:
+
+```fish
+COMPLETE=fish myapp | source
+```
+
+Supply dynamic values with an optional callback. `ParameterName` is the original C# parameter name (empty for global options), `CommandName` is the selected command path or alias, and `Arguments` contains completed words before the cursor, excluding the executable and current word:
+
+```csharp
+// Replace the earlier TryComplete call with this version to add dynamic values.
+if (app.TryComplete(args, static context =>
+    context.ParameterName == "target"
+        ? new[] { new CompletionCandidate("staging", "Staging environment"), new CompletionCandidate("production") }
+        : Array.Empty<CompletionCandidate>()))
+    return;
+```
+
+Callbacks run only for a visible parameter expecting a value. Dynamic candidates are emitted before schema-generated candidates. If their values are identical (case-sensitive), the dynamic candidate wins, including its description; other generated candidates remain available. Candidates are filtered by `WordToComplete` and deduplicated; descriptions appear in PowerShell, Zsh, and Fish. Values containing line breaks, tabs, vertical tabs, or NUL are omitted. No candidates are supplied after the `--` escape separator.
+
+Set `hideStaticCompletions: true` on `TryComplete` or `TryHandle` to use only dynamic candidates when the provider produces matching results, and fall back to static candidates otherwise:
+
+```csharp
+if (app.TryComplete(args, provider: GetCandidates, hideStaticCompletions: true))
+    return;
+```
+
+This option defaults to `false`. When enabled, static candidates are suppressed for the current request only if at least one dynamic candidate passes prefix and protocol validation. If the provider returns no usable matches, is absent, or does not run at the current position, normal static completion remains available. Providers still run only for visible parameters expecting a value. With the default `false`, dynamic and static candidates are combined, with dynamic candidates winning duplicates.
+
+`TryComplete` reads `app.GetCliSchema()` directly by default. To override metadata, pass a `schemaFactory`; it is called only for a valid candidate request, never for normal execution or script registration. For example, replace the earlier call with:
+
+```csharp
+// Customize the generated metadata without changing command execution or help output.
+if (app.TryComplete(args, schemaFactory: () =>
+{
+    var schema = app.GetCliSchema();
+    for (var i = 0; i < schema.Length; i++)
+        if (schema[i].CommandName == "deploy")
+            schema[i] = schema[i] with { Description = "Deploy to the selected environment" };
+    return schema;
+}))
+    return;
+```
+
+The generated builder implements the general-purpose `ICliSchemaProvider` interface when the CliSchema package is referenced. Other schema producers can implement that interface or use `Completion.TryHandle(args, schemaFactory, provider)`.
+
 ### GlobalOptions
 
 By calling `ConfigureGlobalOptions` on `ConsoleAppBuilder`, you can define global options that are enabled for all commands. For example, `--dry-run` or `--verbose` are suitable as common options.
@@ -1518,6 +1602,7 @@ CommandHelpDefinition[] schema = app.GetCliSchema();
 ```csharp
 public record CommandHelpDefinition
 {
+    public bool IsHidden { get; init; }
     public string CommandName { get; }
     public CommandOptionHelpDefinition[] Options { get; }
     public string Description { get; }
@@ -1525,6 +1610,9 @@ public record CommandHelpDefinition
 
 public record CommandOptionHelpDefinition
 {
+    public string ParameterName { get; init; }
+    public string[] AllowedValues { get; init; }
+    public bool IsGlobal { get; init; }
     public string[] Options { get; }
     public string Description { get; }
     public string? DefaultValue { get; }
