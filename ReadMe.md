@@ -638,6 +638,36 @@ Array parsing has three special patterns.
 
 For a regular `T[]`, if the value starts with `[`, it is parsed using `JsonSerializer.Deserialize`. Otherwise, it is parsed as comma-separated values. For example, `[1,2,3]` or `1,2,3` are allowed as values. To set an empty array, pass `[]`.
 
+A `T[]` option can also be specified more than once. Each occurrence is parsed in the same way as above and the values are appended in order. For example, `--array 1 --array 2,3 --array [4,5]` will be bound to `[1, 2, 3, 4, 5]`. This does not apply to `[Argument]` parameters and `params T[]`.
+
+```csharp
+// cmd.exe -e FOO=1 -e BAR=2
+ConsoleApp.Run(args, Commands.Run);
+
+static class Commands
+{
+    /// <param name="env">-e, Set environment variables.</param>
+    public static void Run(string[] env) => Console.WriteLine(string.Join(", ", env));
+}
+```
+
+If the values themselves contain commas (for example `-p List=a,b`), comma-separated parsing gets in the way. In that case, you can create a [custom parser](#custom-value-converter) for `T[]` that does not split the value. Since each occurrence is appended, repeating the option still works.
+
+```csharp
+[AttributeUsage(AttributeTargets.Parameter)]
+public class NoSplitAttribute : Attribute, IArgumentParser<string[]>
+{
+    public static bool TryParse(ReadOnlySpan<char> s, out string[] result)
+    {
+        result = [s.ToString()];
+        return true;
+    }
+}
+
+// cmd.exe --p List=a,b --p X=1 -> ["List=a,b", "X=1"]
+ConsoleApp.Run(args, ([NoSplit] string[] p) => { });
+```
+
 For `params T[]`, all subsequent arguments become the values of the array. For example, if there is an input like `--paramsArray foo bar baz`, it will be bound to a value like `["foo", "bar", "baz"]`.
 
 ### Object

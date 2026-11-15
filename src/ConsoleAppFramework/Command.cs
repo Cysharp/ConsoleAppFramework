@@ -194,6 +194,10 @@ public record class CommandParameter
     public required string Description { get; init; }
     public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams || IsFlag);
 
+    // named option of T[] can be specified more than once(`-p a -p b`), each occurrence is appended.
+    // params T[] consumes all remaining arguments and [Argument] is positional so they are out of target.
+    public bool IsRepeatableArray => IsParsable && !IsParams && !IsArgument && Type.TypeSymbol is IArrayTypeSymbol { IsSZArray: true };
+
     // increment = false when passed from [Argument]
     public string BuildParseMethod(int argCount, string argumentName, bool increment)
     {
