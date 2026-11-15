@@ -235,7 +235,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                     }
                                     using (sb.BeginBlock())
                                     {
-                                        sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
+                                        EmitParseOption(sb, parameter, i);
                                         if (parameter.RequireCheckArgumentParsed)
                                         {
                                             sb.AppendLine($"arg{i}Parsed = true;");
@@ -261,7 +261,7 @@ internal class Emitter(DllReference? dllReference) // from EmitConsoleAppRun, nu
                                         }
                                         using (sb.BeginBlock())
                                         {
-                                            sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
+                                            EmitParseOption(sb, parameter, i);
                                             if (parameter.RequireCheckArgumentParsed)
                                             {
                                                 sb.AppendLine($"arg{i}Parsed = true;");
@@ -1134,6 +1134,22 @@ internal static class ConsoleAppHostBuilderExtensions
     }
 }
 """);
+    }
+
+    // parse named option(--name or alias) to arg{i}
+    static void EmitParseOption(SourceBuilder sb, CommandParameter parameter, int i)
+    {
+        if (!parameter.IsRepeatableArray)
+        {
+            sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
+            return;
+        }
+
+        // array option can be specified more than once, keep the previous values and append to it.
+        // arg{i} is always null until parsed first(default value of the array parameter is only allowed null).
+        sb.AppendLine($"var prev{i} = arg{i};");
+        sb.AppendLine($"{parameter.BuildParseMethod(i, parameter.Name, increment: true)}");
+        sb.AppendLine($"if (prev{i} != null) arg{i} = ConcatArray(prev{i}, arg{i});");
     }
 
     string Join(string separator, params string?[] args)

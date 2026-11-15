@@ -352,6 +352,18 @@ internal static partial class ConsoleApp
         return true;
     }
 
+    // array option specified more than once(`-p a -p b`), append to the previous values
+    static T[] ConcatArray<T>(T[] first, T[]? second)
+    {
+        if (second == null || second.Length == 0) return first;
+        if (first.Length == 0) return second;
+
+        var result = new T[first.Length + second.Length];
+        first.CopyTo(result, 0);
+        second.CopyTo(result, first.Length);
+        return result;
+    }
+
     static void ValidateParameter(object? value, ParameterInfo parameter, ValidationContext validationContext, ref StringBuilder? errorMessages)
     {
         validationContext.DisplayName = parameter.Name ?? "";
