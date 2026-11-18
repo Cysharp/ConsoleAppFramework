@@ -284,19 +284,19 @@ internal static partial class ConsoleApp
         return false;
     }
 
-    static bool TryParseParamsArray<T>(ReadOnlySpan<string> args, ref T[] result, ref int i)
+    static bool TryParseParamsArray<T>(ReadOnlySpan<string> args, ref T[] result, ref int i, IFormatProvider? provider)
        where T : IParsable<T>
     {
         result = new T[args.Length - i];
         var resultIndex = 0;
         for (; i < args.Length; i++)
         {
-            if (!T.TryParse(args[i], null, out result[resultIndex++]!)) return false;
+            if (!T.TryParse(args[i], provider, out result[resultIndex++]!)) return false;
         }
         return true;
     }
 
-    static bool TrySplitParse<T>(ReadOnlySpan<char> s, out T[] result)
+    static bool TrySplitParse<T>(ReadOnlySpan<char> s, out T[] result, IFormatProvider? provider)
        where T : ISpanParsable<T>
     {
         if (s.StartsWith("["))
@@ -331,7 +331,7 @@ internal static partial class ConsoleApp
 
             for (int i = 0; i < parseTo; i++)
             {
-                if (!T.TryParse(source[ranges[i]], null, out destination[i]!))
+                if (!T.TryParse(source[ranges[i]], provider, out destination[i]!))
                 {
                     return false;
                 }
@@ -795,7 +795,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(sbyte))
             {
-                if (sbyte.TryParse(s, out var v))
+                if (sbyte.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<sbyte, T>(ref v);
                     return true;
@@ -805,7 +805,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(byte))
             {
-                if (byte.TryParse(s, out var v))
+                if (byte.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<byte, T>(ref v);
                     return true;
@@ -815,7 +815,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(short))
             {
-                if (short.TryParse(s, out var v))
+                if (short.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<short, T>(ref v);
                     return true;
@@ -825,7 +825,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(int))
             {
-                if (int.TryParse(s, out var v))
+                if (int.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<int, T>(ref v);
                     return true;
@@ -835,7 +835,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(long))
             {
-                if (long.TryParse(s, out var v))
+                if (long.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<long, T>(ref v);
                     return true;
@@ -845,7 +845,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(ushort))
             {
-                if (ushort.TryParse(s, out var v))
+                if (ushort.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<ushort, T>(ref v);
                     return true;
@@ -855,7 +855,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(uint))
             {
-                if (uint.TryParse(s, out var v))
+                if (uint.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<uint, T>(ref v);
                     return true;
@@ -865,7 +865,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(ulong))
             {
-                if (ulong.TryParse(s, out var v))
+                if (ulong.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<ulong, T>(ref v);
                     return true;
@@ -875,7 +875,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(float))
             {
-                if (float.TryParse(s, out var v))
+                if (float.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<float, T>(ref v);
                     return true;
@@ -885,7 +885,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(double))
             {
-                if (double.TryParse(s, out var v))
+                if (double.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<double, T>(ref v);
                     return true;
@@ -895,7 +895,7 @@ internal static partial class ConsoleApp
             }
             else if (typeof(T) == typeof(decimal))
             {
-                if (decimal.TryParse(s, out var v))
+                if (decimal.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     result = Unsafe.As<decimal, T>(ref v);
                     return true;
@@ -938,7 +938,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(sbyte))
             {
-                if (sbyte.TryParse(s, out var v))
+                if (sbyte.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new sbyte?(v);
                     result = Unsafe.As<sbyte?, T>(ref nullableValue);
@@ -947,7 +947,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(byte))
             {
-                if (byte.TryParse(s, out var v))
+                if (byte.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new byte?(v);
                     result = Unsafe.As<byte?, T>(ref nullableValue);
@@ -956,7 +956,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(short))
             {
-                if (short.TryParse(s, out var v))
+                if (short.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new short?(v);
                     result = Unsafe.As<short?, T>(ref nullableValue);
@@ -965,7 +965,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(int))
             {
-                if (int.TryParse(s, out var v))
+                if (int.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new int?(v);
                     result = Unsafe.As<int?, T>(ref nullableValue);
@@ -974,7 +974,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(long))
             {
-                if (long.TryParse(s, out var v))
+                if (long.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new long?(v);
                     result = Unsafe.As<long?, T>(ref nullableValue);
@@ -983,7 +983,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(ushort))
             {
-                if (ushort.TryParse(s, out var v))
+                if (ushort.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new ushort?(v);
                     result = Unsafe.As<ushort?, T>(ref nullableValue);
@@ -992,7 +992,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(uint))
             {
-                if (uint.TryParse(s, out var v))
+                if (uint.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new uint?(v);
                     result = Unsafe.As<uint?, T>(ref nullableValue);
@@ -1001,7 +1001,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(ulong))
             {
-                if (ulong.TryParse(s, out var v))
+                if (ulong.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new ulong?(v);
                     result = Unsafe.As<ulong?, T>(ref nullableValue);
@@ -1010,7 +1010,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(float))
             {
-                if (float.TryParse(s, out var v))
+                if (float.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new float?(v);
                     result = Unsafe.As<float?, T>(ref nullableValue);
@@ -1019,7 +1019,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(double))
             {
-                if (double.TryParse(s, out var v))
+                if (double.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new double?(v);
                     result = Unsafe.As<double?, T>(ref nullableValue);
@@ -1028,7 +1028,7 @@ internal static partial class ConsoleApp
             }
             else if (underlyingType == typeof(decimal))
             {
-                if (decimal.TryParse(s, out var v))
+                if (decimal.TryParse(s, global::System.Globalization.CultureInfo.InvariantCulture, out var v))
                 {
                     var nullableValue = new decimal?(v);
                     result = Unsafe.As<decimal?, T>(ref nullableValue);

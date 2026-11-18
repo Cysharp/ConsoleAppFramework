@@ -194,6 +194,14 @@ public record class CommandParameter
     public required string Description { get; init; }
     public bool RequireCheckArgumentParsed => !(HasDefaultValue || IsParams || IsFlag);
 
+    // Numbers are parsed with the invariant culture, otherwise "1.5" becomes 15 in cultures where '.' is the group separator.
+    static string GetParseProvider(ITypeSymbol type)
+    {
+        return type.AllInterfaces.Any(x => x.Name == "INumberBase" && x.ContainingNamespace.ToDisplayString() == "System.Numerics")
+            ? "System.Globalization.CultureInfo.InvariantCulture"
+            : "null";
+    }
+
     // increment = false when passed from [Argument]
     public string BuildParseMethod(int argCount, string argumentName, bool increment)
     {
@@ -261,7 +269,7 @@ public record class CommandParameter
                     // ParamsArray
                     if (IsParams)
                     {
-                        return $"{(increment ? "i++; " : "")}if (!TryParseParamsArray(commandArgs, ref arg{argCount}, ref i)) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
+                        return $"{(increment ? "i++; " : "")}if (!TryParseParamsArray(commandArgs, ref arg{argCount}, ref i, {GetParseProvider((type as IArrayTypeSymbol)?.ElementType ?? type)})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
                     }
 
                     // Array
@@ -273,7 +281,7 @@ public record class CommandParameter
                         {
                             if (elementType.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(parsable)))
                             {
-                                return $"if ({incrementIndex}!TrySplitParse(commandArgs[i], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
+                                return $"if ({incrementIndex}!TrySplitParse(commandArgs[i], {outArgVar}, {GetParseProvider(elementType)})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
                             }
                         }
                         break;
@@ -297,11 +305,18 @@ public record class CommandParameter
 
             if (tryParseKnownPrimitive)
             {
+                // Numbers are parsed with the invariant culture, otherwise "1.5" becomes 15 in cultures where '.' is the group separator.
+                var isNumber = type.SpecialType is SpecialType.System_SByte or SpecialType.System_Byte or SpecialType.System_Int16 or SpecialType.System_UInt16 or SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or SpecialType.System_Decimal or SpecialType.System_Single or SpecialType.System_Double;
+                if (isNumber)
+                {
+                    return $"if ({incrementIndex}!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(commandArgs[i], System.Globalization.CultureInfo.InvariantCulture, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
+                }
                 return $"if ({incrementIndex}!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(commandArgs[i], {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
             }
             else if (tryParseIParsable)
             {
-                return $"if ({incrementIndex}!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(commandArgs[i], null, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
+                var provider = GetParseProvider(type);
+                return $"if ({incrementIndex}!{type.ToFullyQualifiedFormatDisplayString()}.TryParse(commandArgs[i], {provider}, {outArgVar})) {{ ThrowArgumentParseFailed(\"{argumentName}\", commandArgs[i]); }}{elseExpr}";
             }
             else
             {
