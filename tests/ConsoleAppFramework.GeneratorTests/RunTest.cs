@@ -181,6 +181,32 @@ namespace Takoyaki
     }
 
     [Test]
+    public async Task NumbersAreParsedWithInvariantCulture()
+    {
+        // In cultures like tr-TR or de-DE '.' is the group separator, so "1.5" would be silently parsed as 15.
+        // The culture is switched around a synchronous call so that it is restored on the same thread.
+        string stdout;
+        var original = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("tr-TR");
+        try
+        {
+            stdout = verifier.Error("""
+ConsoleApp.Log = x => Console.Write(x);
+ConsoleApp.Run(args, (double d, float f, decimal m, Half h, double? n, double[] arr) =>
+{
+    Console.Write((d == 1.5) + "," + (f == 2.5f) + "," + (m == 3.5m) + "," + ((double)h == 1.5) + "," + (n == 4.5) + "," + (arr[1] == 2.5));
+});
+""", "--d 1.5 --f 2.5 --m 3.5 --h 1.5 --n 4.5 --arr 1.5,2.5").Stdout;
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = original;
+        }
+
+        await Assert.That(stdout).IsEqualTo("True,True,True,True,True,True");
+    }
+
+    [Test]
     public async Task ValidateClass()
     {
         var expected = """
